@@ -8,8 +8,15 @@ export interface AssessmentType {
 
 export interface AssessmentComponent {
   id: string;
-  name: string;
+  name?: string;
   weight: number;
+  classroomId?: string;
+  subjectId?: string;
+  academicYearId?: string;
+  semesterId?: string;
+  typeId?: string;
+  isActive?: boolean;
+  type?: AssessmentType;
 }export interface Exam {
   id: string;
   academicYearId: string;
@@ -46,6 +53,20 @@ export const getAssessmentTypes = async (): Promise<AssessmentType[]> => {
 export const getAssessmentComponents = async (params?: Record<string, any>): Promise<AssessmentComponent[]> => {
   const response = await api.get('/assessment/components', { params });
   return response.data;
+};
+
+export const createAssessmentComponent = async (data: Partial<AssessmentComponent>): Promise<AssessmentComponent> => {
+  const response = await api.post('/assessment/components', data);
+  return response.data;
+};
+
+export const updateAssessmentComponent = async (id: string, data: Partial<AssessmentComponent>): Promise<AssessmentComponent> => {
+  const response = await api.patch(`/assessment/components/${id}`, data);
+  return response.data;
+};
+
+export const deleteAssessmentComponent = async (id: string): Promise<void> => {
+  await api.delete(`/assessment/components/${id}`);
 };
 
 // ==========================

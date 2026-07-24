@@ -97,6 +97,10 @@ export const Sidebar: React.FC = () => {
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Penilaian & Ujian
             </div>
+            <NavLink to="/assessment/components" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <Settings size={20} />
+              <span>Komponen Penilaian</span>
+            </NavLink>
             <NavLink to="/assessment/exams" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
               <FileEdit size={20} />
               <span>Agenda Penilaian</span>

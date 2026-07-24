@@ -422,7 +422,10 @@ export const Exams: React.FC = () => {
                   <label className="text-sm font-medium text-gray-700" title="Komponen penilaian">Komponen Penilaian *</label>
                   <select className="input-field mt-1" value={componentId} onChange={(e) => setComponentId(e.target.value)} required>
                     <option value="">Pilih...</option>
-                    {components.map(c => <option key={c.id} value={c.id}>{c.name} (Bobot: {c.weight})</option>)}
+                    {components
+                      .filter(c => c.classroomId === classroomId && c.subjectId === subjectId && c.academicYearId === academicYearId && c.semesterId === semesterId)
+                      .map(c => <option key={c.id} value={c.id}>{c.type?.name || 'Komponen'} (Bobot: {c.weight})</option>)
+                    }
                   </select>
                 </div>
               </div>

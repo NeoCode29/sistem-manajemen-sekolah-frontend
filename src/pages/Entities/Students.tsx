@@ -51,7 +51,7 @@ export const Students: React.FC = () => {
   const [nisn, setNisn] = useState('');
   const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState('Laki-laki');
-  const [status, setStatus] = useState('Aktif');
+  const [status, setStatus] = useState('ACTIVE');
   
   // Wizard Step 2: Primary Guardian Data
   const [guardianRel, setGuardianRel] = useState('Ayah');
@@ -269,7 +269,7 @@ export const Students: React.FC = () => {
     setShowWizardModal(false);
     setWizardStep(1);
     // Reset forms
-    setNis(''); setNisn(''); setFullName(''); setGender('Laki-laki'); setStatus('Aktif');
+    setNis(''); setNisn(''); setFullName(''); setGender('Laki-laki'); setStatus('ACTIVE');
     setGuardianRel('Ayah'); setGuardianName(''); setGuardianPhone('');
     setSelectedClass(''); setCreateUserAccount(true);
     setError('');
@@ -354,7 +354,11 @@ export const Students: React.FC = () => {
                     <td className="font-semibold">{student.fullName}</td>
                     <td>
                       <span className="status-badge" style={{ backgroundColor: 'var(--primary-color)', color: 'white' }}>
-                        {student.status}
+                        {student.status === 'ACTIVE' ? 'Aktif' : 
+                         student.status === 'TRANSFER' ? 'Pindahan' : 
+                         student.status === 'GRADUATED' ? 'Lulus' : 
+                         student.status === 'DROPOUT' ? 'Keluar' : 
+                         student.status}
                       </span>
                     </td>
                     <td>
@@ -568,10 +572,10 @@ export const Students: React.FC = () => {
                 <div className="form-group">
                   <label>Status</label>
                   <select className="input-field" value={editStatus} onChange={(e) => setEditStatus(e.target.value)}>
-                    <option value="Aktif">Aktif</option>
-                    <option value="Pindahan">Pindahan</option>
-                    <option value="Lulus">Lulus</option>
-                    <option value="Keluar">Keluar</option>
+                    <option value="ACTIVE">Aktif</option>
+                    <option value="TRANSFER">Pindahan</option>
+                    <option value="GRADUATED">Lulus</option>
+                    <option value="DROPOUT">Keluar</option>
                   </select>
                 </div>
               </div>
@@ -636,8 +640,8 @@ export const Students: React.FC = () => {
                     <div className="form-group">
                       <label>Status Masuk</label>
                       <select className="input-field" value={status} onChange={(e) => setStatus(e.target.value)}>
-                        <option value="Aktif">Siswa Baru (Aktif)</option>
-                        <option value="Pindahan">Siswa Pindahan</option>
+                        <option value="ACTIVE">Siswa Baru (Aktif)</option>
+                        <option value="TRANSFER">Siswa Pindahan</option>
                       </select>
                     </div>
                   </>

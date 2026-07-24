@@ -82,16 +82,16 @@ export interface StudentBilling {
 
 export const getBillings = async (params?: Record<string, any>): Promise<{ data: StudentBilling[], meta: any }> => {
   const response = await api.get('/finance/billings', { params });
-  return response.data; // Assuming pagination
+  return response.data;
 };
 
-export const generateBatchBillings = async (payload: { paymentPeriodId: string; gradeId?: string; classroomId?: string; dueDate: string; }) => {
-  const response = await api.post('/finance/billings/generate', payload);
+export const generateBatchBillings = async (payload: { paymentPeriodId: string; gradeId?: string; classroomId?: string; dueDate?: string; }) => {
+  const response = await api.post('/finance/billings/generate-batch', payload);
   return response.data; // { totalTargetStudents, generatedCount, skippedCount }
 };
 
 export const createCustomBilling = async (data: Partial<StudentBilling>) => {
-  const response = await api.post('/finance/billings/custom', data);
+  const response = await api.post('/finance/billings', data);
   return response.data;
 };
 
@@ -102,6 +102,11 @@ export const updateBilling = async (id: string, data: Partial<StudentBilling>) =
 
 export const cancelBilling = async (id: string) => {
   const response = await api.patch(`/finance/billings/${id}/cancel`);
+  return response.data;
+};
+
+export const deleteBilling = async (id: string) => {
+  const response = await api.delete(`/finance/billings/${id}`);
   return response.data;
 };
 

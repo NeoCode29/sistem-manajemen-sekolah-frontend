@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { getBillings, generateBatchBillings, updateBilling, cancelBilling, getPaymentPeriods, type StudentBilling, type PaymentPeriod } from '../../api/financeService';
+import { getBillings, generateBatchBillings, updateBilling, cancelBilling, deleteBilling, getPaymentPeriods, getPaymentTypes, createCustomBilling, type StudentBilling, type PaymentPeriod, type PaymentType } from '../../api/financeService';
 import { getGrades, getClassrooms, type Grade, type Classroom } from '../../api/academicService';
-import { FileText, Wand2, Search, Edit3, Trash2 } from 'lucide-react';
+import { getStudents, type Student } from '../../api/studentService';
+import { FileText, Wand2, Search, Edit3, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import '../Academic/Academic.css';
 
 export const Billings: React.FC = () => {
@@ -9,6 +10,8 @@ export const Billings: React.FC = () => {
   const [periods, setPeriods] = useState<PaymentPeriod[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,6 +20,11 @@ export const Billings: React.FC = () => {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [filterPeriodId, setFilterPeriodId] = useState('');
+  
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
   
   // Modal State
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
@@ -40,7 +48,7 @@ export const Billings: React.FC = () => {
 
   useEffect(() => {
     fetchBillings();
-  }, [status, filterPeriodId]);
+  }, [status, filterPeriodId, page, limit]);
 
   useEffect(() => {
     if (batchGradeId) fetchClassrooms(batchGradeId);
@@ -49,12 +57,16 @@ export const Billings: React.FC = () => {
 
   const fetchDependencies = async () => {
     try {
-      const [periodsData, gradesData] = await Promise.all([
+      const [periodsData, gradesData, typesData, studentsData] = await Promise.all([
         getPaymentPeriods(),
-        getGrades()
+        getGrades(),
+        getPaymentTypes(),
+        getStudents({ limit: 1000 })
       ]);
       setPeriods(periodsData);
       setGrades(gradesData);
+      setPaymentTypes(typesData);
+      setStudents(studentsData);
     } catch (err) {
       console.error(err);
     }
@@ -72,13 +84,16 @@ export const Billings: React.FC = () => {
   const fetchBillings = async () => {
     try {
       setLoading(true);
-      const params: any = {};
+      const params: any = { page, limit };
       if (search) params.search = search;
       if (status) params.status = status;
       if (filterPeriodId) params.paymentPeriodId = filterPeriodId;
       
       const res = await getBillings(params);
       setBillings(res.data || []);
+      if (res.meta) {
+        setTotalPages(res.meta.totalPages || 1);
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Gagal memuat daftar tagihan');
     } finally {
@@ -88,6 +103,7 @@ export const Billings: React.FC = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setPage(1);
     fetchBillings();
   };
 
@@ -106,8 +122,10 @@ export const Billings: React.FC = () => {
       setIsGenerating(true);
       const payload: any = {
         paymentPeriodId: batchPeriodId,
-        dueDate: new Date(batchDueDate).toISOString(),
       };
+      if (batchDueDate) {
+        payload.dueDate = new Date(batchDueDate).toISOString();
+      }
       if (batchGradeId) payload.gradeId = batchGradeId;
       if (batchClassroomId) payload.classroomId = batchClassroomId;
       
@@ -146,13 +164,74 @@ export const Billings: React.FC = () => {
     }
   };
 
-  const handleCancelBilling = async (id: string) => {
-    if (window.confirm('Yakin ingin membatalkan tagihan ini? (Tagihan berstatus PAID atau PARTIAL tidak dapat dibatalkan)')) {
-      try {
-        await cancelBilling(id);
-        fetchBillings();
-      } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal membatalkan tagihan');
+  // Single Billing Modal State
+  const [isSingleModalOpen, setIsSingleModalOpen] = useState(false);
+  const [singleStudentId, setSingleStudentId] = useState('');
+  const [singlePaymentTypeId, setSinglePaymentTypeId] = useState('');
+  const [singlePaymentPeriodId, setSinglePaymentPeriodId] = useState('');
+  const [singleAmount, setSingleAmount] = useState<number>(0);
+  const [singleDueDate, setSingleDueDate] = useState('');
+  const [singleNotes, setSingleNotes] = useState('');
+  const [isCreatingSingle, setIsCreatingSingle] = useState(false);
+
+  const openSingleModal = () => {
+    setSingleStudentId('');
+    setSinglePaymentTypeId('');
+    setSinglePaymentPeriodId('');
+    setSingleAmount(0);
+    setSingleDueDate('');
+    setSingleNotes('');
+    setIsSingleModalOpen(true);
+  };
+
+  const handlePaymentTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const typeId = e.target.value;
+    setSinglePaymentTypeId(typeId);
+    const selectedType = paymentTypes.find(t => t.id === typeId);
+    if (selectedType) {
+      setSingleAmount(Number(selectedType.defaultAmount) || 0);
+    }
+  };
+
+  const handleCreateSingle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsCreatingSingle(true);
+      await createCustomBilling({
+        studentId: singleStudentId,
+        paymentTypeId: singlePaymentTypeId,
+        paymentPeriodId: singlePaymentPeriodId || undefined,
+        amount: singleAmount,
+        dueDate: singleDueDate || undefined,
+        notes: singleNotes
+      });
+      setIsSingleModalOpen(false);
+      fetchBillings();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Gagal membuat tagihan tunggal');
+    } finally {
+      setIsCreatingSingle(false);
+    }
+  };
+
+  const handleDeleteOrCancel = async (billing: StudentBilling) => {
+    if (billing.status === 'CANCELLED') {
+      if (window.confirm('Yakin ingin menghapus tagihan ini secara permanen?')) {
+        try {
+          await deleteBilling(billing.id);
+          fetchBillings();
+        } catch (err: any) {
+          alert(err.response?.data?.message || 'Gagal menghapus tagihan permanen');
+        }
+      }
+    } else {
+      if (window.confirm('Yakin ingin membatalkan tagihan ini? (Tagihan berstatus PAID atau PARTIAL tidak dapat dibatalkan)')) {
+        try {
+          await cancelBilling(billing.id);
+          fetchBillings();
+        } catch (err: any) {
+          alert(err.response?.data?.message || 'Gagal membatalkan tagihan');
+        }
       }
     }
   };
@@ -178,9 +257,14 @@ export const Billings: React.FC = () => {
           <h1 className="page-title">Manajemen Tagihan (Billings)</h1>
           <p className="page-subtitle">Buat tagihan massal per kelas, kelola diskon, dan pantau status lunas</p>
         </div>
-        <button className="btn-primary flex items-center gap-2" onClick={openBatchModal}>
-          <Wand2 size={18} /> Generate Tagihan Massal
-        </button>
+        <div className="flex gap-2">
+          <button className="btn-secondary flex items-center gap-2" onClick={openSingleModal}>
+            <Plus size={18} /> Tagihan Tunggal
+          </button>
+          <button className="btn-primary flex items-center gap-2" onClick={openBatchModal}>
+            <Wand2 size={18} /> Generate Massal
+          </button>
+        </div>
       </div>
 
       <div className="glass-panel p-4 mb-6">
@@ -286,9 +370,9 @@ export const Billings: React.FC = () => {
                         </button>
                         <button 
                           className="btn-icon text-red-600 disabled:opacity-50" 
-                          title="Batalkan Tagihan"
-                          onClick={() => handleCancelBilling(billing.id)}
-                          disabled={billing.status === 'PAID' || billing.status === 'PARTIAL' || billing.status === 'CANCELLED'}
+                          title={billing.status === 'CANCELLED' ? "Hapus Tagihan Permanen" : "Batalkan Tagihan"}
+                          onClick={() => handleDeleteOrCancel(billing)}
+                          disabled={billing.status === 'PAID' || billing.status === 'PARTIAL'}
                         >
                           <Trash2 size={16} />
                         </button>
@@ -303,6 +387,30 @@ export const Billings: React.FC = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+        
+        {!loading && billings.length > 0 && (
+          <div className="flex items-center justify-between p-4 border-t border-gray-200">
+            <div className="text-sm text-gray-500">
+              Halaman <span className="font-semibold text-gray-700">{page}</span> dari <span className="font-semibold text-gray-700">{totalPages}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                className="btn-secondary h-8 px-3 flex items-center disabled:opacity-50"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <ChevronLeft size={16} /> Prev
+              </button>
+              <button 
+                className="btn-secondary h-8 px-3 flex items-center disabled:opacity-50"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -460,6 +568,102 @@ export const Billings: React.FC = () => {
                 <button type="button" className="btn-secondary" onClick={() => setIsEditModalOpen(false)}>Batal</button>
                 <button type="submit" className="btn-primary" disabled={isSaving}>
                   {isSaving ? 'Menyimpan...' : 'Simpan Penyesuaian'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SINGLE BILLING */}
+      {isSingleModalOpen && (
+        <div className="modal-backdrop-v4">
+          <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
+            <div className="modal-header-v4">
+              <h2>Tambah Tagihan Tunggal</h2>
+              <button type="button" className="btn-close" onClick={() => setIsSingleModalOpen(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleCreateSingle} className="modal-form-v4">
+              <div className="modal-body-v4 form-grid">
+                
+                <div className="form-group mb-4">
+                  <label className="text-sm font-medium text-gray-700">Pilih Siswa *</label>
+                  <select 
+                    className="input-field mt-1" 
+                    value={singleStudentId} 
+                    onChange={(e) => setSingleStudentId(e.target.value)}
+                    required
+                  >
+                    <option value="">-- Cari/Pilih Siswa --</option>
+                    {students.map(s => <option key={s.id} value={s.id}>{s.nis} - {s.fullName}</option>)}
+                  </select>
+                </div>
+
+                <div className="form-group mb-4">
+                  <label className="text-sm font-medium text-gray-700">Jenis Tagihan *</label>
+                  <select 
+                    className="input-field mt-1" 
+                    value={singlePaymentTypeId} 
+                    onChange={handlePaymentTypeChange}
+                    required
+                  >
+                    <option value="">-- Pilih Jenis --</option>
+                    {paymentTypes.map(pt => <option key={pt.id} value={pt.id}>{pt.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="form-group mb-4">
+                  <label className="text-sm font-medium text-gray-700">Tautkan ke Periode (Opsional)</label>
+                  <select 
+                    className="input-field mt-1" 
+                    value={singlePaymentPeriodId} 
+                    onChange={(e) => setSinglePaymentPeriodId(e.target.value)}
+                  >
+                    <option value="">-- Tidak Tautkan Periode --</option>
+                    {periods.filter(p => !singlePaymentTypeId || p.paymentTypeId === singlePaymentTypeId).map(p => 
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    )}
+                  </select>
+                </div>
+
+                <div className="form-group mb-4">
+                  <label className="text-sm font-medium text-gray-700">Nominal Dasar (Rp) *</label>
+                  <input 
+                    type="number" 
+                    className="input-field mt-1" 
+                    value={singleAmount} 
+                    onChange={(e) => setSingleAmount(Number(e.target.value))}
+                    min={0}
+                    required
+                  />
+                </div>
+
+                <div className="form-group mb-4">
+                  <label className="text-sm font-medium text-gray-700">Jatuh Tempo (Opsional)</label>
+                  <input 
+                    type="date" 
+                    className="input-field mt-1" 
+                    value={singleDueDate} 
+                    onChange={(e) => setSingleDueDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group mb-4">
+                  <label className="text-sm font-medium text-gray-700">Keterangan / Catatan</label>
+                  <input 
+                    type="text" 
+                    className="input-field mt-1" 
+                    value={singleNotes} 
+                    onChange={(e) => setSingleNotes(e.target.value)}
+                    placeholder="Contoh: Penggantian buku hilang"
+                  />
+                </div>
+
+              </div>
+              <div className="modal-footer-v4">
+                <button type="button" className="btn-secondary" onClick={() => setIsSingleModalOpen(false)}>Batal</button>
+                <button type="submit" className="btn-primary" disabled={isCreatingSingle}>
+                  {isCreatingSingle ? 'Menyimpan...' : 'Simpan Tagihan'}
                 </button>
               </div>
             </form>

@@ -25,6 +25,7 @@ import { PaymentPeriods } from '../pages/Finance/PaymentPeriods';
 import { Billings } from '../pages/Finance/Billings';
 import { Cashier } from '../pages/Finance/Cashier';
 import { Receipts } from '../pages/Finance/Receipts';
+import { AssessmentComponents } from '../pages/Assessment/AssessmentComponents';
 import { Exams } from '../pages/Assessment/Exams';
 import { ExamScores } from '../pages/Assessment/ExamScores';
 import { Achievements } from '../pages/StudentAffairs/Achievements';
@@ -74,6 +75,7 @@ export const AppRoutes: React.FC = () => {
               <Route path="/finance/billings" element={<Billings />} />
               <Route path="/finance/cashier" element={<Cashier />} />
               <Route path="/finance/receipts" element={<Receipts />} />
+              <Route path="/assessment/components" element={<AssessmentComponents />} />
               <Route path="/assessment/exams" element={<Exams />} />
               <Route path="/assessment/exams/:examId/scores" element={<ExamScores />} />
               <Route path="/student-affairs/achievements" element={<Achievements />} />
