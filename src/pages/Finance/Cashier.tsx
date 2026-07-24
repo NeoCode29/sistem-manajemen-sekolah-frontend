@@ -7,7 +7,7 @@ import '../Academic/Academic.css';
 
 interface CartItem {
   billing: StudentBilling;
-  amountToPay: number;
+  amountToPay: string;
 }
 
 export const Cashier: React.FC = () => {
@@ -82,20 +82,23 @@ export const Cashier: React.FC = () => {
   };
 
   const addToCart = (billing: StudentBilling) => {
-    if (cart.some(item => item.billing.id === billing.id)) return;
-    setCart([...cart, { billing, amountToPay: Number(billing.remainingAmount) }]);
+    if (cart.find(c => c.billing.id === billing.id)) return;
+    setCart([...cart, { billing, amountToPay: billing.remainingAmount.toString() }]);
   };
 
   const removeFromCart = (billingId: string) => {
     setCart(cart.filter(item => item.billing.id !== billingId));
   };
 
-  const updateCartAmount = (billingId: string, amount: number) => {
+  const updateCartAmount = (billingId: string, amount: string) => {
     setCart(cart.map(item => {
       if (item.billing.id === billingId) {
-        // limit amount to remainingAmount
-        const validAmount = Math.min(Math.max(0, amount), Number(item.billing.remainingAmount));
-        return { ...item, amountToPay: validAmount };
+        const numAmount = Number(amount);
+        const maxAmount = Number(item.billing.remainingAmount);
+        if (numAmount > maxAmount) {
+           return { ...item, amountToPay: maxAmount.toString() };
+        }
+        return { ...item, amountToPay: amount };
       }
       return item;
     }));
@@ -105,7 +108,7 @@ export const Cashier: React.FC = () => {
     if (!selectedStudent || cart.length === 0) return;
     
     // validate amounts
-    if (cart.some(c => c.amountToPay <= 0)) {
+    if (cart.some(c => Number(c.amountToPay) <= 0)) {
       alert("Ada tagihan dengan nominal bayar 0. Harap perbaiki atau hapus dari keranjang.");
       return;
     }
@@ -316,8 +319,8 @@ export const Cashier: React.FC = () => {
                             type="number" 
                             className="w-32 p-1.5 text-right text-sm border rounded font-semibold focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
                             value={item.amountToPay}
-                            onChange={(e) => updateCartAmount(item.billing.id, Number(e.target.value))}
-                            min={1}
+                            onChange={(e) => updateCartAmount(item.billing.id, e.target.value)}
+                            min={0}
                             max={Number(item.billing.remainingAmount)}
                           />
                         </div>

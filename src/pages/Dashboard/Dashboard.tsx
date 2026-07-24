@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Users, GraduationCap, Clock, Calendar, Printer, HelpCircle, Megaphone, Pin } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getMyAnnouncements } from '../../api/announcementService';
@@ -8,6 +9,12 @@ import type { DashboardSummary } from '../../api/dashboardService';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const now = new Date();
+  const currentDate = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+  const currentTime = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
 
@@ -61,7 +68,7 @@ export const Dashboard: React.FC = () => {
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '0.5rem', color: '#374151', fontWeight: 500, fontSize: '0.875rem' }}>
-            <Calendar size={16} /> Senin, 14 Okt 2024
+            <Calendar size={16} /> {currentDate}
           </button>
           <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#1d4ed8', border: 'none', borderRadius: '0.5rem', color: '#ffffff', fontWeight: 500, fontSize: '0.875rem' }}>
             + Input Cepat
@@ -137,7 +144,7 @@ export const Dashboard: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
             <div>
               <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', margin: 0 }}>Ringkasan Absensi Hari Ini</h3>
-              <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Update terakhir: 14 Okt 2024, 09:30 WIB</p>
+              <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Update terakhir: {currentTime}</p>
             </div>
             <a href="#" style={{ fontSize: '0.875rem', color: '#1d4ed8', fontWeight: 500, textDecoration: 'none' }}>Detail Laporan</a>
           </div>
@@ -215,58 +222,36 @@ export const Dashboard: React.FC = () => {
 
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
         
         <div style={{ background: '#1d4ed8', borderRadius: '12px', padding: '1.5rem', color: 'white', display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Megaphone size={20} />
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Papan Pengumuman</h3>
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, overflowY: 'auto', maxHeight: '150px', paddingRight: '0.5rem' }}>
-            {announcements.length === 0 ? (
-              <p style={{ fontSize: '0.875rem', color: '#bfdbfe', margin: 0 }}>Belum ada pengumuman terbaru.</p>
-            ) : (
-              announcements.slice(0, 3).map((item) => (
-                <div key={item.id} style={{ background: 'rgba(255,255,255,0.1)', padding: '0.75rem', borderRadius: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <h4 style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0, color: 'white' }}>{item.title}</h4>
-                    {item.isPinned && <Pin size={12} color="#fef08a" />}
-                  </div>
-                  <p style={{ fontSize: '0.75rem', color: '#e0e7ff', margin: 0, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {item.content}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-          
-          <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
-            <button style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 500, width: '100%', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Megaphone size={20} />
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Papan Pengumuman</h3>
+            </div>
+            <button 
+              onClick={() => navigate('/announcements')}
+              style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}
+            >
               Lihat Semua Pengumuman
             </button>
           </div>
-        </div>
-
-        <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Printer size={24} />
-          </div>
-          <div>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#111827', margin: '0 0 0.25rem 0' }}>Cetak Raport Sementara</h4>
-            <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.5rem 0', lineHeight: 1.4 }}>Tersedia untuk kelas X dan XI periode sisipan.</p>
-            <a href="#" style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>Proses Sekarang →</a>
-          </div>
-        </div>
-
-        <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f9fafb', color: '#4b5563', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <HelpCircle size={24} />
-          </div>
-          <div>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#111827', margin: '0 0 0.25rem 0' }}>Pusat Bantuan EduSys</h4>
-            <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.5rem 0', lineHeight: 1.4 }}>Butuh bantuan navigasi atau kendala teknis sistem?</p>
-            <a href="#" style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>Buka Tiket →</a>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            {announcements.length === 0 ? (
+              <p style={{ fontSize: '0.875rem', color: '#bfdbfe', margin: 0, gridColumn: '1 / -1' }}>Belum ada pengumuman terbaru.</p>
+            ) : (
+              announcements.slice(0, 3).map((item) => (
+                <div key={item.id} style={{ background: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <h4 style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0, color: 'white', flex: 1, lineHeight: 1.4 }}>{item.title}</h4>
+                    {item.isPinned && <Pin size={14} color="#fef08a" style={{ flexShrink: 0, marginTop: '2px' }} />}
+                  </div>
+                  <div dangerouslySetInnerHTML={{ __html: item.content }} style={{ fontSize: '0.75rem', color: '#e0e7ff', margin: 0, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} />
+                </div>
+              ))
+            )}
           </div>
         </div>
 

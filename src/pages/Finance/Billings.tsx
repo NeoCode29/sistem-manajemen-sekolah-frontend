@@ -30,7 +30,7 @@ export const Billings: React.FC = () => {
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBilling, setEditingBilling] = useState<StudentBilling | null>(null);
-  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [discountAmount, setDiscountAmount] = useState<string>('0');
   const [discountReason, setDiscountReason] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -123,7 +123,7 @@ export const Billings: React.FC = () => {
 
   const openEditModal = (billing: StudentBilling) => {
     setEditingBilling(billing);
-    setDiscountAmount(Number(billing.discountAmount) || 0);
+    setDiscountAmount(billing.discountAmount?.toString() || '0');
     setDiscountReason(billing.discountReason || '');
     setIsEditModalOpen(true);
   };
@@ -436,11 +436,11 @@ export const Billings: React.FC = () => {
                   type="number" 
                   className="input-field mt-1 border-green-200 focus:border-green-500" 
                   value={discountAmount} 
-                  onChange={(e) => setDiscountAmount(Number(e.target.value))}
+                  onChange={(e) => setDiscountAmount(e.target.value)}
                   min={0}
                   max={Number(editingBilling.amount)}
                 />
-                <p className="text-xs text-gray-500 mt-1">Sisa tagihan akhir akan menjadi: <strong>{formatCurrency(Number(editingBilling.amount) - discountAmount)}</strong></p>
+                <p className="text-xs text-gray-500 mt-1">Sisa tagihan akhir akan menjadi: <strong>{formatCurrency(Number(editingBilling.amount) - Number(discountAmount))}</strong></p>
               </div>
 
               <div className="form-group mb-6">

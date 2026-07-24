@@ -13,7 +13,7 @@ export const PaymentTypes: React.FC = () => {
   
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [defaultAmount, setDefaultAmount] = useState<number>(0);
+  const [defaultAmount, setDefaultAmount] = useState<string>('0');
   const [isRecurring, setIsRecurring] = useState(true);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +38,7 @@ export const PaymentTypes: React.FC = () => {
     setEditingType(null);
     setCode('');
     setName('');
-    setDefaultAmount(0);
+    setDefaultAmount('0');
     setIsRecurring(true);
     setDescription('');
     setIsModalOpen(true);
@@ -49,7 +49,7 @@ export const PaymentTypes: React.FC = () => {
     setEditingType(item);
     setCode(item.code);
     setName(item.name);
-    setDefaultAmount(item.defaultAmount);
+    setDefaultAmount(item.defaultAmount.toString());
     setIsRecurring(item.isRecurring);
     setDescription(item.description || '');
     setIsModalOpen(true);
@@ -216,7 +216,7 @@ export const PaymentTypes: React.FC = () => {
                   type="number" 
                   className="input-field mt-1" 
                   value={defaultAmount} 
-                  onChange={(e) => setDefaultAmount(Number(e.target.value))}
+                  onChange={(e) => setDefaultAmount(e.target.value)}
                   min={0}
                   required 
                 />

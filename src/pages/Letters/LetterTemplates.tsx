@@ -3,6 +3,7 @@ import { getLetterTemplates, createLetterTemplate, updateLetterTemplate, deleteL
 import type { LetterTemplate } from '../../api/letterService';
 import { FileCode, Plus, Edit2, Trash2, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import Editor from 'react-simple-wysiwyg';
 import '../Academic/Academic.css';
 
 export const LetterTemplates: React.FC = () => {
@@ -64,14 +65,20 @@ export const LetterTemplates: React.FC = () => {
     setEditingId(null);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData(prev => ({ ...prev, [name]: checked }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
+    const checked = (e.target as HTMLInputElement).checked;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleQuillChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      content: value,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -239,14 +246,11 @@ export const LetterTemplates: React.FC = () => {
                     <span>Isi Surat (Template) *</span>
                     <span className="text-xs text-blue-600">Gunakan {"{{nama_variabel}}"} untuk data dinamis.</span>
                   </label>
-                  <textarea
+                  <Editor 
                     name="content"
-                    className="input-field mt-1 w-full font-mono text-sm"
-                    rows={12}
-                    value={formData.content}
+                    value={formData.content || ''}
                     onChange={handleInputChange}
-                    required
-                    placeholder={`Yang bertanda tangan di bawah ini:\nNama: Kepala Sekolah\n\nMenerangkan bahwa:\nNama: {{nama_siswa}}\nNISN: {{nisn}}\n\nAdalah benar siswa aktif di sekolah kami...`}
+                    containerProps={{ style: { height: '250px', marginBottom: '3.5rem' } }}
                   />
                   <p className="text-xs text-gray-500 mt-1">Variabel umum yang didukung: <code>{"{{nama_siswa}}"}</code>, <code>{"{{nisn}}"}</code>, <code>{"{{kelas}}"}</code>, <code>{"{{tanggal_surat}}"}</code></p>
                 </div>
