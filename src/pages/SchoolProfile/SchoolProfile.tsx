@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getSchoolProfile, updateSchoolProfile, uploadSchoolLogo } from '../../api/schoolProfileService';
 import type { SchoolProfile } from '../../api/schoolProfileService';
-import { Save, Building2, UploadCloud } from 'lucide-react';
+import { Save, Building2, UploadCloud, MapPin, Phone } from 'lucide-react';
 import '../Academic/Academic.css';
 
 export const SchoolProfilePage: React.FC = () => {
@@ -70,7 +70,8 @@ export const SchoolProfilePage: React.FC = () => {
     e.preventDefault();
     try {
       setSaving(true);
-      await updateSchoolProfile(profile);
+      const { logoUrl, id, createdAt, updatedAt, ...payload } = profile as any;
+      await updateSchoolProfile(payload);
       setSuccess('Profil sekolah berhasil disimpan!');
       setTimeout(() => setSuccess(''), 3000);
       setError('');
@@ -93,128 +94,139 @@ export const SchoolProfilePage: React.FC = () => {
       {error && <div className="error-message mb-4 p-3 bg-red-100 text-red-700 rounded-md border border-red-200">{error}</div>}
       {success && <div className="success-message mb-4 p-3 bg-green-100 text-green-700 rounded-md border border-green-200">{success}</div>}
 
-      <div className="glass-panel p-6">
-        <div className="flex items-center gap-2 mb-6 text-blue-600 border-b pb-3">
-          <Building2 size={24} />
-          <h2 className="text-xl font-semibold">Identitas Institusi</h2>
+      <div className="glass-panel overflow-hidden">
+        {/* Banner */}
+        <div className="profile-banner blue-gradient">
+          <div className="texture"></div>
         </div>
 
         {loading ? (
           <div className="p-8 text-center text-gray-500">Memuat profil sekolah...</div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
-            <div className="flex flex-col md:flex-row gap-8">
-              {/* Logo Section */}
-              <div className="flex flex-col items-center space-y-4 md:w-1/4">
-                <div className="w-40 h-40 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden relative group">
+          <form onSubmit={handleSubmit}>
+            {/* Header Flex */}
+            <div className="profile-header-container">
+              <div className="profile-header-flex">
+                {/* Logo */}
+                <div className="profile-avatar-wrapper group">
                   {logoPreview ? (
-                    <img src={logoPreview} alt="School Logo" className="w-full h-full object-cover" />
+                    <img src={logoPreview} alt="School Logo" className="avatar-img" />
                   ) : (
-                    <div className="text-gray-400 flex flex-col items-center">
-                      <Building2 size={40} className="mb-2 opacity-50" />
-                      <span className="text-xs">No Logo</span>
+                    <div className="avatar-empty">
+                      <Building2 size={48} className="opacity-20" />
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                       onClick={() => fileInputRef.current?.click()}>
+                  <div className="avatar-overlay" onClick={() => fileInputRef.current?.click()}>
                     <UploadCloud className="text-white" size={32} />
                   </div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/png, image/jpeg, image/jpg" 
+                    onChange={handleFileChange} 
+                  />
                 </div>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept="image/png, image/jpeg, image/jpg" 
-                  onChange={handleFileChange} 
-                />
-                <p className="text-xs text-gray-500 text-center">Klik pada area gambar untuk mengubah logo (Max 2MB, JPG/PNG)</p>
+
+                {/* Title & Info */}
+                <div className="flex-1">
+                  <h2 className="profile-title">{profile.name || 'Nama Sekolah'}</h2>
+                  <p className="profile-subtitle">NPSN: {profile.code || '-'}</p>
+                </div>
+                
+                {/* Action button in header */}
+                <div className="profile-actions">
+                  <button type="submit" className="btn-primary" disabled={saving}>
+                    <Save size={18} />
+                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  </button>
+                </div>
               </div>
 
-              {/* Form Fields */}
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              {/* Form Sections */}
+              <div className="flex flex-col gap-6 p-6">
                 
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Nama Sekolah *</label>
-                  <input type="text" className="input-field mt-1 w-full" name="name" value={profile.name || ''} onChange={handleChange} required />
-                </div>
-                
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">NPSN</label>
-                  <input type="text" className="input-field mt-1 w-full" name="npsn" value={profile.npsn || ''} onChange={handleChange} />
-                </div>
-
-                <div className="form-group md:col-span-2">
-                  <label className="text-sm font-medium text-gray-700">Alamat Lengkap</label>
-                  <textarea className="input-field mt-1 w-full" name="address" rows={2} value={profile.address || ''} onChange={handleChange}></textarea>
-                </div>
-
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Kelurahan / Desa</label>
-                  <input type="text" className="input-field mt-1 w-full" name="village" value={profile.village || ''} onChange={handleChange} />
-                </div>
-
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Kecamatan</label>
-                  <input type="text" className="input-field mt-1 w-full" name="subDistrict" value={profile.subDistrict || ''} onChange={handleChange} />
-                </div>
-
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Kabupaten / Kota</label>
-                  <input type="text" className="input-field mt-1 w-full" name="district" value={profile.district || ''} onChange={handleChange} />
-                </div>
-
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Provinsi</label>
-                  <input type="text" className="input-field mt-1 w-full" name="province" value={profile.province || ''} onChange={handleChange} />
-                </div>
-                
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Kode Pos</label>
-                  <input type="text" className="input-field mt-1 w-full" name="postalCode" value={profile.postalCode || ''} onChange={handleChange} />
+                {/* Identitas Utama */}
+                <div className="glass-panel p-6 bg-blue-50/30 relative overflow-hidden transition-all hover:shadow-lg border border-blue-100">
+                  <div className="flex items-center gap-4 mb-8 pb-5 border-b border-blue-200/60">
+                    <div className="p-3 bg-blue-100 text-blue-600 rounded-xl shadow-sm">
+                      <Building2 size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl text-gray-800 tracking-tight">Identitas Utama</h3>
+                      <p className="text-sm text-gray-500 mt-1">Informasi dasar mengenai institusi pendidikan</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    <div className="form-group">
+                      <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Nama Sekolah <span className="text-red-500">*</span></label>
+                      <input type="text" className="input-field" name="name" value={profile.name || ''} onChange={handleChange} required placeholder="Contoh: SMA Negeri 1 Jakarta" />
+                    </div>
+                    <div className="form-group">
+                      <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">NPSN</label>
+                      <input type="text" className="input-field" name="code" value={profile.code || ''} onChange={handleChange} required placeholder="Nomor Pokok Sekolah Nasional" />
+                    </div>
+                    <div className="form-group">
+                      <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Nama Kepala Sekolah</label>
+                      <input type="text" className="input-field" name="principalName" value={profile.principalName || ''} onChange={handleChange} placeholder="Nama lengkap beserta gelar" />
+                    </div>
+                    <div className="form-group">
+                      <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">NIP Kepala Sekolah</label>
+                      <input type="text" className="input-field" name="principalNip" value={profile.principalNip || ''} onChange={handleChange} placeholder="NIP (jika ada)" />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Akreditasi</label>
-                  <input type="text" className="input-field mt-1 w-full" name="accreditation" value={profile.accreditation || ''} onChange={handleChange} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Kontak & Digital */}
+                  <div className="glass-panel p-6 bg-green-50/30 relative overflow-hidden transition-all hover:shadow-lg border border-green-100">
+                    <div className="flex items-center gap-4 mb-8 pb-5 border-b border-green-200/60">
+                      <div className="p-3 bg-green-100 text-green-600 rounded-xl shadow-sm">
+                        <Phone size={24} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-xl text-gray-800 tracking-tight">Kontak & Digital</h3>
+                        <p className="text-sm text-gray-500 mt-1">Saluran komunikasi resmi sekolah</p>
+                      </div>
+                    </div>
+                    
+                    <div className="form-grid gap-6">
+                      <div className="form-group">
+                        <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Nomor Telepon</label>
+                        <input type="text" className="input-field" name="phone" value={profile.phone || ''} onChange={handleChange} placeholder="(021) XXXXXXX" />
+                      </div>
+                      <div className="form-group">
+                        <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Email Resmi</label>
+                        <input type="email" className="input-field" name="email" value={profile.email || ''} onChange={handleChange} placeholder="info@sekolah.sch.id" />
+                      </div>
+                      <div className="form-group">
+                        <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Website</label>
+                        <input type="url" className="input-field" name="website" value={profile.website || ''} onChange={handleChange} placeholder="https://www.sekolah.sch.id" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Alamat & Lokasi */}
+                  <div className="glass-panel p-6 bg-orange-50/30 relative overflow-hidden transition-all hover:shadow-lg border border-orange-200">
+                    <div className="flex items-center gap-4 mb-8 pb-5 border-b border-orange-200/60">
+                      <div className="p-3 bg-orange-100 text-orange-600 rounded-xl shadow-sm">
+                        <MapPin size={24} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-xl text-gray-800 tracking-tight">Alamat & Lokasi</h3>
+                        <p className="text-sm text-gray-500 mt-1">Titik lokasi fisik institusi</p>
+                      </div>
+                    </div>
+                    
+                    <div className="form-group h-full flex flex-col pt-1">
+                      <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-3">Alamat Lengkap</label>
+                      <textarea className="input-field flex-1 resize-none" style={{ minHeight: '180px' }} name="address" value={profile.address || ''} onChange={handleChange} placeholder="Masukkan alamat lengkap sekolah, termasuk jalan, RT/RW, dan kode pos di sini..."></textarea>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Nomor Telepon</label>
-                  <input type="text" className="input-field mt-1 w-full" name="phone" value={profile.phone || ''} onChange={handleChange} />
-                </div>
-
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Email Resmi</label>
-                  <input type="email" className="input-field mt-1 w-full" name="email" value={profile.email || ''} onChange={handleChange} />
-                </div>
-
-                <div className="form-group md:col-span-2">
-                  <label className="text-sm font-medium text-gray-700">Website</label>
-                  <input type="url" className="input-field mt-1 w-full" name="website" value={profile.website || ''} onChange={handleChange} placeholder="https://..." />
-                </div>
-                
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Nama Kepala Sekolah</label>
-                  <input type="text" className="input-field mt-1 w-full" name="principalName" value={profile.principalName || ''} onChange={handleChange} />
-                </div>
-                
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">NIP Kepala Sekolah</label>
-                  <input type="text" className="input-field mt-1 w-full" name="principalNip" value={profile.principalNip || ''} onChange={handleChange} />
-                </div>
               </div>
-            </div>
-
-            <div className="mt-8 pt-4 border-t flex justify-end">
-              <button
-                type="submit"
-                className="btn-primary flex items-center gap-2"
-                disabled={saving}
-              >
-                <Save size={18} />
-                {saving ? 'Menyimpan...' : 'Simpan Profil'}
-              </button>
             </div>
           </form>
         )}

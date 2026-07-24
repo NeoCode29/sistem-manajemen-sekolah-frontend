@@ -1,5 +1,5 @@
 import api from './axios';
-import type { AcademicYear, Semester, Classroom, Subject, ClassPeriod } from './academicService';
+import type { AcademicYear, Semester, Subject, ClassPeriod } from './academicService';
 import type { Employee } from './employeeService';
 
 export interface SubjectAssignment {

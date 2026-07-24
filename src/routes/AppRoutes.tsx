@@ -43,6 +43,7 @@ import { OutgoingLetters } from '../pages/Letters/OutgoingLetters';
 import { LetterTemplates } from '../pages/Letters/LetterTemplates';
 import { HardwareLogs } from '../pages/Hardware/HardwareLogs';
 import { IdentityRegistration } from '../pages/Hardware/IdentityRegistration';
+import { AccountSettings } from '../pages/Settings/AccountSettings';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -92,6 +93,7 @@ export const AppRoutes: React.FC = () => {
               <Route path="/letters/templates" element={<LetterTemplates />} />
               <Route path="/hardware/logs" element={<HardwareLogs />} />
               <Route path="/hardware/registration" element={<IdentityRegistration />} />
+              <Route path="/settings" element={<AccountSettings />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>
           </Route>

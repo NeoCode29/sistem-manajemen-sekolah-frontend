@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { getPromotions, batchPromote, cancelPromotion } from '../../api/promotionService';
-import { getAcademicYears, getClassrooms } from '../../api/academicService';
-import type { AcademicYear, Classroom as ClassType } from '../../api/academicService';
+import { getAcademicYears, getClassrooms, getSemesters } from '../../api/academicService';
+import type { AcademicYear, Classroom as ClassType, Semester } from '../../api/academicService';
 import { getStudents } from '../../api/studentService';
 import type { Student } from '../../api/studentService';
-import { TrendingUp, X, AlertTriangle, Undo2 } from 'lucide-react';
+import { TrendingUp, X, AlertTriangle, Undo2, CheckSquare } from 'lucide-react';
 import './Academic.css';
 
 export const Promotions: React.FC = () => {
@@ -16,13 +16,16 @@ export const Promotions: React.FC = () => {
   // Batch Promote State
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [classes, setClasses] = useState<ClassType[]>([]);
+  const [semesters, setSemesters] = useState<Semester[]>([]);
   const [sourceStudents, setSourceStudents] = useState<Student[]>([]);
   
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
+  const [selectedSourceAcademicYear, setSelectedSourceAcademicYear] = useState('');
+  const [selectedTargetAcademicYear, setSelectedTargetAcademicYear] = useState('');
   const [selectedSourceClass, setSelectedSourceClass] = useState('');
+  const [selectedTargetClass, setSelectedTargetClass] = useState('');
+  const [selectedTargetSemester, setSelectedTargetSemester] = useState('');
   
-  // Target states for each student: { studentId: { status, targetClassId } }
-  const [promotionData, setPromotionData] = useState<Record<string, {status: string, targetClassId: string}>>({});
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetchHistory();
@@ -32,8 +35,8 @@ export const Promotions: React.FC = () => {
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const data = await getPromotions();
-      setPromotionsHistory(data);
+      const response = await getPromotions();
+      setPromotionsHistory(response.data || []);
     } catch (err: any) {
       setError('Gagal memuat riwayat kenaikan kelas');
     } finally {
@@ -43,12 +46,19 @@ export const Promotions: React.FC = () => {
 
   const fetchDropdowns = async () => {
     try {
-      const [ayData, classData] = await Promise.all([
+      const [ayData, classData, semData] = await Promise.all([
         getAcademicYears(),
-        getClassrooms()
+        getClassrooms(),
+        getSemesters()
       ]);
       setAcademicYears(ayData);
       setClasses(classData);
+      setSemesters(semData);
+      
+      const activeAy = ayData.find(ay => ay.isActive);
+      const activeSem = semData.find(s => s.isActive);
+      if (activeAy) setSelectedSourceAcademicYear(activeAy.id);
+      if (activeSem) setSelectedTargetSemester(activeSem.id);
     } catch (err) {
       console.error('Failed to load dropdowns');
     }
@@ -62,47 +72,38 @@ export const Promotions: React.FC = () => {
     }
     
     try {
-      // In a real app, you'd fetch students for this specific class
-      // Assuming getStudents takes a classId param
-      const students = await getStudents({ classId });
+      // Students should be fetched by classroomId
+      const students = await getStudents({ classroomId: classId, isActive: 'true' });
       setSourceStudents(students);
-      
-      // Initialize promotion data
-      const initialData: Record<string, any> = {};
-      students.forEach((s: Student) => {
-        initialData[s.id] = { status: 'PROMOTED', targetClassId: '' };
-      });
-      setPromotionData(initialData);
+      setSelectedStudentIds(students.map(s => s.id.toString()));
     } catch (err) {
       setError('Gagal memuat daftar siswa');
     }
   };
 
-  const handleStudentActionChange = (studentId: string, field: 'status' | 'targetClassId', value: string) => {
-    setPromotionData(prev => ({
-      ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        [field]: value,
-        // If status changes to STAYED or DROPPED_OUT, reset targetClass
-        ...(field === 'status' && value !== 'PROMOTED' ? { targetClassId: '' } : {})
-      }
-    }));
+  const toggleStudentSelection = (studentId: string) => {
+    setSelectedStudentIds(prev => 
+      prev.includes(studentId) ? prev.filter(id => id !== studentId) : [...prev, studentId]
+    );
   };
 
   const handleBatchPromoteSubmit = async () => {
-    if (!selectedAcademicYear || !selectedSourceClass) {
-      alert('Tahun ajaran dan kelas asal harus dipilih');
+    if (!selectedSourceAcademicYear || !selectedTargetAcademicYear || !selectedSourceClass || !selectedTargetClass || !selectedTargetSemester) {
+      alert('Tahun Ajaran, Kelas, dan Semester (Asal & Tujuan) harus dipilih lengkap!');
+      return;
+    }
+    if (selectedStudentIds.length === 0) {
+      alert('Pilih setidaknya satu siswa untuk dinaikkan kelas.');
       return;
     }
 
     const payload = {
-      academicYearId: selectedAcademicYear,
+      academicYearId: selectedTargetAcademicYear,
       sourceClassId: selectedSourceClass,
-      promotions: sourceStudents.map(s => ({
-        studentId: s.id.toString(),
-        targetClassId: promotionData[s.id].targetClassId,
-        status: promotionData[s.id].status,
+      promotions: selectedStudentIds.map(studentId => ({
+        studentId,
+        targetClassId: selectedTargetClass,
+        status: 'PROMOTED',
       }))
     };
 
@@ -224,33 +225,66 @@ export const Promotions: React.FC = () => {
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6 flex gap-3 text-blue-800 text-sm">
                 <AlertTriangle size={20} className="text-blue-600 flex-shrink-0" />
                 <p>
-                  Pilih Tahun Ajaran <strong>Baru</strong> (tahun tujuan) dan Kelas <strong>Asal</strong> (kelas saat ini). Sistem akan memuat semua siswa di kelas asal untuk diproses secara massal.
+                  Siswa yang dichecklist akan dinaikkan ke kelas tujuan yang dipilih. Siswa yang tidak dichecklist akan diabaikan (tinggal kelas/bisa diproses di lain waktu).
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50/50">
                 <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Tahun Ajaran Tujuan (Baru) *</label>
+                  <label className="text-xs font-bold text-gray-700 uppercase mb-1">Tahun Ajaran Saat Ini *</label>
                   <select
-                    className="input-field mt-1 w-full"
-                    value={selectedAcademicYear}
-                    onChange={(e) => setSelectedAcademicYear(e.target.value)}
+                    className="input-field w-full shadow-sm"
+                    value={selectedSourceAcademicYear}
+                    onChange={(e) => setSelectedSourceAcademicYear(e.target.value)}
                   >
-                    <option value="">-- Pilih Tahun Ajaran Baru --</option>
-                    {academicYears.map(ay => (
-                      <option key={ay.id} value={ay.id}>{ay.name}</option>
-                    ))}
+                    <option value="">-- Pilih --</option>
+                    {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Kelas Asal (Saat Ini) *</label>
+                  <label className="text-xs font-bold text-gray-700 uppercase mb-1">Kelas Asal (Saat Ini) *</label>
                   <select
-                    className="input-field mt-1 w-full"
+                    className="input-field w-full shadow-sm border-blue-300"
                     value={selectedSourceClass}
                     onChange={(e) => handleSourceClassChange(e.target.value)}
                   >
                     <option value="">-- Pilih Kelas Asal --</option>
-                    {classes.map(c => (
+                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="hidden lg:block"></div>
+
+                <div className="form-group mt-2">
+                  <label className="text-xs font-bold text-green-700 uppercase mb-1">Tahun Ajaran Tujuan (Baru) *</label>
+                  <select
+                    className="input-field w-full shadow-sm"
+                    value={selectedTargetAcademicYear}
+                    onChange={(e) => setSelectedTargetAcademicYear(e.target.value)}
+                  >
+                    <option value="">-- Pilih --</option>
+                    {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group mt-2">
+                  <label className="text-xs font-bold text-green-700 uppercase mb-1">Semester Tujuan *</label>
+                  <select
+                    className="input-field w-full shadow-sm"
+                    value={selectedTargetSemester}
+                    onChange={(e) => setSelectedTargetSemester(e.target.value)}
+                  >
+                    <option value="">-- Pilih --</option>
+                    {semesters.map(sem => <option key={sem.id} value={sem.id}>{sem.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group mt-2">
+                  <label className="text-xs font-bold text-green-700 uppercase mb-1">Kelas Tujuan (Baru) *</label>
+                  <select
+                    className="input-field w-full shadow-sm border-green-400 focus:ring-green-100"
+                    value={selectedTargetClass}
+                    onChange={(e) => setSelectedTargetClass(e.target.value)}
+                  >
+                    <option value="">-- Pilih Kelas Tujuan --</option>
+                    {classes.filter(c => c.id !== selectedSourceClass).map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
@@ -258,47 +292,42 @@ export const Promotions: React.FC = () => {
               </div>
 
               {sourceStudents.length > 0 && (
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-gray-50 text-gray-600 font-medium border-b">
+                <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                  <div className="bg-gray-100 p-3 border-b border-gray-200 flex justify-between items-center">
+                    <span className="font-semibold text-gray-700 text-sm">Pilih Siswa yang Naik Kelas</span>
+                    <button 
+                      onClick={() => setSelectedStudentIds(sourceStudents.map(s => s.id.toString()))} 
+                      className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    >
+                      <CheckSquare size={14} /> Pilih Semua
+                    </button>
+                  </div>
+                  <table className="w-full text-left text-sm bg-white">
+                    <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
                       <tr>
+                        <th className="px-4 py-3 w-12 text-center">✓</th>
                         <th className="px-4 py-3">Nama Siswa</th>
                         <th className="px-4 py-3">NIS/NISN</th>
-                        <th className="px-4 py-3 w-48">Status Kenaikan</th>
-                        <th className="px-4 py-3 w-48">Kelas Tujuan</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {sourceStudents.map(student => (
-                        <tr key={student.id} className="hover:bg-gray-50/50">
-                          <td className="px-4 py-2 font-medium text-gray-900">{student.fullName}</td>
-                          <td className="px-4 py-2 text-gray-500">{student.nis || '-'}</td>
-                          <td className="px-4 py-2">
-                            <select
-                              className="w-full p-1.5 border rounded bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                              value={promotionData[student.id]?.status || 'PROMOTED'}
-                              onChange={(e) => handleStudentActionChange(student.id, 'status', e.target.value)}
-                            >
-                              <option value="PROMOTED">Naik Kelas</option>
-                              <option value="STAYED">Tinggal Kelas</option>
-                            </select>
-                          </td>
-                          <td className="px-4 py-2">
-                            <select
-                              className="w-full p-1.5 border rounded bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                              value={promotionData[student.id]?.targetClassId || ''}
-                              onChange={(e) => handleStudentActionChange(student.id, 'targetClassId', e.target.value)}
-                              disabled={promotionData[student.id]?.status !== 'PROMOTED'}
-                              required={promotionData[student.id]?.status === 'PROMOTED'}
-                            >
-                              <option value="">-- Pilih Kelas Baru --</option>
-                              {classes.filter(c => c.id !== selectedSourceClass).map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                              ))}
-                            </select>
-                          </td>
-                        </tr>
-                      ))}
+                      {sourceStudents.map(student => {
+                        const isSelected = selectedStudentIds.includes(student.id.toString());
+                        return (
+                          <tr key={student.id} className={`hover:bg-blue-50/30 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/10' : ''}`} onClick={() => toggleStudentSelection(student.id.toString())}>
+                            <td className="px-4 py-3 text-center">
+                              <input 
+                                type="checkbox" 
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                checked={isSelected}
+                                onChange={() => {}} 
+                              />
+                            </td>
+                            <td className="px-4 py-3 font-medium text-gray-900">{student.fullName}</td>
+                            <td className="px-4 py-3 text-gray-500">{student.nis || '-'}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

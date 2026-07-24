@@ -266,23 +266,23 @@ export const Schedules: React.FC = () => {
         </div>
       )}
 
-      <div className="glass-panel p-4 mb-6 flex flex-wrap gap-4 items-end bg-blue-50/30">
+      <div className="glass-panel p-6 mb-8 flex flex-wrap gap-6 items-end bg-gradient-to-r from-blue-50/40 to-transparent border-l-4 border-l-blue-500">
         <div className="form-group w-48">
-          <label className="text-xs font-semibold text-gray-500 uppercase">Tahun Ajaran</label>
-          <select className="input-field mt-1" value={filterAcademicYearId} onChange={(e) => setFilterAcademicYearId(e.target.value)}>
+          <label className="text-xs tracking-wider font-bold text-gray-500 uppercase mb-1">Tahun Ajaran</label>
+          <select className="input-field shadow-sm" value={filterAcademicYearId} onChange={(e) => setFilterAcademicYearId(e.target.value)}>
             {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}</option>)}
           </select>
         </div>
         <div className="form-group w-48">
-          <label className="text-xs font-semibold text-gray-500 uppercase">Semester</label>
-          <select className="input-field mt-1" value={filterSemesterId} onChange={(e) => setFilterSemesterId(e.target.value)}>
+          <label className="text-xs tracking-wider font-bold text-gray-500 uppercase mb-1">Semester</label>
+          <select className="input-field shadow-sm" value={filterSemesterId} onChange={(e) => setFilterSemesterId(e.target.value)}>
             {semesters.map(sem => <option key={sem.id} value={sem.id}>{sem.name}</option>)}
           </select>
         </div>
         <div className="form-group w-64">
-          <label className="text-xs font-semibold text-blue-600 uppercase">Pilih Kelas *</label>
+          <label className="text-xs tracking-wider font-bold text-blue-600 uppercase mb-1">Pilih Kelas *</label>
           <select 
-            className="input-field mt-1 border-blue-300 focus:border-blue-500 focus:ring-blue-200" 
+            className="input-field shadow-sm border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" 
             value={filterClassroomId} 
             onChange={(e) => setFilterClassroomId(e.target.value)}
           >
@@ -299,22 +299,22 @@ export const Schedules: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="flex border-b border-gray-200 mb-6">
+          <div className="flex border-b border-gray-200 mb-6 gap-2">
             <button
-              className={`py-3 px-6 font-medium text-sm border-b-2 transition-colors ${
+              className={`py-3 px-6 font-semibold text-sm border-b-2 outline-none transition-all ${
                 activeTab === 'assignments'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-blue-600 text-blue-700 bg-blue-50/30'
+                  : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300'
               }`}
               onClick={() => setActiveTab('assignments')}
             >
               1. Penugasan Guru
             </button>
             <button
-              className={`py-3 px-6 font-medium text-sm border-b-2 transition-colors ${
+              className={`py-3 px-6 font-semibold text-sm border-b-2 outline-none transition-all ${
                 activeTab === 'schedule'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-blue-600 text-blue-700 bg-blue-50/30'
+                  : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300'
               }`}
               onClick={() => setActiveTab('schedule')}
             >
@@ -327,38 +327,53 @@ export const Schedules: React.FC = () => {
           ) : (
             <>
               {activeTab === 'assignments' && (
-                <div className="glass-panel">
-                  <div className="p-4 border-b flex justify-between items-center">
-                    <h2 className="font-semibold text-gray-800">Daftar Guru Mata Pelajaran</h2>
-                    <button className="btn-primary flex items-center gap-2 text-sm py-1.5" onClick={openAddAssignmentModal}>
+                <div className="glass-panel overflow-hidden border border-gray-200 shadow-sm">
+                  <div className="p-5 border-b bg-gray-50/50 flex justify-between items-center">
+                    <div>
+                      <h2 className="font-bold text-lg text-gray-800">Daftar Guru Mata Pelajaran</h2>
+                      <p className="text-xs text-gray-500 mt-1">Kelola guru pengampu untuk kelas ini</p>
+                    </div>
+                    <button className="btn-primary flex items-center gap-2 text-sm py-2 shadow-md hover:shadow-lg" onClick={openAddAssignmentModal}>
                       <Plus size={16} /> Tambah Penugasan
                     </button>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="table-v4">
+                  <div className="table-responsive">
+                    <table className="data-table">
                       <thead>
                         <tr>
                           <th>Mata Pelajaran</th>
                           <th>Guru Pengampu</th>
-                          <th className="w-24 text-center">Aksi</th>
+                          <th className="w-32 text-center">Aksi</th>
                         </tr>
                       </thead>
                       <tbody>
                         {subjectAssignments.length === 0 ? (
                           <tr>
-                            <td colSpan={3} className="text-center py-8 text-gray-400">Belum ada penugasan guru.</td>
+                            <td colSpan={3} className="text-center py-12 text-gray-500">
+                              <div className="flex flex-col items-center justify-center">
+                                <Users size={32} className="text-gray-300 mb-3" />
+                                <p>Belum ada penugasan guru untuk kelas ini.</p>
+                              </div>
+                            </td>
                           </tr>
                         ) : (
                           subjectAssignments.map(item => (
-                            <tr key={item.id}>
-                              <td className="font-medium text-gray-900">{item.subject?.name}</td>
-                              <td className="text-gray-600">{item.employee?.fullName}</td>
-                              <td className="text-center">
+                            <tr key={item.id} className="transition-colors hover:bg-gray-50">
+                              <td className="font-semibold text-gray-800">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+                                    {item.subject?.name?.substring(0, 2) || 'MA'}
+                                  </div>
+                                  {item.subject?.name}
+                                </div>
+                              </td>
+                              <td className="text-gray-600 font-medium">{item.employee?.fullName}</td>
+                              <td>
                                 <div className="flex justify-center gap-2">
-                                  <button className="text-gray-400 hover:text-blue-600" onClick={() => openEditAssignmentModal(item)}>
+                                  <button className="btn-icon text-blue-600 hover:bg-blue-50" onClick={() => openEditAssignmentModal(item)}>
                                     <Edit2 size={16} />
                                   </button>
-                                  <button className="text-gray-400 hover:text-red-600" onClick={() => handleDeleteAssignment(item.id)}>
+                                  <button className="btn-icon text-red-600 hover:bg-red-50" onClick={() => handleDeleteAssignment(item.id)}>
                                     <Trash2 size={16} />
                                   </button>
                                 </div>
@@ -374,63 +389,68 @@ export const Schedules: React.FC = () => {
 
               {activeTab === 'schedule' && (
                 <>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="font-semibold text-gray-800">Grid Jadwal Pelajaran</h2>
-                    <button className="btn-primary flex items-center gap-2 text-sm py-1.5" onClick={openAddScheduleModal}>
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="font-bold text-lg text-gray-800">Grid Jadwal Pelajaran</h2>
+                      <p className="text-xs text-gray-500">Susunan mata pelajaran per hari</p>
+                    </div>
+                    <button className="btn-primary flex items-center gap-2 text-sm py-2 shadow-md hover:shadow-lg" onClick={openAddScheduleModal}>
                       <Plus size={16} /> Tambah Jadwal
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {groupedSchedules.map(day => (
-                      <div key={day.id} className="glass-panel overflow-hidden">
-                        <div className="bg-gray-50/80 p-3 border-b text-center font-bold text-gray-700">
+                      <div key={day.id} className="glass-panel overflow-hidden border border-gray-200 hover:shadow-md transition-shadow flex flex-col h-full">
+                        <div className="bg-blue-600 p-3 text-center font-bold text-white shadow-sm flex items-center justify-center gap-2">
+                          <CalendarDays size={16} className="opacity-70" />
                           {day.name}
                         </div>
-                        <div className="p-0">
+                        <div className="p-0 flex-1 flex flex-col bg-white">
                           {day.schedules.length === 0 ? (
-                            <div className="p-6 flex flex-col items-center justify-center text-gray-400 border-b border-gray-100 last:border-b-0 h-full">
-                              <span className="text-sm italic mb-2">Belum ada jadwal</span>
+                            <div className="p-8 flex flex-col items-center justify-center text-gray-400 flex-1">
+                              <span className="text-sm font-medium mb-4 opacity-70">Belum ada jadwal</span>
                               <button 
-                                className="text-blue-600 hover:text-blue-800 text-xs font-semibold bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded transition-colors"
+                                className="text-blue-600 hover:text-white font-semibold border border-blue-600 hover:bg-blue-600 px-4 py-1.5 rounded-full text-xs transition-all flex items-center gap-1"
                                 onClick={() => {
                                   openAddScheduleModal();
                                   setDayOfWeek(day.id);
                                 }}
                               >
-                                + Tambah
+                                <Plus size={14} /> Tambah Jadwal
                               </button>
                             </div>
                           ) : (
-                            <div className="divide-y">
+                            <div className="divide-y divide-gray-100 flex-1">
                               {day.schedules.map(item => (
-                                <div key={item.id} className="p-4 hover:bg-gray-50/50 transition-colors relative">
-                                  <div className="flex justify-between items-start mb-2">
-                                    <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                                      <Clock size={12} /> {item.classPeriod?.startTime} - {item.classPeriod?.endTime} (Jam ke-{item.classPeriod?.periodNumber})
+                                <div key={item.id} className="p-4 hover:bg-blue-50/40 transition-colors">
+                                  <div className="flex justify-between items-start mb-3">
+                                    <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
+                                      <Clock size={12} /> {item.classPeriod?.startTime} - {item.classPeriod?.endTime}
                                     </div>
-                                    <div className="flex gap-1 bg-white rounded shadow-sm border border-gray-200 p-0.5">
-                                      <button className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors" onClick={() => openEditScheduleModal(item)} title="Edit Jadwal">
+                                    
+                                    <div className="flex gap-1 bg-white rounded-md shadow-sm border border-gray-200 p-1">
+                                      <button className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors" onClick={() => openEditScheduleModal(item)} title="Edit">
                                         <Edit2 size={14} />
                                       </button>
-                                      <button className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors" onClick={() => handleDeleteSchedule(item.id)} title="Hapus Jadwal">
+                                      <button className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors" onClick={() => handleDeleteSchedule(item.id)} title="Hapus">
                                         <Trash2 size={14} />
                                       </button>
                                     </div>
                                   </div>
                                   
-                                  <div className="font-bold text-gray-800 flex items-center gap-1.5 mb-1">
-                                    <BookOpen size={14} className="text-gray-400" />
+                                  <div className="font-bold text-gray-800 flex items-center gap-2 mb-1.5 text-sm">
+                                    <BookOpen size={16} className="text-blue-500" />
                                     {item.subjectAssignment?.subject?.name}
                                   </div>
                                   
-                                  <div className="text-xs text-gray-600 flex items-center gap-1.5 mb-1">
+                                  <div className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-1.5">
                                     <Users size={14} className="text-gray-400" />
                                     {item.subjectAssignment?.employee?.fullName}
                                   </div>
 
                                   {item.room && (
-                                    <div className="text-xs text-orange-600 flex items-center gap-1.5">
-                                      <MapPin size={14} className="text-orange-400" />
+                                    <div className="text-xs font-semibold text-orange-600 flex items-center gap-2 mt-2 pt-2 border-t border-dashed border-gray-200">
+                                      <MapPin size={14} />
                                       Ruangan: {item.room}
                                     </div>
                                   )}

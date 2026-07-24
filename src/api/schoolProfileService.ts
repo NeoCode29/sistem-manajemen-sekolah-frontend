@@ -2,37 +2,26 @@ import api from './axios';
 
 export interface SchoolProfile {
   id?: string;
-  npsn?: string;
+  code: string; // NPSN
   name: string;
   address?: string;
-  village?: string;
-  subDistrict?: string;
-  district?: string;
-  province?: string;
-  postalCode?: string;
   phone?: string;
   email?: string;
   website?: string;
   principalName?: string;
   principalNip?: string;
-  accreditation?: string;
+  headerText?: string;
   logoUrl?: string;
 }
 
 export interface FoundationProfile {
   id?: string;
   name: string;
-  legalEntityNumber?: string;
   address?: string;
-  village?: string;
-  subDistrict?: string;
-  district?: string;
-  province?: string;
-  postalCode?: string;
   phone?: string;
   email?: string;
   website?: string;
-  chairmanName?: string;
+  headerText?: string;
   logoUrl?: string;
 }
 

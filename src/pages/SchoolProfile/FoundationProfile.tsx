@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getFoundationProfile, updateFoundationProfile, uploadFoundationLogo } from '../../api/schoolProfileService';
 import type { FoundationProfile } from '../../api/schoolProfileService';
-import { Save, Landmark, UploadCloud } from 'lucide-react';
+import { Save, Landmark, UploadCloud, MapPin, Phone } from 'lucide-react';
 import '../Academic/Academic.css';
 
 export const FoundationProfilePage: React.FC = () => {
@@ -70,7 +70,8 @@ export const FoundationProfilePage: React.FC = () => {
     e.preventDefault();
     try {
       setSaving(true);
-      await updateFoundationProfile(profile);
+      const { logoUrl, id, createdAt, updatedAt, ...payload } = profile as any;
+      await updateFoundationProfile(payload);
       setSuccess('Profil yayasan berhasil disimpan!');
       setTimeout(() => setSuccess(''), 3000);
       setError('');
@@ -93,118 +94,127 @@ export const FoundationProfilePage: React.FC = () => {
       {error && <div className="error-message mb-4 p-3 bg-red-100 text-red-700 rounded-md border border-red-200">{error}</div>}
       {success && <div className="success-message mb-4 p-3 bg-green-100 text-green-700 rounded-md border border-green-200">{success}</div>}
 
-      <div className="glass-panel p-6">
-        <div className="flex items-center gap-2 mb-6 text-blue-600 border-b pb-3">
-          <Landmark size={24} />
-          <h2 className="text-xl font-semibold">Identitas Yayasan</h2>
+      <div className="glass-panel overflow-hidden">
+        {/* Banner */}
+        <div className="profile-banner emerald-gradient">
+          <div className="texture"></div>
         </div>
 
         {loading ? (
           <div className="p-8 text-center text-gray-500">Memuat profil yayasan...</div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
-            <div className="flex flex-col md:flex-row gap-8">
-              {/* Logo Section */}
-              <div className="flex flex-col items-center space-y-4 md:w-1/4">
-                <div className="w-40 h-40 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden relative group">
+          <form onSubmit={handleSubmit}>
+            {/* Header Flex */}
+            <div className="profile-header-container">
+              <div className="profile-header-flex">
+                {/* Logo */}
+                <div className="profile-avatar-wrapper group">
                   {logoPreview ? (
-                    <img src={logoPreview} alt="Foundation Logo" className="w-full h-full object-cover" />
+                    <img src={logoPreview} alt="Foundation Logo" className="avatar-img" />
                   ) : (
-                    <div className="text-gray-400 flex flex-col items-center">
-                      <Landmark size={40} className="mb-2 opacity-50" />
-                      <span className="text-xs">No Logo</span>
+                    <div className="avatar-empty">
+                      <Landmark size={48} className="opacity-20" />
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                       onClick={() => fileInputRef.current?.click()}>
+                  <div className="avatar-overlay" onClick={() => fileInputRef.current?.click()}>
                     <UploadCloud className="text-white" size={32} />
                   </div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/png, image/jpeg, image/jpg" 
+                    onChange={handleFileChange} 
+                  />
                 </div>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept="image/png, image/jpeg, image/jpg" 
-                  onChange={handleFileChange} 
-                />
-                <p className="text-xs text-gray-500 text-center">Klik pada area gambar untuk mengubah logo (Max 2MB, JPG/PNG)</p>
+
+                {/* Title & Info */}
+                <div className="flex-1">
+                  <h2 className="profile-title">{profile.name || 'Nama Yayasan'}</h2>
+                  <p className="profile-subtitle emerald">Profil Yayasan Utama</p>
+                </div>
+                
+                {/* Action button in header */}
+                <div className="profile-actions">
+                  <button type="submit" className="btn-primary" disabled={saving}>
+                    <Save size={18} />
+                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  </button>
+                </div>
               </div>
 
-              {/* Form Fields */}
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              {/* Form Sections */}
+              <div className="flex flex-col gap-6 p-6">
                 
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Nama Yayasan *</label>
-                  <input type="text" className="input-field mt-1 w-full" name="name" value={profile.name || ''} onChange={handleChange} required />
-                </div>
-                
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">No Badan Hukum (SK Kemenkumham)</label>
-                  <input type="text" className="input-field mt-1 w-full" name="legalEntityNumber" value={profile.legalEntityNumber || ''} onChange={handleChange} />
-                </div>
-
-                <div className="form-group md:col-span-2">
-                  <label className="text-sm font-medium text-gray-700">Alamat Lengkap</label>
-                  <textarea className="input-field mt-1 w-full" name="address" rows={2} value={profile.address || ''} onChange={handleChange}></textarea>
-                </div>
-
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Kelurahan / Desa</label>
-                  <input type="text" className="input-field mt-1 w-full" name="village" value={profile.village || ''} onChange={handleChange} />
-                </div>
-
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Kecamatan</label>
-                  <input type="text" className="input-field mt-1 w-full" name="subDistrict" value={profile.subDistrict || ''} onChange={handleChange} />
+                {/* Identitas Utama */}
+                <div className="glass-panel p-6 bg-green-50/30 relative overflow-hidden transition-all hover:shadow-lg border border-green-100">
+                  <div className="flex items-center gap-4 mb-8 pb-5 border-b border-green-200/60">
+                    <div className="p-3 bg-green-100 text-green-600 rounded-xl shadow-sm">
+                      <Landmark size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl text-gray-800 tracking-tight">Identitas Yayasan</h3>
+                      <p className="text-sm text-gray-500 mt-1">Informasi dasar mengenai yayasan penaung</p>
+                    </div>
+                  </div>
+                  
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Nama Yayasan <span className="text-red-500">*</span></label>
+                      <input type="text" className="input-field max-w-2xl" name="name" value={profile.name || ''} onChange={handleChange} required placeholder="Contoh: Yayasan Pendidikan Indonesia" />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Kabupaten / Kota</label>
-                  <input type="text" className="input-field mt-1 w-full" name="district" value={profile.district || ''} onChange={handleChange} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Kontak & Digital */}
+                  <div className="glass-panel p-6 bg-blue-50/30 relative overflow-hidden transition-all hover:shadow-lg border border-blue-100">
+                    <div className="flex items-center gap-4 mb-8 pb-5 border-b border-blue-200/60">
+                      <div className="p-3 bg-blue-100 text-blue-600 rounded-xl shadow-sm">
+                        <Phone size={24} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-xl text-gray-800 tracking-tight">Kontak & Digital</h3>
+                        <p className="text-sm text-gray-500 mt-1">Saluran komunikasi resmi yayasan</p>
+                      </div>
+                    </div>
+                    
+                    <div className="form-grid gap-6">
+                      <div className="form-group">
+                        <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Nomor Telepon</label>
+                        <input type="text" className="input-field" name="phone" value={profile.phone || ''} onChange={handleChange} placeholder="(021) XXXXXXX" />
+                      </div>
+                      <div className="form-group">
+                        <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Email Resmi</label>
+                        <input type="email" className="input-field" name="email" value={profile.email || ''} onChange={handleChange} placeholder="info@yayasan.org" />
+                      </div>
+                      <div className="form-group">
+                        <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Website</label>
+                        <input type="url" className="input-field" name="website" value={profile.website || ''} onChange={handleChange} placeholder="https://www.yayasan.org" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Alamat & Lokasi */}
+                  <div className="glass-panel p-6 bg-orange-50/30 relative overflow-hidden transition-all hover:shadow-lg border border-orange-200">
+                    <div className="flex items-center gap-4 mb-8 pb-5 border-b border-orange-200/60">
+                      <div className="p-3 bg-orange-100 text-orange-600 rounded-xl shadow-sm">
+                        <MapPin size={24} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-xl text-gray-800 tracking-tight">Alamat & Lokasi</h3>
+                        <p className="text-sm text-gray-500 mt-1">Titik lokasi fisik yayasan</p>
+                      </div>
+                    </div>
+                    
+                    <div className="form-group h-full flex flex-col pt-1">
+                      <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-3">Alamat Lengkap</label>
+                      <textarea className="input-field flex-1 resize-none" style={{ minHeight: '180px' }} name="address" value={profile.address || ''} onChange={handleChange} placeholder="Masukkan alamat lengkap yayasan di sini..."></textarea>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Provinsi</label>
-                  <input type="text" className="input-field mt-1 w-full" name="province" value={profile.province || ''} onChange={handleChange} />
-                </div>
-                
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Kode Pos</label>
-                  <input type="text" className="input-field mt-1 w-full" name="postalCode" value={profile.postalCode || ''} onChange={handleChange} />
-                </div>
-
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Nama Ketua Yayasan</label>
-                  <input type="text" className="input-field mt-1 w-full" name="chairmanName" value={profile.chairmanName || ''} onChange={handleChange} />
-                </div>
-
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Nomor Telepon</label>
-                  <input type="text" className="input-field mt-1 w-full" name="phone" value={profile.phone || ''} onChange={handleChange} />
-                </div>
-
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Email Resmi</label>
-                  <input type="email" className="input-field mt-1 w-full" name="email" value={profile.email || ''} onChange={handleChange} />
-                </div>
-
-                <div className="form-group md:col-span-2">
-                  <label className="text-sm font-medium text-gray-700">Website</label>
-                  <input type="url" className="input-field mt-1 w-full" name="website" value={profile.website || ''} onChange={handleChange} placeholder="https://..." />
-                </div>
               </div>
-            </div>
-
-            <div className="mt-8 pt-4 border-t flex justify-end">
-              <button
-                type="submit"
-                className="btn-primary flex items-center gap-2"
-                disabled={saving}
-              >
-                <Save size={18} />
-                {saving ? 'Menyimpan...' : 'Simpan Profil'}
-              </button>
             </div>
           </form>
         )}
