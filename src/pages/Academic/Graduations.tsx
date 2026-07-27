@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getGraduations, batchGraduate, cancelGraduation } from '../../api/promotionService';
-import { getClassrooms } from '../../api/academicService';
+import { getClassrooms, getAcademicYears } from '../../api/academicService';
 import type { Classroom as ClassType } from '../../api/academicService';
 import { getStudents } from '../../api/studentService';
 import type { Student } from '../../api/studentService';
@@ -15,9 +15,11 @@ export const Graduations: React.FC = () => {
 
   // Batch Graduate State
   const [classes, setClasses] = useState<ClassType[]>([]);
+  const [academicYears, setAcademicYears] = useState<any[]>([]);
   const [sourceStudents, setSourceStudents] = useState<Student[]>([]);
   
   const [selectedClass, setSelectedClass] = useState('');
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
   const [graduationDate, setGraduationDate] = useState(new Date().toISOString().split('T')[0]);
   const [documentNumber, setDocumentNumber] = useState('');
   
@@ -43,10 +45,19 @@ export const Graduations: React.FC = () => {
 
   const fetchClasses = async () => {
     try {
-      const classData = await getClassrooms();
+      const [classData, ayData] = await Promise.all([
+        getClassrooms(),
+        getAcademicYears()
+      ]);
       setClasses(classData);
+      setAcademicYears(ayData);
+      
+      const activeAy = ayData.find((ay: any) => ay.isActive);
+      if (activeAy) {
+        setSelectedAcademicYear(activeAy.id);
+      }
     } catch (err) {
-      console.error('Failed to load classes');
+      console.error('Failed to load data');
     }
   };
 
@@ -60,7 +71,7 @@ export const Graduations: React.FC = () => {
     
     try {
       // Assuming getStudents takes a classId param
-      const students = await getStudents({ classId });
+      const students = await getStudents({ classroomId: classId, status: 'ACTIVE' });
       setSourceStudents(students);
       // Auto-select all by default
       setSelectedStudentIds(new Set(students.map((s: Student) => s.id.toString())));
@@ -100,9 +111,10 @@ export const Graduations: React.FC = () => {
     }
 
     const payload = {
-      classId: selectedClass,
+      classroomId: selectedClass,
+      academicYearId: selectedAcademicYear,
       graduationDate: new Date(graduationDate).toISOString(),
-      documentNumber: documentNumber,
+      notes: documentNumber,
       studentIds: Array.from(selectedStudentIds)
     };
 

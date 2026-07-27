@@ -73,7 +73,7 @@ export const Promotions: React.FC = () => {
     
     try {
       // Students should be fetched by classroomId
-      const students = await getStudents({ classroomId: classId, isActive: 'true' });
+      const students = await getStudents({ classroomId: classId, status: 'ACTIVE' });
       setSourceStudents(students);
       setSelectedStudentIds(students.map(s => s.id.toString()));
     } catch (err) {
@@ -98,20 +98,28 @@ export const Promotions: React.FC = () => {
     }
 
     const payload = {
-      academicYearId: selectedTargetAcademicYear,
-      sourceClassId: selectedSourceClass,
-      promotions: selectedStudentIds.map(studentId => ({
-        studentId,
-        targetClassId: selectedTargetClass,
-        status: 'PROMOTED',
-      }))
+      studentIds: selectedStudentIds,
+      sourceClassroomId: selectedSourceClass,
+      targetClassroomId: selectedTargetClass,
+      sourceAcademicYearId: selectedSourceAcademicYear,
+      targetAcademicYearId: selectedTargetAcademicYear,
+      targetSemesterId: selectedTargetSemester,
     };
 
     try {
-      await batchPromote(payload);
+      const response = await batchPromote(payload);
       setIsModalOpen(false);
       fetchHistory();
-      alert('Proses kenaikan kelas berhasil');
+      
+      if (response.failedCount > 0) {
+        if (response.promotedCount === 0) {
+          alert('Gagal menaikkan kelas semua siswa. ' + (response.results.find((r: any) => !r.success)?.message || ''));
+        } else {
+          alert(`Berhasil: ${response.promotedCount} siswa, Gagal: ${response.failedCount} siswa.`);
+        }
+      } else {
+        alert('Proses kenaikan kelas berhasil untuk semua siswa terpilih.');
+      }
     } catch (err: any) {
       alert(err.response?.data?.message || 'Gagal memproses kenaikan kelas');
     }

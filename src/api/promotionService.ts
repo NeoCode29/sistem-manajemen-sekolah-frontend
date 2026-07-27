@@ -16,7 +16,7 @@ export const promoteStudent = async (data: any) => {
   return response.data;
 };
 
-export const batchPromote = async (data: { academicYearId: string; sourceClassId: string; promotions: { studentId: string; targetClassId: string; status: string; notes?: string }[] }) => {
+export const batchPromote = async (data: { studentIds: string[]; sourceClassroomId: string; targetClassroomId: string; sourceAcademicYearId: string; targetAcademicYearId: string; targetSemesterId: string; promotionDate?: string; notes?: string }) => {
   const response = await api.post('/promotions/batch', data);
   return response.data;
 };

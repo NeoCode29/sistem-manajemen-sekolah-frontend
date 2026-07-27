@@ -45,8 +45,8 @@ export const getStudentsByClass = async (
     params: {
       academicYearId,
       semesterId,
-      classId,
-      status: 'AKTIF'
+      classroomId: classId,
+      status: 'ACTIVE'
     }
   });
   return response.data;
