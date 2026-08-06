@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getGraduations, batchGraduate, cancelGraduation } from '../../api/promotionService';
 import { getClassrooms, getAcademicYears } from '../../api/academicService';
 import type { Classroom as ClassType } from '../../api/academicService';
@@ -70,8 +71,8 @@ export const Graduations: React.FC = () => {
     }
     
     try {
-      // Assuming getStudents takes a classId param
-      const students = await getStudents({ classroomId: classId, status: 'ACTIVE' });
+      // Students should be fetched by classroomId and enrollmentStatus
+      const students = await getStudents({ classroomId: classId, status: 'ACTIVE', enrollmentStatus: 'ACTIVE' });
       setSourceStudents(students);
       // Auto-select all by default
       setSelectedStudentIds(new Set(students.map((s: Student) => s.id.toString())));
@@ -218,20 +219,20 @@ export const Graduations: React.FC = () => {
       </div>
 
       {/* Batch Processing Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+      {isModalOpen && createPortal(
+        <div className="modal-backdrop-v4">
+          <div className="modal-content-v4" style={{ maxWidth: '900px' }}>
+            <div className="modal-header-v4">
+              <h2 className="flex items-center gap-2">
                 <Award size={20} className="text-blue-600" />
                 Proses Kelulusan Siswa (Batch)
               </h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1">
+              <button onClick={() => setIsModalOpen(false)} className="btn-close">
                 <X size={20} />
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto flex-1">
+            <div className="modal-body-v4">
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 flex gap-3 text-yellow-800 text-sm">
                 <AlertTriangle size={20} className="text-yellow-600 flex-shrink-0" />
                 <p>
@@ -324,30 +325,33 @@ export const Graduations: React.FC = () => {
               )}
             </div>
             
-            <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
-              <span className="text-sm font-medium text-blue-700">
-                {selectedStudentIds.size} dari {sourceStudents.length} siswa dipilih untuk diluluskan.
-              </span>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBatchGraduateSubmit}
-                  disabled={selectedStudentIds.size === 0}
-                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-600 hover:bg-yellow-700"
-                >
-                  Proses Kelulusan Sekarang
-                </button>
+            <div className="modal-footer-v4">
+              <div className="flex justify-between items-center w-full">
+                <span className="text-sm font-medium text-blue-700">
+                  {selectedStudentIds.size} dari {sourceStudents.length} siswa dipilih untuk diluluskan.
+                </span>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="btn-secondary"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBatchGraduateSubmit}
+                    disabled={selectedStudentIds.size === 0}
+                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-600 hover:bg-yellow-700"
+                  >
+                    Proses Kelulusan Sekarang
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, GraduationCap, Clock, Calendar, Printer, HelpCircle, Megaphone, Pin } from 'lucide-react';
+import { Users, GraduationCap, Clock, Calendar, Megaphone, Pin } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getMyAnnouncements } from '../../api/announcementService';
 import type { Announcement } from '../../api/announcementService';

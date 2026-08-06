@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { getAcademicYears, createAcademicYear, updateAcademicYear, toggleAcademicYearActive, deleteAcademicYear, type AcademicYear } from '../../api/academicService';
-import { Plus, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, Trash2, Edit, AlertCircle } from 'lucide-react';
 import './Academic.css';
 
 export const AcademicYears: React.FC = () => {
   const [years, setYears] = useState<AcademicYear[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState('');
@@ -18,6 +19,7 @@ export const AcademicYears: React.FC = () => {
     setIsEditing(false);
     setEditId('');
     setName('');
+    setError('');
   };
 
   const handleEdit = (year: AcademicYear) => {
@@ -30,10 +32,12 @@ export const AcademicYears: React.FC = () => {
   const fetchYears = async () => {
     try {
       setLoading(true);
+      setError('');
       const data = await getAcademicYears();
       setYears(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch academic years:', error);
+      setError(error.response?.data?.message || 'Gagal memuat data tahun ajaran');
     } finally {
       setLoading(false);
     }
@@ -45,27 +49,31 @@ export const AcademicYears: React.FC = () => {
 
   const handleToggle = async (id: string) => {
     try {
+      setError('');
       await toggleAcademicYearActive(id);
       fetchYears();
-    } catch (error) {
-      alert('Failed to toggle status');
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Gagal mengubah status');
     }
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this academic year?')) {
       try {
+        setError('');
         await deleteAcademicYear(id);
         fetchYears();
-      } catch (error) {
-        alert('Failed to delete academic year');
+      } catch (error: any) {
+        setError(error.response?.data?.message || 'Gagal menghapus tahun ajaran');
       }
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('SUBMIT_CLICKED', { name, isEditing, editId });
     try {
+      setError('');
       const payload = {
         name,
       };
@@ -79,7 +87,14 @@ export const AcademicYears: React.FC = () => {
       handleCloseModal();
       fetchYears();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to save academic year');
+      console.error('HANDLE_SUBMIT_ERROR:', error);
+      console.error('RESPONSE_DATA:', error.response?.data);
+      const message = error.response?.data?.message;
+      if (Array.isArray(message)) {
+        setError(message.join(', '));
+      } else {
+        setError(message || 'Gagal menyimpan tahun ajaran');
+      }
     }
   };
 
@@ -94,6 +109,13 @@ export const AcademicYears: React.FC = () => {
           <Plus size={18} /> Tambah Data
         </button>
       </div>
+
+      {error && (
+        <div className="alert alert-error mb-4 flex items-center gap-2">
+          <AlertCircle size={18} />
+          {error}
+        </div>
+      )}
 
       <div className="glass-panel">
         {loading ? (

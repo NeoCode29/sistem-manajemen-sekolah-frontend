@@ -104,3 +104,20 @@ export const updateGuardian = async (studentId: string, id: string, data: Partia
 export const deleteGuardian = async (studentId: string, id: string): Promise<void> => {
   await api.delete(`/students/${studentId}/guardians/${id}`);
 };
+
+// ==========================================
+// STUDENT ENROLLMENTS
+// ==========================================
+export const createEnrollment = async (studentId: string, data: Partial<StudentEnrollment>): Promise<StudentEnrollment> => {
+  const response = await api.post(`/students/${studentId}/enrollments`, data);
+  return response.data;
+};
+
+export const updateEnrollment = async (studentId: string, id: string, data: Partial<StudentEnrollment>): Promise<StudentEnrollment> => {
+  const response = await api.patch(`/students/${studentId}/enrollments/${id}`, data);
+  return response.data;
+};
+
+export const deleteEnrollment = async (studentId: string, id: string): Promise<void> => {
+  await api.delete(`/students/${studentId}/enrollments/${id}`);
+};

@@ -42,7 +42,7 @@ export const ExamScores: React.FC = () => {
       
       // 2. Fetch Students in that classroom & existing scores
       const [studentsData, scoresData] = await Promise.all([
-        getStudents({ classroomId: examData.classroomId }),
+        getStudents({ classroomId: examData.classroomId, enrollmentStatus: 'ACTIVE' }),
         getExamScores(examId!)
       ]);
       

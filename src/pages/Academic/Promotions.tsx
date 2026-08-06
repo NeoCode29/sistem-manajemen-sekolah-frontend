@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getPromotions, batchPromote, cancelPromotion } from '../../api/promotionService';
 import { getAcademicYears, getClassrooms, getSemesters } from '../../api/academicService';
 import type { AcademicYear, Classroom as ClassType, Semester } from '../../api/academicService';
@@ -28,21 +29,30 @@ export const Promotions: React.FC = () => {
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchHistory();
     fetchDropdowns();
   }, []);
 
-  const fetchHistory = async () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const fetchHistory = async (page = 1) => {
     try {
       setLoading(true);
-      const response = await getPromotions();
+      const response = await getPromotions({ page, limit: 15 });
       setPromotionsHistory(response.data || []);
+      setTotalPages(response.totalPages || 1);
+      setCurrentPage(page);
     } catch (err: any) {
       setError('Gagal memuat riwayat kenaikan kelas');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchHistory(currentPage);
+  }, [currentPage]);
+
 
   const fetchDropdowns = async () => {
     try {
@@ -72,8 +82,8 @@ export const Promotions: React.FC = () => {
     }
     
     try {
-      // Students should be fetched by classroomId
-      const students = await getStudents({ classroomId: classId, status: 'ACTIVE' });
+      // Students should be fetched by classroomId and enrollmentStatus
+      const students = await getStudents({ classroomId: classId, status: 'ACTIVE', enrollmentStatus: 'ACTIVE' });
       setSourceStudents(students);
       setSelectedStudentIds(students.map(s => s.id.toString()));
     } catch (err) {
@@ -92,13 +102,26 @@ export const Promotions: React.FC = () => {
       alert('Tahun Ajaran, Kelas, dan Semester (Asal & Tujuan) harus dipilih lengkap!');
       return;
     }
-    if (selectedStudentIds.length === 0) {
-      alert('Pilih setidaknya satu siswa untuk dinaikkan kelas.');
+    
+    if (selectedSourceAcademicYear === selectedTargetAcademicYear) {
+      alert('Tahun Ajaran Asal dan Tujuan tidak boleh sama!');
       return;
+    }
+
+    if (sourceStudents.length === 0) {
+      alert('Tidak ada siswa di kelas ini.');
+      return;
+    }
+
+    const retainedIds = sourceStudents.map(s => s.id.toString()).filter(id => !selectedStudentIds.includes(id));
+    
+    if (!window.confirm(`Siswa Naik Kelas: ${selectedStudentIds.length} orang\nSiswa Tinggal Kelas: ${retainedIds.length} orang\n\nLanjutkan proses?`)) {
+        return;
     }
 
     const payload = {
       studentIds: selectedStudentIds,
+      retainedStudentIds: retainedIds,
       sourceClassroomId: selectedSourceClass,
       targetClassroomId: selectedTargetClass,
       sourceAcademicYearId: selectedSourceAcademicYear,
@@ -109,16 +132,12 @@ export const Promotions: React.FC = () => {
     try {
       const response = await batchPromote(payload);
       setIsModalOpen(false);
-      fetchHistory();
+      fetchHistory(1);
       
       if (response.failedCount > 0) {
-        if (response.promotedCount === 0) {
-          alert('Gagal menaikkan kelas semua siswa. ' + (response.results.find((r: any) => !r.success)?.message || ''));
-        } else {
-          alert(`Berhasil: ${response.promotedCount} siswa, Gagal: ${response.failedCount} siswa.`);
-        }
+        alert(`Diproses: ${response.promotedCount} naik, ${response.retainedCount} tinggal. Gagal: ${response.failedCount} siswa.`);
       } else {
-        alert('Proses kenaikan kelas berhasil untuk semua siswa terpilih.');
+        alert('Proses berhasil untuk semua siswa.');
       }
     } catch (err: any) {
       alert(err.response?.data?.message || 'Gagal memproses kenaikan kelas');
@@ -165,6 +184,7 @@ export const Promotions: React.FC = () => {
         {loading ? (
           <div className="p-8 text-center text-gray-500">Memuat data...</div>
         ) : (
+          <>
           <div className="table-container">
             <table className="data-table">
               <thead>
@@ -189,14 +209,14 @@ export const Promotions: React.FC = () => {
                   promotionsHistory.map((item) => (
                     <tr key={item.id}>
                       <td>
-                        <div className="font-medium text-gray-900">{item.student?.name || 'Siswa tidak ditemukan'}</div>
+                        <div className="font-medium text-gray-900">{item.student?.fullName || item.student?.name || 'Siswa tidak ditemukan'}</div>
                         <div className="text-xs text-gray-500">{item.student?.nis || item.student?.nisn}</div>
                       </td>
-                      <td>{item.academicYear?.name || '-'}</td>
-                      <td>{item.sourceClass?.name || '-'}</td>
-                      <td>{item.targetClass?.name || '-'}</td>
+                      <td>{item.toAcademicYear?.name || '-'}</td>
+                      <td>{item.fromClassroom?.name || '-'}</td>
+                      <td>{item.toClassroom?.name || '-'}</td>
                       <td>{getStatusBadge(item.status)}</td>
-                      <td>{new Date(item.createdAt).toLocaleDateString('id-ID')}</td>
+                      <td>{new Date(item.promotionDate || item.createdAt).toLocaleDateString('id-ID')}</td>
                       <td>
                         <button
                           onClick={() => handleCancelPromotion(item.id)}
@@ -212,28 +232,52 @@ export const Promotions: React.FC = () => {
               </tbody>
             </table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex justify-between items-center px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl">
+              <div className="flex justify-between flex-1 sm:hidden">
+                <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">Previous</button>
+                <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="relative ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">Next</button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">Menampilkan halaman <span className="font-medium">{currentPage}</span> dari <span className="font-medium">{totalPages}</span></p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                      <span>Sebelumnya</span>
+                    </button>
+                    <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                      <span>Selanjutnya</span>
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 
       {/* Batch Processing Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+      {isModalOpen && createPortal(
+        <div className="modal-backdrop-v4">
+          <div className="modal-content-v4" style={{ maxWidth: '900px' }}>
+            <div className="modal-header-v4">
+              <h2 className="flex items-center gap-2">
                 <TrendingUp size={20} className="text-blue-600" />
                 Pemrosesan Kenaikan Kelas (Batch)
               </h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1">
+              <button onClick={() => setIsModalOpen(false)} className="btn-close">
                 <X size={20} />
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto flex-1">
+            <div className="modal-body-v4">
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6 flex gap-3 text-blue-800 text-sm">
                 <AlertTriangle size={20} className="text-blue-600 flex-shrink-0" />
                 <p>
-                  Siswa yang dichecklist akan dinaikkan ke kelas tujuan yang dipilih. Siswa yang tidak dichecklist akan diabaikan (tinggal kelas/bisa diproses di lain waktu).
+                  Siswa yang di-checklist akan NAIK KELAS ke Kelas Tujuan. Siswa yang TIDAK di-checklist akan berstatus TINGGAL KELAS dan didaftarkan kembali ke Kelas Asal pada Tahun Ajaran Baru.
                 </p>
               </div>
 
@@ -348,30 +392,33 @@ export const Promotions: React.FC = () => {
               )}
             </div>
             
-            <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
-              <span className="text-sm text-gray-500">
-                {sourceStudents.length > 0 ? `${sourceStudents.length} siswa akan diproses.` : ''}
-              </span>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBatchPromoteSubmit}
-                  disabled={sourceStudents.length === 0}
-                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Proses & Simpan
-                </button>
+            <div className="modal-footer-v4">
+              <div className="flex justify-between items-center w-full">
+                <span className="text-sm text-gray-500">
+                  {sourceStudents.length > 0 ? `${sourceStudents.length} siswa akan diproses.` : ''}
+                </span>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="btn-secondary"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBatchPromoteSubmit}
+                    disabled={sourceStudents.length === 0}
+                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Proses & Simpan
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -17,6 +17,7 @@ import { Users } from '../pages/Admin/Users';
 import { Positions } from '../pages/Entities/Positions';
 import { Employees } from '../pages/Entities/Employees';
 import { Students } from '../pages/Entities/Students';
+import { StudentDetail } from '../pages/Entities/StudentDetail';
 import { AttendanceSettings } from '../pages/Attendance/AttendanceSettings';
 import { StudentAttendancePage } from '../pages/Attendance/StudentAttendance';
 import { EmployeeAttendancePage } from '../pages/Attendance/EmployeeAttendance';
@@ -67,6 +68,7 @@ export const AppRoutes: React.FC = () => {
               <Route path="/entities/positions" element={<Positions />} />
               <Route path="/entities/employees" element={<Employees />} />
               <Route path="/entities/students" element={<Students />} />
+              <Route path="/entities/students/:id" element={<StudentDetail />} />
               <Route path="/attendance/settings" element={<AttendanceSettings />} />
               <Route path="/attendance/students" element={<StudentAttendancePage />} />
               <Route path="/attendance/employees" element={<EmployeeAttendancePage />} />

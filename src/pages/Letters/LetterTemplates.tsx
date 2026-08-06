@@ -74,12 +74,6 @@ export const LetterTemplates: React.FC = () => {
     }));
   };
 
-  const handleQuillChange = (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      content: value,
-    }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

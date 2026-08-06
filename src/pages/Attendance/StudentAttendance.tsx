@@ -95,7 +95,7 @@ export const StudentAttendancePage: React.FC = () => {
       setError('');
       
       const [studentsData, attendancesData] = await Promise.all([
-        getStudents({ classroomId: selectedClassroomId }),
+        getStudents({ classroomId: selectedClassroomId, enrollmentStatus: 'ACTIVE' }),
         getStudentAttendances({
           classroomId: selectedClassroomId,
           academicYearId: selectedAcademicYearId,
