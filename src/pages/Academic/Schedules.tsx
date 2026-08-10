@@ -154,14 +154,29 @@ export const Schedules: React.FC = () => {
       };
       
       if (editingAssignment) {
-        await updateSubjectAssignment(filterClassroomId, editingAssignment.id, payload);
+        await updateSubjectAssignment(filterClassroomId, editingAssignment.id, {
+          subjectId,
+          employeeId,
+          isActive: true
+        });
       } else {
         await createSubjectAssignment(filterClassroomId, payload);
       }
       setIsAssignmentModalOpen(false);
       fetchClassroomData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan penugasan guru');
+      console.error("Save assignment error:", err);
+      let errMsg = 'Gagal menyimpan penugasan guru';
+      if (err.response?.data?.message) {
+        if (Array.isArray(err.response.data.message)) {
+          errMsg = err.response.data.message.join('\n');
+        } else {
+          errMsg = err.response.data.message;
+        }
+      } else if (err.message) {
+        errMsg = err.message;
+      }
+      setError(errMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -205,24 +220,41 @@ export const Schedules: React.FC = () => {
     if (!filterClassroomId) return;
     try {
       setIsSubmitting(true);
-      const payload = {
-        academicYearId: filterAcademicYearId,
-        semesterId: filterSemesterId,
-        dayOfWeek: Number(dayOfWeek),
-        classPeriodId,
-        subjectAssignmentId,
-        room: room || undefined
-      };
       
       if (editingSchedule) {
-        await updateSchedule(filterClassroomId, editingSchedule.id, payload);
+        const updatePayload = {
+          dayOfWeek: Number(dayOfWeek),
+          classPeriodId,
+          subjectAssignmentId,
+          room: room || undefined
+        };
+        await updateSchedule(filterClassroomId, editingSchedule.id, updatePayload);
       } else {
-        await createSchedule(filterClassroomId, payload);
+        const createPayload = {
+          academicYearId: filterAcademicYearId,
+          semesterId: filterSemesterId,
+          dayOfWeek: Number(dayOfWeek),
+          classPeriodId,
+          subjectAssignmentId,
+          room: room || undefined
+        };
+        await createSchedule(filterClassroomId, createPayload);
       }
       setIsScheduleModalOpen(false);
       fetchClassroomData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan jadwal');
+      console.error("Save schedule error:", err);
+      let errMsg = 'Gagal menyimpan jadwal';
+      if (err.response?.data?.message) {
+        if (Array.isArray(err.response.data.message)) {
+          errMsg = err.response.data.message.join('\n');
+        } else {
+          errMsg = err.response.data.message;
+        }
+      } else if (err.message) {
+        errMsg = err.message;
+      }
+      setError(errMsg);
     } finally {
       setIsSubmitting(false);
     }

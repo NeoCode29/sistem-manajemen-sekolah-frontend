@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement } from '../../api/announcementService';
 import type { Announcement } from '../../api/announcementService';
 import { Megaphone, Plus, Edit2, Trash2, X, Pin, Calendar, Users } from 'lucide-react';
@@ -92,13 +93,24 @@ export const Announcements: React.FC = () => {
       if (editingId) {
         await updateAnnouncement(editingId, payload);
       } else {
-        await createAnnouncement({ ...payload, createdById: user?.id?.toString() || '1' });
+        await createAnnouncement({ ...payload, createdById: user?.employeeId?.toString() || '1' });
       }
       
       closeModal();
       fetchAnnouncements();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan pengumuman');
+      console.error("Save error:", err);
+      let errMsg = 'Gagal menyimpan pengumuman';
+      if (err.response?.data?.message) {
+        if (Array.isArray(err.response.data.message)) {
+          errMsg = err.response.data.message.join('\n');
+        } else {
+          errMsg = err.response.data.message;
+        }
+      } else if (err.message) {
+        errMsg = err.message;
+      }
+      setError(errMsg);
     }
   };
 
@@ -146,8 +158,12 @@ export const Announcements: React.FC = () => {
               <tbody>
                 {announcements.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-6 text-gray-500">
-                      Belum ada pengumuman
+                    <td colSpan={5} className="text-center py-12">
+                      <div className="flex flex-col items-center justify-center text-gray-400">
+                        <Megaphone size={48} className="mb-4 text-gray-300" />
+                        <p className="text-lg font-medium text-gray-500">Belum ada pengumuman</p>
+                        <p className="text-sm mt-1">Klik "Buat Pengumuman" untuk menambahkan pengumuman baru.</p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -219,23 +235,23 @@ export const Announcements: React.FC = () => {
       </div>
 
       {/* Modal Form */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <Megaphone size={20} className="text-blue-600" />
+      {isModalOpen && createPortal(
+        <div className="modal-backdrop-v4">
+          <div className="modal-content-v4 w-full max-w-2xl">
+            <div className="modal-header-v4">
+              <h2>
+                <Megaphone size={20} className="text-blue-600 inline-block mr-2" />
                 {editingId ? 'Edit Pengumuman' : 'Buat Pengumuman Baru'}
               </h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 p-1">
+              <button onClick={closeModal} className="btn-close">
                 <X size={20} />
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto">
-              {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
+            <div className="modal-body-v4">
+              {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 whitespace-pre-wrap">{error}</div>}
               
-              <form id="announcement-form" onSubmit={handleSubmit} className="space-y-4">
+              <form id="announcement-form" onSubmit={handleSubmit} className="form-grid">
                 <div className="form-group">
                   <label className="text-sm font-medium text-gray-700">Judul Pengumuman *</label>
                   <input
@@ -281,28 +297,36 @@ export const Announcements: React.FC = () => {
                     </select>
                   </div>
 
-                  <div className="form-group flex flex-col justify-center gap-2 mt-6">
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="isPinned"
-                        checked={formData.isPinned}
-                        onChange={handleInputChange}
-                        className="rounded text-orange-500 focus:ring-orange-500"
-                      />
-                      <Pin size={16} className="text-orange-500"/>
-                      Pin (Sematkan di Atas)
-                    </label>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="isActive"
-                        checked={formData.isActive}
-                        onChange={handleInputChange}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      Status Aktif (Tampilkan)
-                    </label>
+                  <div className="form-group flex flex-col gap-3">
+                    <label className="text-sm font-medium text-gray-700">Pengaturan Tambahan</label>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors bg-white">
+                        <input
+                          type="checkbox"
+                          name="isPinned"
+                          checked={formData.isPinned}
+                          onChange={handleInputChange}
+                          className="w-4 h-4 rounded text-orange-500 focus:ring-orange-500 border-gray-300"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Pin size={16} className="text-orange-500"/>
+                          <span>Pin (Sematkan di Atas)</span>
+                        </div>
+                      </label>
+                      <label className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors bg-white">
+                        <input
+                          type="checkbox"
+                          name="isActive"
+                          checked={formData.isActive}
+                          onChange={handleInputChange}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                        />
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${formData.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                          <span>Status Aktif (Tampilkan)</span>
+                        </div>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -333,7 +357,7 @@ export const Announcements: React.FC = () => {
               </form>
             </div>
             
-            <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+            <div className="modal-footer-v4">
               <button
                 type="button"
                 onClick={closeModal}
@@ -350,7 +374,8 @@ export const Announcements: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
