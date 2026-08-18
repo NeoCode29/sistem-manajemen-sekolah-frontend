@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getPaymentPeriods, createPaymentPeriod, updatePaymentPeriod, deletePaymentPeriod, getPaymentTypes, type PaymentPeriod, type PaymentType } from '../../api/financeService';
 import { getAcademicYears, getSemesters, type AcademicYear, type Semester } from '../../api/academicService';
 import { Plus, Edit2, Trash2, CalendarDays } from 'lucide-react';
@@ -270,7 +271,7 @@ export const PaymentPeriods: React.FC = () => {
         )}
       </div>
 
-      {isModalOpen && (
+      {isModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '550px' }}>
             <div className="modal-header-v4">
@@ -383,6 +384,8 @@ export const PaymentPeriods: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );

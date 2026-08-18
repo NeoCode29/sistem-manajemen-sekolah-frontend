@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getClassrooms, createClassroom, updateClassroom, deleteClassroom, type Classroom, getGrades, type Grade } from '../../api/academicService';
 import { Plus, Trash2, Users, Edit } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
@@ -209,7 +210,7 @@ export const Classrooms: React.FC = () => {
         )}
       </div>
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4">
             <div className="modal-header-v4">
@@ -246,12 +247,9 @@ export const Classrooms: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );
 };
-
-
-
-
-

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule, getSubjectAssignments, createSubjectAssignment, updateSubjectAssignment, deleteSubjectAssignment } from '../../api/schedulingService';
 import type { Schedule, SubjectAssignment } from '../../api/schedulingService';
 import { getAcademicYears, getSemesters, getClassrooms, getSubjects, getClassPeriods } from '../../api/academicService';
@@ -512,7 +513,7 @@ export const Schedules: React.FC = () => {
       )}
 
       {/* Assignment Modal */}
-      {isAssignmentModalOpen && (
+      {isAssignmentModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '400px' }}>
             <div className="modal-header-v4">
@@ -551,7 +552,7 @@ export const Schedules: React.FC = () => {
       )}
 
       {/* Schedule Modal */}
-      {isScheduleModalOpen && (
+      {isScheduleModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
             <div className="modal-header-v4">
@@ -612,8 +613,9 @@ export const Schedules: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
-
     </div>
   );
 };

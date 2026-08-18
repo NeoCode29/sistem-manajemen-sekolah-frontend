@@ -33,7 +33,7 @@ export const Cashier: React.FC = () => {
       const fetchS = async () => {
         try {
           const data = await getStudents({ search: searchStudent });
-          setStudents(data);
+          setStudents(Array.isArray(data) ? data : (data as any).data || []);
         } catch (err) {
           console.error(err);
         }

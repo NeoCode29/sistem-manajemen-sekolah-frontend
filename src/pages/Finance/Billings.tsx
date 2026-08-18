@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getBillings, generateBatchBillings, updateBilling, cancelBilling, deleteBilling, getPaymentPeriods, getPaymentTypes, createCustomBilling, type StudentBilling, type PaymentPeriod, type PaymentType } from '../../api/financeService';
 import { getGrades, getClassrooms, type Grade, type Classroom } from '../../api/academicService';
 import { getStudents, type Student } from '../../api/studentService';
@@ -67,7 +68,7 @@ export const Billings: React.FC = () => {
       setPeriods(periodsData);
       setGrades(gradesData);
       setPaymentTypes(typesData);
-      setStudents(studentsData);
+      setStudents(Array.isArray(studentsData) ? studentsData : (studentsData as any).data || []);
     } catch (err) {
       console.error(err);
     }
@@ -406,7 +407,7 @@ export const Billings: React.FC = () => {
       </div>
 
       {/* MODAL BATCH GENERATION */}
-      {isBatchModalOpen && (
+      {isBatchModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '600px' }}>
             <div className="modal-header-v4">
@@ -509,10 +510,10 @@ export const Billings: React.FC = () => {
             )}
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* MODAL EDIT/DISCOUNT */}
-      {isEditModalOpen && editingBilling && (
+      {isEditModalOpen && editingBilling && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
             <div className="modal-header-v4">
@@ -549,7 +550,7 @@ export const Billings: React.FC = () => {
                   value={discountReason} 
                   onChange={(e) => setDiscountReason(e.target.value)}
                   placeholder="Misal: Anak Guru, Beasiswa Prestasi"
-                  required={discountAmount > 0}
+                  required={Number(discountAmount) > 0}
                 />
               </div>
 
@@ -563,10 +564,10 @@ export const Billings: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* MODAL SINGLE BILLING */}
-      {isSingleModalOpen && (
+      {isSingleModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
             <div className="modal-header-v4">
@@ -659,7 +660,7 @@ export const Billings: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 };

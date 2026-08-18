@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getUsers, createUser, updateUser, assignRolesToUser, getRoles, type User, type Role } from '../../api/rbacService';
 import { Plus, Users as UsersIcon, UserCheck, Edit } from 'lucide-react';
 import '../Academic/Academic.css';
@@ -197,7 +198,7 @@ export const Users: React.FC = () => {
         )}
       </div>
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4">
             <div className="modal-header-v4">
@@ -235,9 +236,9 @@ export const Users: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
+      , document.body)}
 
-      {showRoleModal && selectedUser && (
+      {showRoleModal && selectedUser && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4 animate-fade-in" style={{ maxWidth: '500px' }}>
             <div className="modal-header-v4">
@@ -272,12 +273,9 @@ export const Users: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );
 };
-
-
-
-
-

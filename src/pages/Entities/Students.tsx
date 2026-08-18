@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { getStudents, createStudentWizard, updateStudent, deleteStudent, getGuardians, updateGuardian, type Student, type CreateStudentWizardPayload } from '../../api/studentService';
 import { getAcademicYears, getSemesters, getClassrooms, type AcademicYear, type Semester, type Classroom } from '../../api/academicService';
@@ -13,6 +14,7 @@ export const Students: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -47,8 +49,16 @@ export const Students: React.FC = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const data = await getStudents({ page: currentPage, limit: itemsPerPage });
-      setStudents(data);
+      const response = await getStudents({ page: currentPage, limit: itemsPerPage });
+      // Handle both old array format and new {data, meta} format from backend
+      if (Array.isArray(response)) {
+        setStudents(response);
+      } else {
+        setStudents(response.data);
+        if (response.meta?.totalPages) {
+          setTotalPages(response.meta.totalPages);
+        }
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Gagal memuat data siswa');
     } finally {
@@ -265,6 +275,7 @@ export const Students: React.FC = () => {
         {!loading && (students.length > 0 || currentPage > 1) && (
           <Pagination
             currentPage={currentPage}
+            totalPages={totalPages}
             onPageChange={setCurrentPage}
             hasNextPage={students.length === itemsPerPage}
             itemsPerPage={itemsPerPage}
@@ -277,7 +288,7 @@ export const Students: React.FC = () => {
       </div>
 
       {/* WIZARD MODAL */}
-      {showWizardModal && (
+      {showWizardModal && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '600px' }}>
             <div className="modal-header-v4">
@@ -404,6 +415,8 @@ export const Students: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );

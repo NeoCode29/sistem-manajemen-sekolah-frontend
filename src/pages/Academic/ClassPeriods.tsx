@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getClassPeriods, createClassPeriod, updateClassPeriod, deleteClassPeriod, type ClassPeriod } from '../../api/academicService';
 import { Plus, Trash2, Clock, Coffee, Edit } from 'lucide-react';
 import './Academic.css';
@@ -173,7 +174,7 @@ export const ClassPeriods: React.FC = () => {
         )}
       </div>
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4">
             <div className="modal-header-v4">
@@ -214,12 +215,9 @@ export const ClassPeriods: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );
 };
-
-
-
-
-

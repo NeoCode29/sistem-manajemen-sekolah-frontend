@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Award, ArrowUpRight, GraduationCap, Search, CheckCircle2, ChevronRight, Check } from 'lucide-react';
 import { 
   getAcademicYears, getSemesters, getClassrooms, 
@@ -304,7 +305,7 @@ export const Promotions: React.FC = () => {
       </div>
 
       {/* Promote Modal */}
-      {isPromoteModalOpen && (
+      {isPromoteModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
             <div className="modal-header-v4">
@@ -354,7 +355,7 @@ export const Promotions: React.FC = () => {
       )}
 
       {/* Graduate Modal */}
-      {isGraduateModalOpen && (
+      {isGraduateModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
             <div className="modal-header-v4">
@@ -401,8 +402,9 @@ export const Promotions: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
-
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { getMyAnnouncements } from '../../api/announcementService';
 import type { Announcement } from '../../api/announcementService';
 import { getDashboardSummary } from '../../api/dashboardService';
 import type { DashboardSummary } from '../../api/dashboardService';
+import './Dashboard.css';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -52,7 +53,7 @@ export const Dashboard: React.FC = () => {
   const absentPct = totalAttendance > 0 ? Math.round((summary.attendance.absent / totalAttendance) * 100) : 0;
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="dashboard-container">
       
       {/* Breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
@@ -67,10 +68,10 @@ export const Dashboard: React.FC = () => {
           <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Selamat datang kembali, {user?.name || 'Admin'}. Berikut ringkasan operasional sekolah hari ini.</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '0.5rem', color: '#374151', fontWeight: 500, fontSize: '0.875rem' }}>
+          <button className="action-button" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '0.5rem', color: '#374151', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer' }}>
             <Calendar size={16} /> {currentDate}
           </button>
-          <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#1d4ed8', border: 'none', borderRadius: '0.5rem', color: '#ffffff', fontWeight: 500, fontSize: '0.875rem' }}>
+          <button className="action-button" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#1d4ed8', border: 'none', borderRadius: '0.5rem', color: '#ffffff', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer' }}>
             + Input Cepat
           </button>
         </div>
@@ -80,58 +81,58 @@ export const Dashboard: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }}>
         
         {/* Siswa */}
-        <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <div className="stat-card" style={{ '--gradient-start': '#3b82f6', '--gradient-end': '#60a5fa' } as React.CSSProperties}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Users size={20} />
+            <div className="stat-icon-wrapper" style={{ background: '#eff6ff', color: '#1d4ed8' }}>
+              <Users size={24} />
             </div>
-            <span style={{ background: '#def7ec', color: '#03543f', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.5rem', borderRadius: '999px' }}>Aktif</span>
+            <span style={{ background: '#def7ec', color: '#03543f', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.6rem', borderRadius: '999px' }}>Aktif</span>
           </div>
           <div>
             <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TOTAL SISWA</p>
-            <h2 style={{ fontSize: '2rem', fontWeight: 700, color: '#111827', margin: 0 }}>{summary.totalStudents.toLocaleString()}</h2>
+            <h2 className="stat-value">{summary.totalStudents.toLocaleString()}</h2>
           </div>
         </div>
 
         {/* Guru */}
-        <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <div className="stat-card" style={{ '--gradient-start': '#8b5cf6', '--gradient-end': '#a78bfa' } as React.CSSProperties}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Users size={20} />
+            <div className="stat-icon-wrapper" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+              <Users size={24} />
             </div>
-            <span style={{ background: '#f3f4f6', color: '#374151', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.5rem', borderRadius: '999px' }}>Aktif</span>
+            <span style={{ background: '#f3f4f6', color: '#374151', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.6rem', borderRadius: '999px' }}>Aktif</span>
           </div>
           <div>
             <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TOTAL GURU & STAF</p>
-            <h2 style={{ fontSize: '2rem', fontWeight: 700, color: '#111827', margin: 0 }}>{summary.totalEmployees.toLocaleString()}</h2>
+            <h2 className="stat-value">{summary.totalEmployees.toLocaleString()}</h2>
           </div>
         </div>
 
         {/* Kelas */}
-        <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <div className="stat-card" style={{ '--gradient-start': '#f59e0b', '--gradient-end': '#fbbf24' } as React.CSSProperties}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <GraduationCap size={20} />
+            <div className="stat-icon-wrapper" style={{ background: '#fffbeb', color: '#d97706' }}>
+              <GraduationCap size={24} />
             </div>
-            <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.5rem', borderRadius: '999px' }}>ROMBEL</span>
+            <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.6rem', borderRadius: '999px' }}>ROMBEL</span>
           </div>
           <div>
             <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>KELAS AKTIF</p>
-            <h2 style={{ fontSize: '2rem', fontWeight: 700, color: '#111827', margin: 0 }}>{summary.activeClassrooms.toLocaleString()}</h2>
+            <h2 className="stat-value">{summary.activeClassrooms.toLocaleString()}</h2>
           </div>
         </div>
 
         {/* Tahun Ajaran */}
-        <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <div className="stat-card" style={{ '--gradient-start': '#ec4899', '--gradient-end': '#f472b6' } as React.CSSProperties}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Calendar size={20} />
+            <div className="stat-icon-wrapper" style={{ background: '#fdf2f8', color: '#db2777' }}>
+              <Calendar size={24} />
             </div>
           </div>
           <div>
             <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TAHUN AJARAN</p>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}>{summary.academicYear.name}</h2>
-            <span style={{ fontSize: '0.75rem', color: '#1d4ed8', background: '#eff6ff', padding: '0.125rem 0.375rem', borderRadius: '4px', marginTop: '0.25rem', display: 'inline-block' }}>{summary.academicYear.semester}</span>
+            <h2 className="stat-value" style={{ fontSize: '1.75rem' }}>{summary.academicYear.name}</h2>
+            <span style={{ fontSize: '0.75rem', color: '#db2777', background: '#fdf2f8', padding: '0.25rem 0.5rem', borderRadius: '6px', marginTop: '0.5rem', display: 'inline-block', fontWeight: 500 }}>{summary.academicYear.semester}</span>
           </div>
         </div>
 
@@ -140,7 +141,7 @@ export const Dashboard: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
         
         {/* Ringkasan Absensi */}
-        <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <div className="dashboard-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
             <div>
               <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', margin: 0 }}>Ringkasan Absensi Hari Ini</h3>
@@ -187,7 +188,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Aktivitas Terbaru */}
-        <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+        <div className="dashboard-card" style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
             <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', margin: 0 }}>Aktivitas Terbaru</h3>
             <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Log sistem dan log administratif</p>
@@ -197,7 +198,7 @@ export const Dashboard: React.FC = () => {
             
             {summary.recentActivities && summary.recentActivities.length > 0 ? (
               summary.recentActivities.map((act, idx) => (
-                <div key={act.id} style={{ display: 'flex', gap: '1rem', position: 'relative' }}>
+                <div key={act.id} className="activity-item" style={{ display: 'flex', gap: '1rem', position: 'relative' }}>
                   <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: idx === 0 ? '#93c5fd' : idx === 1 ? '#1d4ed8' : '#fef08a', border: '4px solid #ffffff', zIndex: 1, marginTop: '2px' }}></div>
                   <div>
                     <p style={{ fontSize: '0.875rem', color: '#374151', margin: 0, lineHeight: 1.4 }}>
@@ -224,27 +225,28 @@ export const Dashboard: React.FC = () => {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
         
-        <div style={{ background: '#1d4ed8', borderRadius: '12px', padding: '1.5rem', color: 'white', display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Megaphone size={20} />
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Papan Pengumuman</h3>
+        <div className="announcement-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Megaphone size={24} />
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Papan Pengumuman</h3>
             </div>
             <button 
+              className="action-button"
               onClick={() => navigate('/announcements')}
-              style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}
+              style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.6rem 1.25rem', borderRadius: '0.75rem', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}
             >
               Lihat Semua Pengumuman
             </button>
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', zIndex: 1 }}>
             {announcements.length === 0 ? (
               <p style={{ fontSize: '0.875rem', color: '#bfdbfe', margin: 0, gridColumn: '1 / -1' }}>Belum ada pengumuman terbaru.</p>
             ) : (
               announcements.slice(0, 3).map((item) => (
-                <div key={item.id} style={{ background: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <div key={item.id} className="announcement-item" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
                     <h4 style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0, color: 'white', flex: 1, lineHeight: 1.4 }}>{item.title}</h4>
                     {item.isPinned && <Pin size={14} color="#fef08a" style={{ flexShrink: 0, marginTop: '2px' }} />}
                   </div>

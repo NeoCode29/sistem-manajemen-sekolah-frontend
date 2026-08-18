@@ -3,6 +3,7 @@ import { getFoundationProfile, updateFoundationProfile, uploadFoundationLogo } f
 import type { FoundationProfile } from '../../api/schoolProfileService';
 import { Save, Landmark, UploadCloud, MapPin, Phone } from 'lucide-react';
 import '../Academic/Academic.css';
+import './SchoolProfile.css';
 
 export const FoundationProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -96,7 +97,7 @@ export const FoundationProfilePage: React.FC = () => {
 
       <div className="glass-panel overflow-hidden">
         {/* Banner */}
-        <div className="profile-banner emerald-gradient">
+        <div className="profile-banner premium-banner-emerald">
           <div className="texture"></div>
         </div>
 
@@ -108,7 +109,7 @@ export const FoundationProfilePage: React.FC = () => {
             <div className="profile-header-container">
               <div className="profile-header-flex">
                 {/* Logo */}
-                <div className="profile-avatar-wrapper group">
+                <div className="profile-avatar-wrapper premium-avatar group">
                   {logoPreview ? (
                     <img src={logoPreview} alt="Foundation Logo" className="avatar-img" />
                   ) : (
@@ -147,9 +148,9 @@ export const FoundationProfilePage: React.FC = () => {
               <div className="flex flex-col gap-6 p-6">
                 
                 {/* Identitas Utama */}
-                <div className="glass-panel p-6 bg-green-50/30 relative overflow-hidden transition-all hover:shadow-lg border border-green-100">
+                <div className="premium-glass-card p-6 relative overflow-hidden">
                   <div className="flex items-center gap-4 mb-8 pb-5 border-b border-green-200/60">
-                    <div className="p-3 bg-green-100 text-green-600 rounded-xl shadow-sm">
+                    <div className="premium-icon-box p-3 bg-green-100 text-green-600 rounded-xl shadow-sm">
                       <Landmark size={24} />
                     </div>
                     <div>
@@ -161,16 +162,16 @@ export const FoundationProfilePage: React.FC = () => {
                   <div className="form-grid">
                     <div className="form-group">
                       <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Nama Yayasan <span className="text-red-500">*</span></label>
-                      <input type="text" className="input-field max-w-2xl" name="name" value={profile.name || ''} onChange={handleChange} required placeholder="Contoh: Yayasan Pendidikan Indonesia" />
+                      <input type="text" className="input-field premium-input max-w-2xl" name="name" value={profile.name || ''} onChange={handleChange} required placeholder="Contoh: Yayasan Pendidikan Indonesia" />
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Kontak & Digital */}
-                  <div className="glass-panel p-6 bg-blue-50/30 relative overflow-hidden transition-all hover:shadow-lg border border-blue-100">
+                  <div className="premium-glass-card p-6 relative overflow-hidden">
                     <div className="flex items-center gap-4 mb-8 pb-5 border-b border-blue-200/60">
-                      <div className="p-3 bg-blue-100 text-blue-600 rounded-xl shadow-sm">
+                      <div className="premium-icon-box p-3 bg-blue-100 text-blue-600 rounded-xl shadow-sm">
                         <Phone size={24} />
                       </div>
                       <div>
@@ -182,23 +183,23 @@ export const FoundationProfilePage: React.FC = () => {
                     <div className="form-grid gap-6">
                       <div className="form-group">
                         <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Nomor Telepon</label>
-                        <input type="text" className="input-field" name="phone" value={profile.phone || ''} onChange={handleChange} placeholder="(021) XXXXXXX" />
+                        <input type="text" className="input-field premium-input" name="phone" value={profile.phone || ''} onChange={handleChange} placeholder="(021) XXXXXXX" />
                       </div>
                       <div className="form-group">
                         <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Email Resmi</label>
-                        <input type="email" className="input-field" name="email" value={profile.email || ''} onChange={handleChange} placeholder="info@yayasan.org" />
+                        <input type="email" className="input-field premium-input" name="email" value={profile.email || ''} onChange={handleChange} placeholder="info@yayasan.org" />
                       </div>
                       <div className="form-group">
                         <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Website</label>
-                        <input type="url" className="input-field" name="website" value={profile.website || ''} onChange={handleChange} placeholder="https://www.yayasan.org" />
+                        <input type="url" className="input-field premium-input" name="website" value={profile.website || ''} onChange={handleChange} placeholder="https://www.yayasan.org" />
                       </div>
                     </div>
                   </div>
 
                   {/* Alamat & Lokasi */}
-                  <div className="glass-panel p-6 bg-orange-50/30 relative overflow-hidden transition-all hover:shadow-lg border border-orange-200">
+                  <div className="premium-glass-card p-6 relative overflow-hidden">
                     <div className="flex items-center gap-4 mb-8 pb-5 border-b border-orange-200/60">
-                      <div className="p-3 bg-orange-100 text-orange-600 rounded-xl shadow-sm">
+                      <div className="premium-icon-box p-3 bg-orange-100 text-orange-600 rounded-xl shadow-sm">
                         <MapPin size={24} />
                       </div>
                       <div>
@@ -209,7 +210,7 @@ export const FoundationProfilePage: React.FC = () => {
                     
                     <div className="form-group h-full flex flex-col pt-1">
                       <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-3">Alamat Lengkap</label>
-                      <textarea className="input-field flex-1 resize-none" style={{ minHeight: '180px' }} name="address" value={profile.address || ''} onChange={handleChange} placeholder="Masukkan alamat lengkap yayasan di sini..."></textarea>
+                      <textarea className="input-field premium-input flex-1 resize-none" style={{ minHeight: '180px' }} name="address" value={profile.address || ''} onChange={handleChange} placeholder="Masukkan alamat lengkap yayasan di sini..."></textarea>
                     </div>
                   </div>
                 </div>

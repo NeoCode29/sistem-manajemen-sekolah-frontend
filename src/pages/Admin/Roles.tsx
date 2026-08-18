@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getRoles, createRole, assignPermissionsToRole, getPermissions, type Role, type Permission } from '../../api/rbacService';
 import { Plus, UserCheck, Shield } from 'lucide-react';
 import '../Academic/Academic.css';
@@ -148,7 +149,7 @@ export const Roles: React.FC = () => {
         )}
       </div>
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4 animate-fade-in">
             <div className="modal-header-v4">
@@ -173,9 +174,9 @@ export const Roles: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
+      , document.body)}
 
-      {showPermModal && selectedRole && (
+      {showPermModal && selectedRole && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4 animate-fade-in" style={{ maxWidth: '600px' }}>
             <div className="modal-header-v4">
@@ -209,12 +210,9 @@ export const Roles: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );
 };
-
-
-
-
-

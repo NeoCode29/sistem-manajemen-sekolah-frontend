@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getPaymentTypes, createPaymentType, updatePaymentType, deletePaymentType, type PaymentType } from '../../api/financeService';
 import { Plus, Edit2, Trash2, Wallet } from 'lucide-react';
 import '../Academic/Academic.css';
@@ -176,7 +177,7 @@ export const PaymentTypes: React.FC = () => {
         )}
       </div>
 
-      {isModalOpen && (
+      {isModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
             <div className="modal-header-v4">
@@ -266,6 +267,8 @@ export const PaymentTypes: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );

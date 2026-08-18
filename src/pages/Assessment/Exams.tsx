@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getExams, createExam, updateExam, deleteExam, getAssessmentTypes, getAssessmentComponents, type Exam, type AssessmentType, type AssessmentComponent } from '../../api/assessmentService';
 import { getAcademicYears, getSemesters, getGrades, getClassrooms, getSubjects, type AcademicYear, type Semester, type Grade, type Classroom, type Subject } from '../../api/academicService';
 import { FileEdit, Plus, Edit2, Trash2, Search, Calendar, Users, BookOpen } from 'lucide-react';
@@ -322,7 +323,7 @@ export const Exams: React.FC = () => {
         )}
       </div>
 
-      {isModalOpen && (
+      {isModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '600px' }}>
             <div className="modal-header-v4">
@@ -450,6 +451,8 @@ export const Exams: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );

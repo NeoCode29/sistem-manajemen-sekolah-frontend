@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getPermissions, createPermission, type Permission } from '../../api/rbacService';
 import { Plus, Shield } from 'lucide-react';
 import '../Academic/Academic.css';
@@ -95,7 +96,7 @@ export const Permissions: React.FC = () => {
         )}
       </div>
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4 animate-fade-in">
             <div className="modal-header-v4">
@@ -120,12 +121,9 @@ export const Permissions: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );
 };
-
-
-
-
-

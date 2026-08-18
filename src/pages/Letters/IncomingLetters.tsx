@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { getIncomingLetters, createIncomingLetter, updateIncomingLetter, deleteIncomingLetter, uploadIncomingLetterFile } from '../../api/letterService';
 import type { IncomingLetter } from '../../api/letterService';
 import { Mail, Plus, Edit2, Trash2, X, Paperclip, Download } from 'lucide-react';
@@ -215,23 +216,20 @@ export const IncomingLetters: React.FC = () => {
       </div>
 
       {/* Modal Form */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+      {isModalOpen && createPortal(
+        <div className="modal-backdrop-v4">
+          <div className="modal-content-v4" style={{ maxWidth: '700px' }}>
+            <div className="modal-header-v4">
+              <h2 className="flex items-center gap-2">
                 <Mail size={20} className="text-blue-600" />
                 {editingId ? 'Edit Surat Masuk' : 'Catat Surat Masuk Baru'}
               </h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 p-1">
-                <X size={20} />
-              </button>
+              <button type="button" className="btn-close" onClick={closeModal}>&times;</button>
             </div>
             
-            <div className="p-6 overflow-y-auto">
-              {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
-              
-              <form id="incoming-form" onSubmit={handleSubmit} className="space-y-4">
+            <form id="incoming-form" onSubmit={handleSubmit} className="modal-form-v4">
+              <div className="modal-body-v4 form-grid">
+                {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="form-group">
                     <label className="text-sm font-medium text-gray-700">Nomor Surat *</label>
@@ -327,28 +325,15 @@ export const IncomingLetters: React.FC = () => {
                     </span>
                   </div>
                 </div>
-              </form>
-            </div>
-            
-            <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                form="incoming-form"
-                className="btn-primary"
-              >
-                Simpan Surat Masuk
-              </button>
-            </div>
+              </div>
+              <div className="modal-footer-v4">
+                <button type="button" className="btn-secondary" onClick={closeModal}>Batal</button>
+                <button type="submit" className="btn-primary">Simpan Surat Masuk</button>
+              </div>
+            </form>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 };

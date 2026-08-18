@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee, type Employee, getPositions, type Position, type CreateEmployeePayload } from '../../api/employeeService';
 import { getRoles, type Role } from '../../api/rbacService';
 import { Plus, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
@@ -264,7 +265,7 @@ export const Employees: React.FC = () => {
         )}
       </div>
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '600px' }}>
             <div className="modal-header-v4">
@@ -365,6 +366,8 @@ export const Employees: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );
