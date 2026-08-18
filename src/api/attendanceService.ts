@@ -68,7 +68,7 @@ export const updateAttendanceSetting = async (data: Partial<AttendanceSetting>) 
 
 export const getStudentAttendances = async (params?: Record<string, any>) => {
   const response = await api.get('/attendances/students', { params });
-  return response.data;
+  return response.data.data ? response.data.data : response.data;
 };
 
 export const upsertStudentAttendance = async (data: Partial<StudentAttendance>) => {
@@ -95,7 +95,7 @@ export const upsertStudentAttendanceBatch = async (
 
 export const getEmployeeAttendances = async (params?: Record<string, any>) => {
   const response = await api.get('/attendances/employees', { params });
-  return response.data;
+  return response.data.data ? response.data.data : response.data;
 };
 
 export const upsertEmployeeAttendance = async (data: Partial<EmployeeAttendance>) => {

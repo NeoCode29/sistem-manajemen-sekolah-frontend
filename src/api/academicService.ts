@@ -11,7 +11,7 @@ export interface AcademicYear {
 }
 export const getAcademicYears = async (): Promise<AcademicYear[]> => {
   const response = await api.get('/academic-years');
-  return response.data;
+  return response.data.data ? response.data.data : response.data;
 };
 export const createAcademicYear = async (data: Partial<AcademicYear>) => {
   const response = await api.post('/academic-years', data);
@@ -42,7 +42,7 @@ export interface Semester {
 }
 export const getSemesters = async (): Promise<Semester[]> => {
   const response = await api.get('/semesters');
-  return response.data;
+  return response.data.data ? response.data.data : response.data;
 };
 export const createSemester = async (data: Partial<Semester>) => {
   const response = await api.post('/semesters', data);
@@ -71,7 +71,7 @@ export interface Grade {
 }
 export const getGrades = async (): Promise<Grade[]> => {
   const response = await api.get('/grades');
-  return response.data;
+  return response.data.data ? response.data.data : response.data;
 };
 export const createGrade = async (data: Partial<Grade>) => {
   const response = await api.post('/grades', data);
@@ -98,7 +98,7 @@ export interface Classroom {
 export const getClassrooms = async (gradeId?: string): Promise<Classroom[]> => {
   const url = gradeId ? `/classrooms?gradeId=${gradeId}` : '/classrooms';
   const response = await api.get(url);
-  return response.data;
+  return response.data.data ? response.data.data : response.data;
 };
 export const createClassroom = async (data: Partial<Classroom>) => {
   const response = await api.post('/classrooms', data);
@@ -122,7 +122,7 @@ export interface Subject {
 }
 export const getSubjects = async (): Promise<Subject[]> => {
   const response = await api.get('/subjects');
-  return response.data;
+  return response.data.data ? response.data.data : response.data;
 };
 export const createSubject = async (data: Partial<Subject>) => {
   const response = await api.post('/subjects', data);

@@ -167,11 +167,16 @@ export const Schedules: React.FC = () => {
     } catch (err: any) {
       console.error("Save assignment error:", err);
       let errMsg = 'Gagal menyimpan penugasan guru';
-      if (err.response?.data?.message) {
-        if (Array.isArray(err.response.data.message)) {
-          errMsg = err.response.data.message.join('\n');
-        } else {
-          errMsg = err.response.data.message;
+      const resData = err.response?.data;
+      
+      if (resData) {
+        const errObj = resData.error;
+        if (errObj && errObj.message) {
+          errMsg = Array.isArray(errObj.message) ? errObj.message.join(', ') : errObj.message;
+        } else if (typeof errObj === 'string') {
+          errMsg = errObj;
+        } else if (resData.message) {
+          errMsg = Array.isArray(resData.message) ? resData.message.join(', ') : resData.message;
         }
       } else if (err.message) {
         errMsg = err.message;
@@ -245,11 +250,16 @@ export const Schedules: React.FC = () => {
     } catch (err: any) {
       console.error("Save schedule error:", err);
       let errMsg = 'Gagal menyimpan jadwal';
-      if (err.response?.data?.message) {
-        if (Array.isArray(err.response.data.message)) {
-          errMsg = err.response.data.message.join('\n');
-        } else {
-          errMsg = err.response.data.message;
+      const resData = err.response?.data;
+      
+      if (resData) {
+        const errObj = resData.error;
+        if (errObj && errObj.message) {
+          errMsg = Array.isArray(errObj.message) ? errObj.message.join(', ') : errObj.message;
+        } else if (typeof errObj === 'string') {
+          errMsg = errObj;
+        } else if (resData.message) {
+          errMsg = Array.isArray(resData.message) ? resData.message.join(', ') : resData.message;
         }
       } else if (err.message) {
         errMsg = err.message;

@@ -49,7 +49,7 @@ export type CreateEmployeePayload = Partial<Employee> & {
 export const getPositions = async (isActive?: boolean): Promise<Position[]> => {
   const params = isActive !== undefined ? { isActive } : {};
   const response = await api.get('/positions', { params });
-  return response.data;
+  return response.data.data ? response.data.data : response.data;
 };
 
 export const createPosition = async (data: Partial<Position>): Promise<Position> => {
@@ -71,7 +71,7 @@ export const deletePosition = async (id: string): Promise<void> => {
 // ==========================================
 export const getEmployees = async (params?: Record<string, any>): Promise<Employee[]> => {
   const response = await api.get('/employees', { params });
-  return response.data;
+  return response.data.data ? response.data.data : response.data;
 };
 
 export const createEmployee = async (data: CreateEmployeePayload) => {

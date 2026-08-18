@@ -35,7 +35,7 @@ export interface Schedule {
 // ========================
 export const getSubjectAssignments = async (classroomId: string): Promise<SubjectAssignment[]> => {
   const response = await api.get(`/classrooms/${classroomId}/subject-assignments`);
-  return response.data;
+  return response.data.data ? response.data.data : response.data;
 };
 
 export const createSubjectAssignment = async (classroomId: string, data: Partial<SubjectAssignment>): Promise<SubjectAssignment> => {
@@ -57,7 +57,7 @@ export const deleteSubjectAssignment = async (classroomId: string, id: string): 
 // ========================
 export const getSchedules = async (classroomId: string): Promise<Schedule[]> => {
   const response = await api.get(`/classrooms/${classroomId}/schedules`);
-  return response.data;
+  return response.data.data ? response.data.data : response.data;
 };
 
 export const createSchedule = async (classroomId: string, data: Partial<Schedule>): Promise<Schedule> => {

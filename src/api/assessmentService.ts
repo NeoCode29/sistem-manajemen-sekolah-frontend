@@ -52,7 +52,7 @@ export const getAssessmentTypes = async (): Promise<AssessmentType[]> => {
 
 export const getAssessmentComponents = async (params?: Record<string, any>): Promise<AssessmentComponent[]> => {
   const response = await api.get('/assessment/components', { params });
-  return response.data;
+  return response.data.data ? response.data.data : response.data;
 };
 
 export const createAssessmentComponent = async (data: Partial<AssessmentComponent>): Promise<AssessmentComponent> => {
@@ -74,7 +74,8 @@ export const deleteAssessmentComponent = async (id: string): Promise<void> => {
 // ==========================
 export const getExams = async (params?: Record<string, any>): Promise<Exam[]> => {
   const response = await api.get('/assessment/assessments', { params });
-  return response.data.map((item: any) => ({
+  const data = response.data.data ? response.data.data : response.data;
+  return data.map((item: any) => ({
     ...item,
     examType: item.type?.name || 'TUGAS',
     examDate: item.assessmentDate,
