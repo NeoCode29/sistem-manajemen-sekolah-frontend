@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getClassrooms, createClassroom, updateClassroom, deleteClassroom, type Classroom, getGrades, type Grade } from '../../api/academicService';
 import { Plus, Trash2, Users, Edit } from 'lucide-react';
+import { Pagination } from '../../components/Common/Pagination';
 import './Academic.css';
 
 export const Classrooms: React.FC = () => {
@@ -13,6 +14,10 @@ export const Classrooms: React.FC = () => {
   
   // Filter
   const [filterGradeId, setFilterGradeId] = useState('');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Form State
   const [gradeId, setGradeId] = useState('');
@@ -97,6 +102,9 @@ export const Classrooms: React.FC = () => {
     }
   };
 
+  const paginatedClassrooms = classrooms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(classrooms.length / itemsPerPage);
+
   return (
     <div className="academic-container">
       <div className="page-header">
@@ -145,7 +153,7 @@ export const Classrooms: React.FC = () => {
                     <td colSpan={5} className="text-center py-4 text-gray-500">Belum ada data.</td>
                   </tr>
                 ) : (
-                  classrooms.map((classroom) => (
+                  paginatedClassrooms.map((classroom) => (
                     <tr key={classroom.id}>
                       <td className="font-semibold">{classroom.code}</td>
                       <td>{classroom.name}</td>
@@ -184,6 +192,20 @@ export const Classrooms: React.FC = () => {
               </tbody>
             </table>
           </div>
+        )}
+        
+        {!loading && classrooms.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={classrooms.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(limit) => {
+              setItemsPerPage(limit);
+              setCurrentPage(1);
+            }}
+          />
         )}
       </div>
 

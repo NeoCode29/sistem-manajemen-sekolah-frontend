@@ -4,12 +4,15 @@ import { getStudents, createStudentWizard, updateStudent, deleteStudent, getGuar
 import { getAcademicYears, getSemesters, getClassrooms, type AcademicYear, type Semester, type Classroom } from '../../api/academicService';
 import { updateUser } from '../../api/rbacService';
 import { Plus, CheckCircle, XCircle, Trash2, Pencil, Users as UsersIcon, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Pagination } from '../../components/Common/Pagination';
 import '../Academic/Academic.css'; 
 
 export const Students: React.FC = () => {
   const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -44,7 +47,7 @@ export const Students: React.FC = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const data = await getStudents();
+      const data = await getStudents({ page: currentPage, limit: itemsPerPage });
       setStudents(data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Gagal memuat data siswa');
@@ -76,9 +79,12 @@ export const Students: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchStudents();
     fetchWizardMasterData();
   }, []);
+
+  useEffect(() => {
+    fetchStudents();
+  }, [currentPage, itemsPerPage]);
 
 
 
@@ -255,6 +261,19 @@ export const Students: React.FC = () => {
             </tbody>
           </table>
         </div>
+        
+        {!loading && (students.length > 0 || currentPage > 1) && (
+          <Pagination
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            hasNextPage={students.length === itemsPerPage}
+            itemsPerPage={itemsPerPage}
+            onItemsPerPageChange={(limit) => {
+              setItemsPerPage(limit);
+              setCurrentPage(1);
+            }}
+          />
+        )}
       </div>
 
       {/* WIZARD MODAL */}

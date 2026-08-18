@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee, type Employee, getPositions, type Position, type CreateEmployeePayload } from '../../api/employeeService';
 import { getRoles, type Role } from '../../api/rbacService';
 import { Plus, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
+import { Pagination } from '../../components/Common/Pagination';
 import '../Academic/Academic.css'; // Reuse existing styles
 
 export const Employees: React.FC = () => {
@@ -10,6 +11,10 @@ export const Employees: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState('');
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   // Form State
   const [positionId, setPositionId] = useState('');
@@ -149,6 +154,9 @@ export const Employees: React.FC = () => {
     }
   };
 
+  const paginatedEmployees = employees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(employees.length / itemsPerPage);
+
   return (
     <div className="academic-container">
       <div className="page-header">
@@ -183,12 +191,12 @@ export const Employees: React.FC = () => {
                 <tr>
                   <td colSpan={7} className="text-center py-4 text-gray-500">Memuat data...</td>
                 </tr>
-              ) : employees.length === 0 ? (
+                ) : employees.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-4 text-gray-500">Belum ada data pegawai.</td>
                 </tr>
               ) : (
-                employees.map((emp) => (
+                paginatedEmployees.map((emp) => (
                   <tr key={emp.id}>
                     <td className="font-semibold text-gray-600">{emp.employeeNumber}</td>
                     <td className="font-semibold">{emp.fullName}</td>
@@ -240,6 +248,20 @@ export const Employees: React.FC = () => {
             </tbody>
           </table>
         </div>
+        
+        {!loading && employees.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={employees.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(limit) => {
+              setItemsPerPage(limit);
+              setCurrentPage(1);
+            }}
+          />
+        )}
       </div>
 
       {showModal && (

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { getBillings, generateBatchBillings, updateBilling, cancelBilling, deleteBilling, getPaymentPeriods, getPaymentTypes, createCustomBilling, type StudentBilling, type PaymentPeriod, type PaymentType } from '../../api/financeService';
 import { getGrades, getClassrooms, type Grade, type Classroom } from '../../api/academicService';
 import { getStudents, type Student } from '../../api/studentService';
-import { FileText, Wand2, Search, Edit3, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, Wand2, Search, Edit3, Trash2, Plus } from 'lucide-react';
+import { Pagination } from '../../components/Common/Pagination';
 import '../Academic/Academic.css';
 
 export const Billings: React.FC = () => {
@@ -391,27 +392,16 @@ export const Billings: React.FC = () => {
         )}
         
         {!loading && billings.length > 0 && (
-          <div className="flex items-center justify-between p-4 border-t border-gray-200">
-            <div className="text-sm text-gray-500">
-              Halaman <span className="font-semibold text-gray-700">{page}</span> dari <span className="font-semibold text-gray-700">{totalPages}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button 
-                className="btn-secondary h-8 px-3 flex items-center disabled:opacity-50"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                <ChevronLeft size={16} /> Prev
-              </button>
-              <button 
-                className="btn-secondary h-8 px-3 flex items-center disabled:opacity-50"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                Next <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            itemsPerPage={limit}
+            onPageChange={setPage}
+            onItemsPerPageChange={(newLimit) => {
+              setLimit(newLimit);
+              setPage(1);
+            }}
+          />
         )}
       </div>
 
