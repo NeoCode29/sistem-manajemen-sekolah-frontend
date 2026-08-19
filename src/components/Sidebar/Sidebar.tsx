@@ -151,30 +151,6 @@ export const Sidebar: React.FC = () => {
         {canManageSivitas && (
           <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Keuangan & Pembayaran
-            </div>
-            <NavLink to="/finance/payment-types" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Wallet size={20} />
-              <span>Jenis Tagihan</span>
-            </NavLink>
-            <NavLink to="/finance/payment-periods" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <CalendarDays size={20} />
-              <span>Periode Pembayaran</span>
-            </NavLink>
-            <NavLink to="/finance/billings" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <FileText size={20} />
-              <span>Manajemen Tagihan</span>
-            </NavLink>
-            <NavLink to="/finance/cashier" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <ShoppingCart size={20} />
-              <span>Kasir (Checkout)</span>
-            </NavLink>
-            <NavLink to="/finance/receipts" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Receipt size={20} />
-              <span>Riwayat Kuitansi</span>
-            </NavLink>
-            
-            <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Kesiswaan
             </div>
             <NavLink to="/student-affairs/achievements" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>

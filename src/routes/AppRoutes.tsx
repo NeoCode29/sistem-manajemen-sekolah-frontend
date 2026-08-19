@@ -21,11 +21,7 @@ import { StudentDetail } from '../pages/Entities/StudentDetail';
 import { AttendanceSettings } from '../pages/Attendance/AttendanceSettings';
 import { StudentAttendancePage } from '../pages/Attendance/StudentAttendance';
 import { EmployeeAttendancePage } from '../pages/Attendance/EmployeeAttendance';
-import { PaymentTypes } from '../pages/Finance/PaymentTypes';
-import { PaymentPeriods } from '../pages/Finance/PaymentPeriods';
-import { Billings } from '../pages/Finance/Billings';
-import { Cashier } from '../pages/Finance/Cashier';
-import { Receipts } from '../pages/Finance/Receipts';
+
 import { AssessmentComponents } from '../pages/Assessment/AssessmentComponents';
 import { Exams } from '../pages/Assessment/Exams';
 import { ExamScores } from '../pages/Assessment/ExamScores';
@@ -33,9 +29,9 @@ import { Achievements } from '../pages/StudentAffairs/Achievements';
 import { Violations } from '../pages/StudentAffairs/Violations';
 import { Rooms } from '../pages/Inventory/Rooms';
 import { Items } from '../pages/Inventory/Items';
-
 import { Schedules } from '../pages/Academic/Schedules';
 import { Promotions } from '../pages/Academic/Promotions';
+import { BatchPromote } from '../pages/Academic/BatchPromote';
 import { Graduations } from '../pages/Academic/Graduations';
 import { SchoolProfilePage } from '../pages/SchoolProfile/SchoolProfile';
 import { FoundationProfilePage } from '../pages/SchoolProfile/FoundationProfile';
@@ -72,11 +68,7 @@ export const AppRoutes: React.FC = () => {
               <Route path="/attendance/settings" element={<AttendanceSettings />} />
               <Route path="/attendance/students" element={<StudentAttendancePage />} />
               <Route path="/attendance/employees" element={<EmployeeAttendancePage />} />
-              <Route path="/finance/payment-types" element={<PaymentTypes />} />
-              <Route path="/finance/payment-periods" element={<PaymentPeriods />} />
-              <Route path="/finance/billings" element={<Billings />} />
-              <Route path="/finance/cashier" element={<Cashier />} />
-              <Route path="/finance/receipts" element={<Receipts />} />
+
               <Route path="/assessment/components" element={<AssessmentComponents />} />
               <Route path="/assessment/exams" element={<Exams />} />
               <Route path="/assessment/exams/:examId/scores" element={<ExamScores />} />
@@ -85,9 +77,9 @@ export const AppRoutes: React.FC = () => {
               <Route path="/inventory/rooms" element={<Rooms />} />
               <Route path="/inventory/items" element={<Items />} />
 
-              <Route path="/academic/subjects" element={<Subjects />} />
               <Route path="/academic/schedules" element={<Schedules />} />
               <Route path="/academic/promotions" element={<Promotions />} />
+              <Route path="/academic/promotions/batch" element={<BatchPromote />} />
               <Route path="/academic/graduations" element={<Graduations />} />
               <Route path="/profile/school" element={<SchoolProfilePage />} />
               <Route path="/profile/foundation" element={<FoundationProfilePage />} />

@@ -184,7 +184,12 @@ export const Promotions: React.FC = () => {
           <div className="space-y-4">
             <div className="form-group">
               <label>Tahun Ajaran</label>
-              <select className="input-field" value={sourceYear} onChange={e => setSourceYear(e.target.value)}>
+              <select 
+                className="input-field bg-gray-100 cursor-not-allowed opacity-70" 
+                value={sourceYear} 
+                onChange={e => setSourceYear(e.target.value)}
+                disabled
+              >
                 <option value="">Pilih Tahun Ajaran</option>
                 {academicYears.map(y => <option key={y.id} value={y.id}>{y.name} {y.isActive ? '(Aktif)' : ''}</option>)}
               </select>
