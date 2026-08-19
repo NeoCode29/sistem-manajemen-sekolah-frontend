@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPromotions, cancelPromotion } from '../../api/promotionService';
 import { TrendingUp, Undo2 } from 'lucide-react';
+import { Pagination } from '../../components/Common/Pagination';
 import './Academic.css';
 
 export const Promotions: React.FC = () => {
@@ -12,11 +13,12 @@ export const Promotions: React.FC = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
 
-  const fetchHistory = async (page = 1) => {
+  const fetchHistory = async (page = 1, limit = itemsPerPage) => {
     try {
       setLoading(true);
-      const response = await getPromotions({ page, limit: 15 });
+      const response = await getPromotions({ page, limit });
       setPromotionsHistory(response.data || []);
       setTotalPages(response.totalPages || 1);
       setCurrentPage(page);
@@ -28,8 +30,8 @@ export const Promotions: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchHistory(currentPage);
-  }, [currentPage]);
+    fetchHistory(currentPage, itemsPerPage);
+  }, [currentPage, itemsPerPage]);
 
 
   const handleCancelPromotion = async (id: string) => {
@@ -121,27 +123,16 @@ export const Promotions: React.FC = () => {
             </table>
           </div>
           {totalPages > 1 && (
-            <div className="flex justify-between items-center px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl">
-              <div className="flex justify-between flex-1 sm:hidden">
-                <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">Previous</button>
-                <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="relative ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">Next</button>
-              </div>
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-gray-700">Menampilkan halaman <span className="font-medium">{currentPage}</span> dari <span className="font-medium">{totalPages}</span></p>
-                </div>
-                <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                    <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
-                      <span>Sebelumnya</span>
-                    </button>
-                    <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
-                      <span>Selanjutnya</span>
-                    </button>
-                  </nav>
-                </div>
-              </div>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(limit) => {
+                setItemsPerPage(limit);
+                setCurrentPage(1);
+              }}
+            />
           )}
           </>
         )}

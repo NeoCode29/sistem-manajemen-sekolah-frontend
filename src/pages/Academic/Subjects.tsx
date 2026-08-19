@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getSubjects, createSubject, updateSubject, deleteSubject, type Subject } from '../../api/academicService';
 import { Plus, Trash2, BookOpen, Edit } from 'lucide-react';
 import './Academic.css';
@@ -155,7 +156,7 @@ export const Subjects: React.FC = () => {
         )}
       </div>
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4">
             <div className="modal-header-v4">
@@ -184,12 +185,9 @@ export const Subjects: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );
 };
-
-
-
-
-

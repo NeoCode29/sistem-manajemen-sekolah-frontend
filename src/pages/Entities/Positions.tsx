@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getPositions, createPosition, updatePosition, deletePosition, type Position } from '../../api/employeeService';
 import { Plus, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
 import '../Academic/Academic.css'; // Reuse existing styles
@@ -187,7 +188,7 @@ export const Positions: React.FC = () => {
         </div>
       </div>
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4">
             <div className="modal-header-v4">
@@ -224,6 +225,8 @@ export const Positions: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );

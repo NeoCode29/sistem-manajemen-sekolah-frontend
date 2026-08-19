@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getAcademicYears, getSemesters, getGrades, getClassrooms, getSubjects, type AcademicYear, type Semester, type Grade, type Classroom, type Subject } from '../../api/academicService';
 import { getAssessmentComponents, createAssessmentComponent, updateAssessmentComponent, deleteAssessmentComponent, getAssessmentTypes, type AssessmentComponent, type AssessmentType } from '../../api/assessmentService';
 import { Plus, Edit2, Trash2, Settings, AlertCircle } from 'lucide-react';
@@ -318,7 +319,7 @@ export const AssessmentComponents: React.FC = () => {
       </div>
 
       {/* Modal Form */}
-      {isModalOpen && (
+      {isModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
             <div className="modal-header-v4">
@@ -358,6 +359,8 @@ export const AssessmentComponents: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );

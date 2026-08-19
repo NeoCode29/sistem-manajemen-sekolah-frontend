@@ -41,11 +41,11 @@ export const IdentityRegistration: React.FC = () => {
       setLoading(true);
       if (activeTab === 'STUDENT') {
         // In a real app, you might want pagination here since there are many students
-        const data = await getStudents();
-        setStudents(data);
+        const res = await getStudents();
+        setStudents(Array.isArray(res) ? res : (res as any).data || []);
       } else {
-        const data = await getEmployees();
-        setEmployees(data);
+        const res = await getEmployees();
+        setEmployees(Array.isArray(res) ? res : (res as any).data || []);
       }
     } catch (err) {
       console.error('Failed to fetch people data', err);

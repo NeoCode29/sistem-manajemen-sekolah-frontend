@@ -59,7 +59,7 @@ export interface CreateStudentWizardPayload {
 // ==========================================
 // STUDENTS
 // ==========================================
-export const getStudents = async (params?: Record<string, any>): Promise<Student[]> => {
+export const getStudents = async (params?: Record<string, any>): Promise<{ data: Student[], meta?: any } | Student[]> => {
   const response = await api.get('/students', { params });
   return response.data.data || response.data;
 };

@@ -84,3 +84,114 @@ button {
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
+
+/* Modern styling for react-simple-wysiwyg to make it look premium */
+.rsw-editor {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
+  overflow: hidden;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.rsw-editor:focus-within {
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+
+.rsw-toolbar {
+  background: #f9fafb !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  padding: 8px 12px !important;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.rsw-btn {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  color: #4b5563 !important;
+  padding: 6px !important;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rsw-btn:hover {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+.rsw-btn[data-active="true"] {
+  background: #e0e7ff !important;
+  color: #4f46e5 !important;
+}
+
+.rsw-dd {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  color: #374151 !important;
+  font-size: 0.875rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.rsw-ce {
+  padding: 16px !important;
+  min-height: 200px;
+  color: #1f2937;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+
+.rsw-ce { background: white !important; }
+.rsw-editor { background: white !important; }
+
+
+.rsw-editor-override {
+  background: white !important;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--border-color) !important;
+  overflow: hidden;
+}
+.rsw-editor-override:focus-within {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2) !important;
+}
+.rsw-editor-override .rsw-toolbar {
+  background: #f9fafb !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+.rsw-editor-override .rsw-ce {
+  background: white !important;
+  padding: 1rem !important;
+}
+
+
+/* React Quill Custom Styles */
+.ql-toolbar.ql-snow {
+  background: #f9fafb !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid #e0e7ff !important;
+  padding: 12px !important;
+}
+.ql-container.ql-snow {
+  border: none !important;
+  font-family: inherit !important;
+  font-size: 0.95rem !important;
+  min-height: 300px;
+}
+.ql-editor {
+  min-height: 300px;
+}
+

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getItems, createItem, updateItem, deleteItem, getRooms, type HardwareItem, type Room } from '../../api/inventoryService';
 import { Monitor, Plus, Edit2, Trash2, Search, MapPin } from 'lucide-react';
 import '../Academic/Academic.css';
@@ -271,7 +272,7 @@ export const Items: React.FC = () => {
         )}
       </div>
 
-      {isModalOpen && (
+      {isModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '600px' }}>
             <div className="modal-header-v4">
@@ -409,6 +410,8 @@ export const Items: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getViolations, createViolation, updateViolation, deleteViolation, type Violation } from '../../api/studentAffairsService';
 import { getStudents, type Student } from '../../api/studentService';
 import { AlertOctagon, Plus, Edit2, Trash2, Search, User } from 'lucide-react';
@@ -262,7 +263,7 @@ export const Violations: React.FC = () => {
         )}
       </div>
 
-      {isModalOpen && (
+      {isModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
             <div className="modal-header-v4">
@@ -399,6 +400,8 @@ export const Violations: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
     </div>
   );

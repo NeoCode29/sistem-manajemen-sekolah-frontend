@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStudentById, updateStudent, createGuardian, updateGuardian, deleteGuardian, createEnrollment, updateEnrollment, deleteEnrollment, type Student, type StudentGuardian, type StudentEnrollment } from '../../api/studentService';
 import { getAcademicYears, getSemesters, getClassrooms, type AcademicYear, type Semester, type Classroom } from '../../api/academicService';
@@ -370,7 +371,7 @@ export const StudentDetail: React.FC = () => {
       </div>
 
       {/* MODALS */}
-      {showEditProfil && (
+      {showEditProfil && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '700px' }}>
             <div className="modal-header-v4">
@@ -398,7 +399,7 @@ export const StudentDetail: React.FC = () => {
         </div>
       )}
 
-      {showGuardianModal && (
+      {showGuardianModal && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '600px' }}>
             <div className="modal-header-v4">
@@ -425,7 +426,7 @@ export const StudentDetail: React.FC = () => {
         </div>
       )}
 
-      {showEnrollmentModal && (
+      {showEnrollmentModal && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
             <div className="modal-header-v4">
@@ -445,8 +446,9 @@ export const StudentDetail: React.FC = () => {
             </form>
           </div>
         </div>
+      ,
+        document.body
       )}
-
     </div>
   );
 };

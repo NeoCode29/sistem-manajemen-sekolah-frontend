@@ -23,7 +23,7 @@ export const HardwareLogs: React.FC = () => {
     try {
       setLoading(true);
       const data = await getScanLogs({ deviceId, scanType, limit: 50 });
-      setLogs(data.data || data); // Depending on pagination structure
+      setLogs(Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []));
     } catch (err) {
       console.error('Failed to load logs', err);
     } finally {
@@ -34,7 +34,7 @@ export const HardwareLogs: React.FC = () => {
   const fetchRecentOnly = async () => {
     try {
       const data = await getRecentScans(deviceId, scanType, 10);
-      setLogs(data);
+      setLogs(Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []));
     } catch (err) {
       console.error('Live fetch failed', err);
     }

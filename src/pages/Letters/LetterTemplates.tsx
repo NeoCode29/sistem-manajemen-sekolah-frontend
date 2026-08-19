@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getLetterTemplates, createLetterTemplate, updateLetterTemplate, deleteLetterTemplate } from '../../api/letterService';
 import type { LetterTemplate } from '../../api/letterService';
 import { FileCode, Plus, Edit2, Trash2, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import Editor from 'react-simple-wysiwyg';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import '../Academic/Academic.css';
 
 export const LetterTemplates: React.FC = () => {
@@ -191,23 +193,20 @@ export const LetterTemplates: React.FC = () => {
       </div>
 
       {/* Modal Form */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+      {isModalOpen && createPortal(
+        <div className="modal-backdrop-v4">
+          <div className="modal-content-v4" style={{ maxWidth: '800px' }}>
+            <div className="modal-header-v4">
+              <h2 className="flex items-center gap-2">
                 <FileCode size={20} className="text-blue-600" />
                 {editingId ? 'Edit Template Surat' : 'Buat Template Baru'}
               </h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 p-1">
-                <X size={20} />
-              </button>
+              <button type="button" className="btn-close" onClick={closeModal}>&times;</button>
             </div>
             
-            <div className="p-6 overflow-y-auto">
-              {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
-              
-              <form id="template-form" onSubmit={handleSubmit} className="space-y-4">
+            <form id="template-form" onSubmit={handleSubmit} className="modal-form-v4">
+              <div className="modal-body-v4 form-grid">
+                {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="form-group">
                     <label className="text-sm font-medium text-gray-700">Nama Template *</label>
@@ -236,17 +235,42 @@ export const LetterTemplates: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700 flex justify-between">
-                    <span>Isi Surat (Template) *</span>
-                    <span className="text-xs text-blue-600">Gunakan {"{{nama_variabel}}"} untuk data dinamis.</span>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Isi Surat (Template) *
                   </label>
-                  <Editor 
-                    name="content"
-                    value={formData.content || ''}
-                    onChange={handleInputChange}
-                    containerProps={{ style: { height: '250px', marginBottom: '3.5rem' } }}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Variabel umum yang didukung: <code>{"{{nama_siswa}}"}</code>, <code>{"{{nisn}}"}</code>, <code>{"{{kelas}}"}</code>, <code>{"{{tanggal_surat}}"}</code></p>
+                  <div className="bg-white rounded-md border border-indigo-200 overflow-hidden focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all shadow-sm">
+                    <ReactQuill 
+                      theme="snow"
+                      value={formData.content || ''}
+                      onChange={(val) => handleInputChange({ target: { name: 'content', value: val } } as any)}
+                      style={{ minHeight: '350px' }}
+                      modules={{
+                        toolbar: [
+                          [{ 'header': [1, 2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike'],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          ['link'],
+                          ['clean']
+                        ]
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="mt-3 bg-indigo-50 border border-indigo-100 rounded-lg p-3 flex gap-3 items-start">
+                    <div className="mt-0.5 text-indigo-500">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-indigo-900 mb-1">Panduan Variabel Dinamis</p>
+                      <p className="text-xs text-indigo-700 mb-2">Ketik variabel dengan format kurung kurawal ganda untuk menyisipkan data otomatis saat dokumen di-generate.</p>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-[11px] bg-white px-2 py-1 rounded-md border border-indigo-100 text-indigo-700 font-mono shadow-sm">{"{{nama_siswa}}"}</span>
+                        <span className="text-[11px] bg-white px-2 py-1 rounded-md border border-indigo-100 text-indigo-700 font-mono shadow-sm">{"{{nisn}}"}</span>
+                        <span className="text-[11px] bg-white px-2 py-1 rounded-md border border-indigo-100 text-indigo-700 font-mono shadow-sm">{"{{kelas}}"}</span>
+                        <span className="text-[11px] bg-white px-2 py-1 rounded-md border border-indigo-100 text-indigo-700 font-mono shadow-sm">{"{{tanggal_surat}}"}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="form-group">
@@ -261,28 +285,15 @@ export const LetterTemplates: React.FC = () => {
                     Template Aktif (Dapat digunakan)
                   </label>
                 </div>
-              </form>
-            </div>
-            
-            <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                form="template-form"
-                className="btn-primary"
-              >
-                Simpan Template
-              </button>
-            </div>
+              </div>
+              <div className="modal-footer-v4">
+                <button type="button" className="btn-secondary" onClick={closeModal}>Batal</button>
+                <button type="submit" className="btn-primary">Simpan Template</button>
+              </div>
+            </form>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 };

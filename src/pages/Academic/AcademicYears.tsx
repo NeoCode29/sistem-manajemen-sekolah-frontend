@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getAcademicYears, createAcademicYear, updateAcademicYear, toggleAcademicYearActive, deleteAcademicYear, type AcademicYear } from '../../api/academicService';
 import { Plus, CheckCircle, XCircle, Trash2, Edit, AlertCircle } from 'lucide-react';
 import './Academic.css';
@@ -178,7 +179,7 @@ export const AcademicYears: React.FC = () => {
         )}
       </div>
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4">
             <div className="modal-header-v4">
@@ -198,7 +199,8 @@ export const AcademicYears: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
