@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getRooms, createRoom, updateRoom, deleteRoom, type Room } from '../../api/inventoryService';
 import { Box, Plus, Edit2, Trash2, Search } from 'lucide-react';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const Rooms: React.FC = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
   
   const [search, setSearch] = useState('');
   
@@ -100,14 +102,14 @@ export const Rooms: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Yakin ingin menghapus ruangan ini?')) {
+    showConfirm('Yakin ingin menghapus ruangan ini?', async () => {
       try {
         await deleteRoom(id);
         fetchRooms();
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal menghapus data');
+        showAlert(err.response?.data?.message || 'Gagal menghapus data');
       }
-    }
+    });
   };
 
   return (

@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getStudentById, updateStudent, createGuardian, updateGuardian, deleteGuardian, createEnrollment, updateEnrollment, deleteEnrollment, type Student, type StudentGuardian, type StudentEnrollment } from '../../api/studentService';
 import { getAcademicYears, getSemesters, getClassrooms, type AcademicYear, type Semester, type Classroom } from '../../api/academicService';
 import { ArrowLeft, User, BookOpen, CreditCard, Award, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const StudentDetail: React.FC = () => {
@@ -14,6 +15,7 @@ export const StudentDetail: React.FC = () => {
   const [activeTab, setActiveTab] = useState('profil');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const { showConfirm, showAlert } = useDialog();
 
   // Master Data
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -149,21 +151,23 @@ export const StudentDetail: React.FC = () => {
       setShowGuardianModal(false);
       fetchStudent();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan data wali');
+      showAlert(err.response?.data?.message || 'Gagal menyimpan data wali', 'Gagal');
     } finally {
       setGuardianSaving(false);
     }
   };
 
   const handleDeleteGuardian = async (gId: string) => {
-    if (!student || !window.confirm('Hapus data wali ini?')) return;
-    try {
-      await deleteGuardian(student.id, gId);
-      showSuccess('Data wali dihapus!');
-      fetchStudent();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menghapus data wali');
-    }
+    if (!student) return;
+    showConfirm('Hapus data wali ini?', async () => {
+      try {
+        await deleteGuardian(student.id, gId);
+        showSuccess('Data wali dihapus!');
+        fetchStudent();
+      } catch (err: any) {
+        showAlert(err.response?.data?.message || 'Gagal menghapus data wali', 'Gagal');
+      }
+    });
   };
 
   // --- ENROLLMENT HANDLERS ---
@@ -211,14 +215,16 @@ export const StudentDetail: React.FC = () => {
   };
 
   const handleDeleteEnrollment = async (enrId: string) => {
-    if (!student || !window.confirm('Hapus riwayat penempatan kelas ini?')) return;
-    try {
-      await deleteEnrollment(student.id, enrId);
-      showSuccess('Riwayat kelas dihapus!');
-      fetchStudent();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menghapus riwayat kelas');
-    }
+    if (!student) return;
+    showConfirm('Hapus riwayat penempatan kelas ini?', async () => {
+      try {
+        await deleteEnrollment(student.id, enrId);
+        showSuccess('Riwayat kelas dihapus!');
+        fetchStudent();
+      } catch (err: any) {
+        showAlert(err.response?.data?.message || 'Gagal menghapus riwayat kelas', 'Gagal');
+      }
+    });
   };
 
   if (loading) return <div className="academic-container">Memuat data...</div>;

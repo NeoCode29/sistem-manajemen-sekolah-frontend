@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getUsers, createUser, updateUser, assignRolesToUser, getRoles, type User, type Role } from '../../api/rbacService';
 import { Plus, Users as UsersIcon, UserCheck, Edit } from 'lucide-react';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [allRoles, setAllRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
+  const { showConfirm, showAlert } = useDialog();
   
   const [showModal, setShowModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -82,7 +84,7 @@ export const Users: React.FC = () => {
       handleCloseModal();
       fetchData();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to save user');
+      showAlert(error.response?.data?.message || 'Failed to save user', 'Gagal');
     }
   };
 
@@ -107,7 +109,7 @@ export const Users: React.FC = () => {
       setShowRoleModal(false);
       fetchData();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to assign roles');
+      showAlert(error.response?.data?.message || 'Failed to assign roles', 'Gagal');
     }
   };
 

@@ -4,6 +4,7 @@ import { getExams, createExam, updateExam, deleteExam, getAssessmentTypes, getAs
 import { getAcademicYears, getSemesters, getGrades, getClassrooms, getSubjects, type AcademicYear, type Semester, type Grade, type Classroom, type Subject } from '../../api/academicService';
 import { FileEdit, Plus, Edit2, Trash2, Search, Calendar, Users, BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const Exams: React.FC = () => {
@@ -18,6 +19,7 @@ export const Exams: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
   
   // Filters
   const [filterAcademicYearId, setFilterAcademicYearId] = useState('');
@@ -178,14 +180,14 @@ export const Exams: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Yakin ingin menghapus agenda penilaian ini? Semua nilai siswa yang terhubung akan ikut terhapus!')) {
+    showConfirm('Yakin ingin menghapus agenda penilaian ini? Semua nilai siswa yang terhubung akan ikut terhapus!', async () => {
       try {
         await deleteExam(id);
         fetchExams();
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal menghapus data');
+        showAlert(err.response?.data?.message || 'Gagal menghapus data', 'Gagal');
       }
-    }
+    });
   };
 
   const getExamTypeColor = (type: string) => {

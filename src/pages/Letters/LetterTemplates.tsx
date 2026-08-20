@@ -6,6 +6,7 @@ import { FileCode, Plus, Edit2, Trash2, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const LetterTemplates: React.FC = () => {
@@ -14,6 +15,7 @@ export const LetterTemplates: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
   
   const [formData, setFormData] = useState<Partial<LetterTemplate>>({
     name: '',
@@ -94,14 +96,14 @@ export const LetterTemplates: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Yakin ingin menghapus template ini?')) {
+    showConfirm('Yakin ingin menghapus template ini?', async () => {
       try {
         await deleteLetterTemplate(id);
         fetchTemplates();
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal menghapus template');
+        showAlert(err.response?.data?.message || 'Gagal menghapus template');
       }
-    }
+    });
   };
 
   return (

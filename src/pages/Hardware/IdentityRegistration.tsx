@@ -4,6 +4,7 @@ import { getStudents } from '../../api/studentService';
 import type { Student } from '../../api/studentService';
 import { getEmployees } from '../../api/employeeService';
 import { Fingerprint, UserPlus, X, Search, Smartphone, Save, RadioReceiver } from 'lucide-react';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const IdentityRegistration: React.FC = () => {
@@ -18,6 +19,7 @@ export const IdentityRegistration: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
+  const { showConfirm, showAlert } = useDialog();
   
   // Form State
   const [rfidTag, setRfidTag] = useState('');
@@ -110,11 +112,11 @@ export const IdentityRegistration: React.FC = () => {
       } else {
         await registerEmployeeIdentity(selectedPerson.id, payload);
       }
-      alert('Registrasi kartu/sidik jari berhasil disimpan');
+      showAlert('Registrasi kartu/sidik jari berhasil disimpan', 'Berhasil');
       closeModal();
       fetchData(); // Refresh list to show updated tags
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal menyimpan registrasi');
+      showAlert(err.response?.data?.message || 'Gagal menyimpan registrasi', 'Gagal');
     }
   };
 

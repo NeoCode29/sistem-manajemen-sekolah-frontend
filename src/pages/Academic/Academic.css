@@ -286,6 +286,39 @@
   color: #6b7280;
 }
 
+/* Semantic Classes untuk Classroom Refactor */
+.filter-bar {
+  margin-bottom: 1rem;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.filter-label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.filter-select {
+  width: auto;
+}
+
+.grade-badge {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.capacity-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6b7280;
+}
+
 /* Utility for layout */
 .flex { display: flex; }
 .flex-col { flex-direction: column; }

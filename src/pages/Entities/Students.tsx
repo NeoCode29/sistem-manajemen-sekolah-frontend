@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { getStudents, createStudentWizard, updateStudent, deleteStudent, getGuardians, updateGuardian, type Student, type CreateStudentWizardPayload } from '../../api/studentService';
+import { getStudents, getStudentsPaginated, createStudentWizard, updateStudent, deleteStudent, getGuardians, updateGuardian, type Student, type CreateStudentWizardPayload } from '../../api/studentService';
 import { getAcademicYears, getSemesters, getClassrooms, type AcademicYear, type Semester, type Classroom } from '../../api/academicService';
 import { updateUser } from '../../api/rbacService';
-import { Plus, CheckCircle, XCircle, Trash2, Pencil, Users as UsersIcon, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, Trash2, Pencil, Users as UsersIcon, ChevronRight, ChevronLeft, Search, Filter } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css'; 
 
 export const Students: React.FC = () => {
@@ -17,6 +18,11 @@ export const Students: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const { showConfirm, showAlert } = useDialog();
+  
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   // Edit modal states moved to StudentDetail.tsx
 
@@ -49,15 +55,14 @@ export const Students: React.FC = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const response = await getStudents({ page: currentPage, limit: itemsPerPage });
-      // Handle both old array format and new {data, meta} format from backend
-      if (Array.isArray(response)) {
-        setStudents(response);
-      } else {
-        setStudents(response.data);
-        if (response.meta?.totalPages) {
-          setTotalPages(response.meta.totalPages);
-        }
+      const params: any = { page: currentPage, limit: itemsPerPage };
+      if (searchTerm) params.search = searchTerm;
+      if (filterStatus) params.status = filterStatus;
+      
+      const response = await getStudentsPaginated(params);
+      setStudents(response.data);
+      if (response.meta?.totalPages) {
+        setTotalPages(response.meta.totalPages);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Gagal memuat data siswa');
@@ -94,21 +99,21 @@ export const Students: React.FC = () => {
 
   useEffect(() => {
     fetchStudents();
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, searchTerm, filterStatus]);
 
 
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus siswa ini?')) {
+    showConfirm('Apakah Anda yakin ingin menghapus siswa ini?', async () => {
       try {
         await deleteStudent(id);
         setSuccess('Siswa berhasil dihapus!');
         fetchStudents();
         setTimeout(() => setSuccess(''), 3000);
       } catch (err: any) {
-        setError(err.response?.data?.message || 'Gagal menghapus siswa');
+        showAlert(err.response?.data?.message || 'Gagal menghapus siswa');
       }
-    }
+    });
   };
 
   const handleToggle = async (student: Student) => {
@@ -188,6 +193,33 @@ export const Students: React.FC = () => {
 
       {error && !showWizardModal && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
+
+      <div className="glass-panel mb-6 p-4 flex flex-col md:flex-row gap-4">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input 
+            type="text" 
+            className="input-field pl-10 w-full" 
+            placeholder="Cari NIS, NISN, atau Nama Siswa..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="w-full md:w-64 relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <select 
+            className="input-field pl-10 w-full"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="">Semua Status</option>
+            <option value="ACTIVE">Aktif</option>
+            <option value="GRADUATED">Lulus</option>
+            <option value="TRANSFER">Pindahan</option>
+            <option value="DROPOUT">Keluar</option>
+          </select>
+        </div>
+      </div>
 
       <div className="glass-panel">
         <div className="table-responsive">

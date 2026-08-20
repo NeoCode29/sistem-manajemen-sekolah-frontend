@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { getAcademicYears, getSemesters, getGrades, getClassrooms, getSubjects, type AcademicYear, type Semester, type Grade, type Classroom, type Subject } from '../../api/academicService';
 import { getAssessmentComponents, createAssessmentComponent, updateAssessmentComponent, deleteAssessmentComponent, getAssessmentTypes, type AssessmentComponent, type AssessmentType } from '../../api/assessmentService';
 import { Plus, Edit2, Trash2, Settings, AlertCircle } from 'lucide-react';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const AssessmentComponents: React.FC = () => {
@@ -16,6 +17,7 @@ export const AssessmentComponents: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
 
   // Filters
   const [filterAcademicYearId, setFilterAcademicYearId] = useState('');
@@ -104,7 +106,7 @@ export const AssessmentComponents: React.FC = () => {
 
   const handleOpenModal = (comp?: AssessmentComponent) => {
     if (!comp && (!filterClassroomId || !filterSubjectId || !filterAcademicYearId || !filterSemesterId)) {
-      alert('Silakan pilih Tahun Ajaran, Semester, Kelas, dan Mata Pelajaran terlebih dahulu sebelum menambah komponen penilaian.');
+      showAlert('Silakan pilih Tahun Ajaran, Semester, Kelas, dan Mata Pelajaran terlebih dahulu sebelum menambah komponen penilaian.', 'Peringatan');
       return;
     }
     if (comp) {
@@ -168,15 +170,16 @@ export const AssessmentComponents: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Yakin ingin menghapus komponen penilaian ini?')) return;
-    try {
-      setLoading(true);
-      await deleteAssessmentComponent(id);
-      await fetchComponents();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menghapus komponen');
-      setLoading(false);
-    }
+    showConfirm('Yakin ingin menghapus komponen penilaian ini?', async () => {
+      try {
+        setLoading(true);
+        await deleteAssessmentComponent(id);
+        await fetchComponents();
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Gagal menghapus komponen');
+        setLoading(false);
+      }
+    });
   };
 
   const totalWeight = components.reduce((sum, c) => sum + (c.weight || 0), 0);

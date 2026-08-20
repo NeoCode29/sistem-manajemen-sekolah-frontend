@@ -1,13 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getSchedules, createSchedule, updateSchedule, deleteSchedule, getSubjectAssignments, createSubjectAssignment, updateSubjectAssignment, deleteSubjectAssignment } from '../../api/schedulingService';
 import type { Schedule, SubjectAssignment } from '../../api/schedulingService';
-import { getAcademicYears, getSemesters, getClassrooms, getSubjects, getClassPeriods } from '../../api/academicService';
-import type { AcademicYear, Semester, Classroom, Subject, ClassPeriod } from '../../api/academicService';
-import { getEmployees } from '../../api/employeeService';
-import type { Employee } from '../../api/employeeService';
-import { CalendarDays, Plus, Edit2, Trash2, Clock, Users, BookOpen, MapPin } from 'lucide-react';
-import '../Academic/Academic.css';
+import { CalendarDays, Plus, Edit2, Trash2, Clock, Users, BookOpen, MapPin, AlertCircle } from 'lucide-react';
+import { DataTable, type Column } from '../../components/Common/DataTable';
+import { useSchedules } from '../../hooks/useSchedules';
+import { useDialog } from '../../contexts/DialogContext';
+import './Academic.css';
 
 const DAYS = [
   { id: 1, name: 'Senin' },
@@ -20,27 +18,36 @@ const DAYS = [
 ];
 
 export const Schedules: React.FC = () => {
+  const { showConfirm, showAlert } = useDialog();
   const [activeTab, setActiveTab] = useState<'schedule' | 'assignments'>('schedule');
 
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [subjectAssignments, setSubjectAssignments] = useState<SubjectAssignment[]>([]);
-  
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
-  const [semesters, setSemesters] = useState<Semester[]>([]);
-  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [classPeriods, setClassPeriods] = useState<ClassPeriod[]>([]);
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [pageError, setPageError] = useState('');
-  
-  // Filters
-  const [filterAcademicYearId, setFilterAcademicYearId] = useState('');
-  const [filterSemesterId, setFilterSemesterId] = useState('');
-  const [filterClassroomId, setFilterClassroomId] = useState('');
-  
+  const {
+    schedules,
+    subjectAssignments,
+    academicYears,
+    semesters,
+    classrooms,
+    subjects,
+    employees,
+    classPeriods,
+    loading,
+    error,
+    pageError,
+    setError,
+    filterAcademicYearId,
+    setFilterAcademicYearId,
+    filterSemesterId,
+    setFilterSemesterId,
+    filterClassroomId,
+    setFilterClassroomId,
+    createSubjectAssignment,
+    updateSubjectAssignment,
+    deleteSubjectAssignment,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule
+  } = useSchedules();
+
   // Modals
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
@@ -59,70 +66,6 @@ export const Schedules: React.FC = () => {
   // Assignment Form
   const [subjectId, setSubjectId] = useState('');
   const [employeeId, setEmployeeId] = useState('');
-
-  useEffect(() => {
-    fetchDependencies();
-  }, []);
-
-  useEffect(() => {
-    if (filterClassroomId) {
-      fetchClassroomData();
-    } else {
-      setSchedules([]);
-      setSubjectAssignments([]);
-    }
-  }, [filterClassroomId, filterAcademicYearId, filterSemesterId]);
-
-  const fetchDependencies = async () => {
-    try {
-      setPageError('');
-      const [ayData, semData, subjData, empData, clsData, periodData] = await Promise.all([
-        getAcademicYears(),
-        getSemesters(),
-        getSubjects(),
-        getEmployees({ isActive: 'true' }),
-        getClassrooms(),
-        getClassPeriods()
-      ]);
-      setAcademicYears(ayData);
-      setSemesters(semData);
-      setSubjects(subjData);
-      setEmployees(empData);
-      setClassrooms(clsData);
-      setClassPeriods(periodData.filter(p => !p.isBreak).sort((a,b) => a.periodNumber - b.periodNumber));
-      
-      const activeAy = ayData.find(a => a.isActive);
-      const activeSem = semData.find(s => s.isActive);
-      if (activeAy) setFilterAcademicYearId(activeAy.id);
-      if (activeSem) setFilterSemesterId(activeSem.id);
-      
-      // Auto-select first class to avoid empty state confusion
-      if (clsData.length > 0 && !filterClassroomId) {
-        setFilterClassroomId(clsData[0].id);
-      }
-    } catch (err: any) {
-      console.error(err);
-      setPageError(err.response?.data?.message || err.message || 'Gagal memuat data referensi (Tahun Ajaran, Kelas, dll)');
-    }
-  };
-
-  const fetchClassroomData = async () => {
-    if (!filterClassroomId) return;
-    try {
-      setLoading(true);
-      const [scheds, assigns] = await Promise.all([
-        getSchedules(filterClassroomId),
-        getSubjectAssignments(filterClassroomId)
-      ]);
-      
-      setSchedules(scheds.filter(s => s.academicYearId === filterAcademicYearId && s.semesterId === filterSemesterId));
-      setSubjectAssignments(assigns.filter(a => a.academicYearId === filterAcademicYearId && a.semesterId === filterSemesterId));
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat data kelas');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // ---- Assignment Actions ----
   const openAddAssignmentModal = () => {
@@ -146,6 +89,7 @@ export const Schedules: React.FC = () => {
     if (!filterClassroomId) return;
     try {
       setIsSubmitting(true);
+      setError('');
       const payload = {
         subjectId,
         employeeId,
@@ -155,16 +99,15 @@ export const Schedules: React.FC = () => {
       };
       
       if (editingAssignment) {
-        await updateSubjectAssignment(filterClassroomId, editingAssignment.id, {
+        await updateSubjectAssignment(editingAssignment.id, {
           subjectId,
           employeeId,
           isActive: true
         });
       } else {
-        await createSubjectAssignment(filterClassroomId, payload);
+        await createSubjectAssignment(payload);
       }
       setIsAssignmentModalOpen(false);
-      fetchClassroomData();
     } catch (err: any) {
       console.error("Save assignment error:", err);
       let errMsg = 'Gagal menyimpan penugasan guru';
@@ -190,14 +133,13 @@ export const Schedules: React.FC = () => {
 
   const handleDeleteAssignment = async (id: string) => {
     if (!filterClassroomId) return;
-    if (window.confirm('Yakin ingin menghapus penugasan ini? Jadwal yang terkait mungkin akan error.')) {
+    showConfirm('Yakin ingin menghapus penugasan ini? Jadwal yang terkait mungkin akan error.', async () => {
       try {
-        await deleteSubjectAssignment(filterClassroomId, id);
-        fetchClassroomData();
+        await deleteSubjectAssignment(id);
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal menghapus data');
+        showAlert(err.response?.data?.message || 'Gagal menghapus data', 'Gagal');
       }
-    }
+    });
   };
 
   // ---- Schedule Actions ----
@@ -226,6 +168,7 @@ export const Schedules: React.FC = () => {
     if (!filterClassroomId) return;
     try {
       setIsSubmitting(true);
+      setError('');
       
       if (editingSchedule) {
         const updatePayload = {
@@ -234,7 +177,7 @@ export const Schedules: React.FC = () => {
           subjectAssignmentId,
           room: room || undefined
         };
-        await updateSchedule(filterClassroomId, editingSchedule.id, updatePayload);
+        await updateSchedule(editingSchedule.id, updatePayload);
       } else {
         const createPayload = {
           academicYearId: filterAcademicYearId,
@@ -244,10 +187,9 @@ export const Schedules: React.FC = () => {
           subjectAssignmentId,
           room: room || undefined
         };
-        await createSchedule(filterClassroomId, createPayload);
+        await createSchedule(createPayload);
       }
       setIsScheduleModalOpen(false);
-      fetchClassroomData();
     } catch (err: any) {
       console.error("Save schedule error:", err);
       let errMsg = 'Gagal menyimpan jadwal';
@@ -273,14 +215,13 @@ export const Schedules: React.FC = () => {
 
   const handleDeleteSchedule = async (id: string) => {
     if (!filterClassroomId) return;
-    if (window.confirm('Yakin ingin menghapus jadwal ini?')) {
+    showConfirm('Yakin ingin menghapus jadwal ini?', async () => {
       try {
-        await deleteSchedule(filterClassroomId, id);
-        fetchClassroomData();
+        await deleteSchedule(id);
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal menghapus data');
+        showAlert(err.response?.data?.message || 'Gagal menghapus data', 'Gagal');
       }
-    }
+    });
   };
 
   const groupedSchedules = DAYS.map(day => ({
@@ -294,6 +235,28 @@ export const Schedules: React.FC = () => {
       })
   }));
 
+  const assignmentColumns: Column<SubjectAssignment>[] = [
+    { key: 'subject', header: 'Mata Pelajaran', render: (row) => (
+      <div className="font-semibold text-gray-800 flex items-center gap-3">
+        <div className="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+          {row.subject?.name?.substring(0, 2) || 'MA'}
+        </div>
+        {row.subject?.name}
+      </div>
+    )},
+    { key: 'employee', header: 'Guru Pengampu', render: (row) => <span className="text-gray-600 font-medium">{row.employee?.fullName}</span> },
+    { key: 'actions', header: 'Aksi', render: (row) => (
+      <div className="flex gap-2 justify-end">
+        <button className="btn-icon text-blue-600 hover:bg-blue-50" onClick={() => openEditAssignmentModal(row)}>
+          <Edit2 size={16} />
+        </button>
+        <button className="btn-icon text-red-600 hover:bg-red-50" onClick={() => handleDeleteAssignment(row.id)}>
+          <Trash2 size={16} />
+        </button>
+      </div>
+    )}
+  ];
+
   return (
     <div className="academic-container">
       <div className="page-header">
@@ -304,8 +267,9 @@ export const Schedules: React.FC = () => {
       </div>
 
       {pageError && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6 border border-red-200 shadow-sm">
-          <strong>Terjadi Kesalahan:</strong> {pageError}
+        <div className="alert alert-error mb-6 flex items-center gap-2">
+          <AlertCircle size={18} />
+          {pageError}
         </div>
       )}
 
@@ -380,53 +344,12 @@ export const Schedules: React.FC = () => {
                       <Plus size={16} /> Tambah Penugasan
                     </button>
                   </div>
-                  <div className="table-responsive">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Mata Pelajaran</th>
-                          <th>Guru Pengampu</th>
-                          <th className="w-32 text-center">Aksi</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {subjectAssignments.length === 0 ? (
-                          <tr>
-                            <td colSpan={3} className="text-center py-12 text-gray-500">
-                              <div className="flex flex-col items-center justify-center">
-                                <Users size={32} className="text-gray-300 mb-3" />
-                                <p>Belum ada penugasan guru untuk kelas ini.</p>
-                              </div>
-                            </td>
-                          </tr>
-                        ) : (
-                          subjectAssignments.map(item => (
-                            <tr key={item.id} className="transition-colors hover:bg-gray-50">
-                              <td className="font-semibold text-gray-800">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
-                                    {item.subject?.name?.substring(0, 2) || 'MA'}
-                                  </div>
-                                  {item.subject?.name}
-                                </div>
-                              </td>
-                              <td className="text-gray-600 font-medium">{item.employee?.fullName}</td>
-                              <td>
-                                <div className="flex justify-center gap-2">
-                                  <button className="btn-icon text-blue-600 hover:bg-blue-50" onClick={() => openEditAssignmentModal(item)}>
-                                    <Edit2 size={16} />
-                                  </button>
-                                  <button className="btn-icon text-red-600 hover:bg-red-50" onClick={() => handleDeleteAssignment(item.id)}>
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                  <DataTable 
+                    columns={assignmentColumns}
+                    data={subjectAssignments}
+                    loading={loading}
+                    emptyMessage="Belum ada penugasan guru untuk kelas ini."
+                  />
                 </div>
               )}
 
@@ -549,7 +472,7 @@ export const Schedules: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* Schedule Modal */}
       {isScheduleModalOpen && createPortal(
@@ -613,9 +536,7 @@ export const Schedules: React.FC = () => {
             </form>
           </div>
         </div>
-      ,
-        document.body
-      )}
+      , document.body)}
     </div>
   );
 };

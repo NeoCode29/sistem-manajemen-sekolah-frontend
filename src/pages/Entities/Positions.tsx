@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getPositions, createPosition, updatePosition, deletePosition, type Position } from '../../api/employeeService';
 import { Plus, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
-import '../Academic/Academic.css'; // Reuse existing styles
+import { useDialog } from '../../contexts/DialogContext';
+import '../Academic/Academic.css';
 
 export const Positions: React.FC = () => {
   const [positions, setPositions] = useState<Position[]>([]);
@@ -20,6 +21,11 @@ export const Positions: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const { showConfirm, showAlert } = useDialog();
+
+  // Search & Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   const fetchPositions = async () => {
     try {
@@ -71,16 +77,16 @@ export const Positions: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus jabatan ini?')) {
+    showConfirm('Apakah Anda yakin ingin menghapus jabatan ini?', async () => {
       try {
         await deletePosition(id);
         setSuccess('Jabatan berhasil dihapus!');
         fetchPositions();
         setTimeout(() => setSuccess(''), 3000);
       } catch (err: any) {
-        setError(err.response?.data?.message || 'Gagal menghapus jabatan');
+        showAlert(err.response?.data?.message || 'Gagal menghapus jabatan', 'Gagal');
       }
-    }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -123,6 +129,29 @@ export const Positions: React.FC = () => {
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
+      <div className="table-toolbar">
+        <div className="search-box">
+          <input 
+            type="text" 
+            placeholder="Cari kode atau nama jabatan..." 
+            className="input-field"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="filter-group">
+          <select 
+            className="input-field" 
+            value={filterStatus} 
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="">Semua Status</option>
+            <option value="ACTIVE">Aktif</option>
+            <option value="INACTIVE">Tidak Aktif</option>
+          </select>
+        </div>
+      </div>
+
       <div className="glass-panel">
         <div className="table-responsive">
           <table className="data-table">
@@ -145,7 +174,12 @@ export const Positions: React.FC = () => {
                   <td colSpan={5} className="text-center py-4 text-gray-500">Belum ada data jabatan.</td>
                 </tr>
               ) : (
-                positions.map((pos) => (
+                positions
+                  .filter(pos => 
+                    (filterStatus === '' || (filterStatus === 'ACTIVE' && pos.isActive) || (filterStatus === 'INACTIVE' && !pos.isActive)) &&
+                    (pos.code.toLowerCase().includes(searchTerm.toLowerCase()) || pos.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                  )
+                  .map((pos) => (
                   <tr key={pos.id}>
                     <td className="font-semibold text-gray-600">{pos.code}</td>
                     <td className="font-semibold">{pos.name}</td>

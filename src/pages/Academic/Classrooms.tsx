@@ -1,30 +1,41 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getClassrooms, createClassroom, updateClassroom, deleteClassroom, type Classroom, getGrades, type Grade } from '../../api/academicService';
-import { Plus, Trash2, Users, Edit } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
+import { DataTable, type Column } from '../../components/Common/DataTable';
+import { ActionButtons } from '../../components/Common/ActionButtons';
+import { useClassrooms } from '../../hooks/useClassrooms';
+import type { Classroom } from '../../api/academicService';
+import { useDialog } from '../../contexts/DialogContext';
 import './Academic.css';
 
 export const Classrooms: React.FC = () => {
-  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
-  const [grades, setGrades] = useState<Grade[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [filterGradeId, setFilterGradeId] = useState('');
+  
+  // Custom Hook for Data Layer
+  const {
+    classrooms,
+    grades,
+    loading,
+    createClassroom,
+    updateClassroom,
+    deleteClassroom
+  } = useClassrooms(filterGradeId);
+
+  // Modal & Form State
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState('');
   
-  // Filter
-  const [filterGradeId, setFilterGradeId] = useState('');
-
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-
-  // Form State
   const [gradeId, setGradeId] = useState('');
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [capacity, setCapacity] = useState(30);
+  const { showConfirm, showAlert } = useDialog();
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -45,39 +56,14 @@ export const Classrooms: React.FC = () => {
     setShowModal(true);
   };
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [classroomsData, gradesData] = await Promise.all([
-        getClassrooms(filterGradeId || undefined),
-        getGrades()
-      ]);
-      setClassrooms(classroomsData);
-      setGrades(gradesData);
-      
-      if (gradesData.length > 0 && !gradeId) {
-        setGradeId(gradesData[0].id);
-      }
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [filterGradeId]);
-
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this classroom?')) {
+    showConfirm('Are you sure you want to delete this classroom?', async () => {
       try {
         await deleteClassroom(id);
-        fetchData();
       } catch (error) {
-        alert('Failed to delete classroom');
+        showAlert('Failed to delete classroom', 'Gagal');
       }
-    }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,14 +83,40 @@ export const Classrooms: React.FC = () => {
       }
       
       handleCloseModal();
-      fetchData();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to save classroom');
+      showAlert(error.message || 'Failed to save classroom', 'Gagal');
     }
+  };
+
+  const openAddModal = () => {
+    if (grades.length > 0 && !gradeId) {
+      setGradeId(grades[0].id);
+    }
+    setShowModal(true);
   };
 
   const paginatedClassrooms = classrooms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(classrooms.length / itemsPerPage);
+
+  // DataTable Columns Configuration
+  const classroomColumns: Column<Classroom>[] = [
+    { key: 'code', header: 'Kode', render: (row) => <span className="font-semibold">{row.code}</span> },
+    { key: 'name', header: 'Nama Rombel' },
+    { key: 'grade', header: 'Tingkat', render: (row) => <span className="grade-badge">{row.grade?.name || '-'}</span> },
+    { key: 'capacity', header: 'Kapasitas', render: (row) => (
+        <div className="capacity-info">
+          <Users size={14} /> {row.capacity || 0} Siswa
+        </div>
+      ) 
+    },
+    { key: 'actions', header: 'Aksi', render: (row) => (
+        <ActionButtons 
+          onEdit={() => handleEdit(row)}
+          onDelete={() => handleDelete(row.id)}
+        />
+      )
+    }
+  ];
 
   return (
     <div className="academic-container">
@@ -113,18 +125,20 @@ export const Classrooms: React.FC = () => {
           <h1 className="page-title">Rombongan Belajar (Kelas)</h1>
           <p className="page-subtitle">Kelola master data Rombel/Ruang Kelas</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>
+        <button className="btn-primary" onClick={openAddModal}>
           <Plus size={18} /> Tambah Data
         </button>
       </div>
 
-      <div className="glass-panel" style={{ marginBottom: '1rem', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <span className="text-gray-500 font-medium">Filter Tingkat:</span>
+      <div className="glass-panel filter-bar">
+        <span className="filter-label">Filter Tingkat:</span>
         <select 
-          className="input-field" 
-          style={{ width: 'auto' }} 
+          className="input-field filter-select" 
           value={filterGradeId} 
-          onChange={(e) => setFilterGradeId(e.target.value)}
+          onChange={(e) => {
+            setFilterGradeId(e.target.value);
+            setCurrentPage(1);
+          }}
         >
           <option value="">-- Semua Tingkat --</option>
           {grades.map(g => (
@@ -134,66 +148,12 @@ export const Classrooms: React.FC = () => {
       </div>
 
       <div className="glass-panel">
-        {loading ? (
-          <div className="loading-state">Memuat data...</div>
-        ) : (
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Kode</th>
-                  <th>Nama Rombel</th>
-                  <th>Tingkat</th>
-                  <th>Kapasitas</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {classrooms.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-4 text-gray-500">Belum ada data.</td>
-                  </tr>
-                ) : (
-                  paginatedClassrooms.map((classroom) => (
-                    <tr key={classroom.id}>
-                      <td className="font-semibold">{classroom.code}</td>
-                      <td>{classroom.name}</td>
-                      <td>
-                        <span className="text-sm px-2 py-1 rounded bg-blue-50 text-blue-600">
-                          {classroom.grade?.name || '-'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-2 text-gray-500">
-                          <Users size={14} />
-                          {classroom.capacity || 0} Siswa
-                        </div>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button 
-                            className="btn-icon text-blue-400 hover:bg-blue-400/10"
-                            onClick={() => handleEdit(classroom)}
-                            title="Edit"
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button 
-                            className="btn-icon text-red-400 hover:bg-red-400/10"
-                            onClick={() => handleDelete(classroom.id)}
-                            title="Hapus"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable 
+          columns={classroomColumns} 
+          data={paginatedClassrooms} 
+          loading={loading}
+          emptyMessage="Belum ada data Rombel."
+        />
         
         {!loading && classrooms.length > 0 && (
           <Pagination

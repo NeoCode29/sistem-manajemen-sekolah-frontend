@@ -42,7 +42,7 @@ export const graduateStudent = async (data: any) => {
   return response.data;
 };
 
-export const batchGraduate = async (data: { classId: string; graduationDate: string; documentNumber: string; studentIds: string[] }) => {
+export const batchGraduate = async (data: { classroomId: string; academicYearId: string; graduationDate: string; certificateNumber?: string; notes?: string; studentIds: string[] }) => {
   const response = await api.post('/graduations/batch-graduate', data);
   return response.data;
 };

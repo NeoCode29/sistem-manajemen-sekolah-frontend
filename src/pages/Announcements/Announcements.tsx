@@ -4,7 +4,8 @@ import { getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnounc
 import type { Announcement } from '../../api/announcementService';
 import { Megaphone, Plus, Edit2, Trash2, X, Pin, Calendar, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import '../Academic/Academic.css'; // Reuse existing styles
+import { useDialog } from '../../contexts/DialogContext';
+import '../Academic/Academic.css';
 
 export const Announcements: React.FC = () => {
   const { user } = useAuth();
@@ -12,6 +13,7 @@ export const Announcements: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
   
   const [formData, setFormData] = useState<Partial<Announcement>>({
     title: '',
@@ -115,14 +117,14 @@ export const Announcements: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Yakin ingin menghapus pengumuman ini?')) {
+    showConfirm('Yakin ingin menghapus pengumuman ini?', async () => {
       try {
         await deleteAnnouncement(id);
         fetchAnnouncements();
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal menghapus pengumuman');
+        showAlert(err.response?.data?.message || 'Gagal menghapus pengumuman', 'Gagal');
       }
-    }
+    });
   };
 
   return (

@@ -4,6 +4,7 @@ import { getOutgoingLetters, createOutgoingLetter, updateOutgoingLetter, deleteO
 import type { OutgoingLetter, LetterTemplate } from '../../api/letterService';
 import { Send, Plus, Edit2, Trash2, X, Download, FileText, CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const OutgoingLetters: React.FC = () => {
@@ -13,6 +14,7 @@ export const OutgoingLetters: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
   
   const [formData, setFormData] = useState<Partial<OutgoingLetter>>({
     referenceNumber: '',
@@ -108,23 +110,23 @@ export const OutgoingLetters: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Yakin ingin menghapus surat keluar ini?')) {
+    showConfirm('Yakin ingin menghapus surat keluar ini?', async () => {
       try {
         await deleteOutgoingLetter(id);
         fetchData();
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal menghapus surat');
+        showAlert(err.response?.data?.message || 'Gagal menghapus surat');
       }
-    }
+    });
   };
 
   const handleGenerateDocument = async (id: string) => {
     try {
       await generateOutgoingLetterDocument(id);
-      alert('Dokumen berhasil digenerate');
+      showAlert('Dokumen berhasil digenerate', 'Berhasil');
       fetchData();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal generate dokumen');
+      showAlert(err.response?.data?.message || 'Gagal generate dokumen', 'Gagal');
     }
   };
 
@@ -133,7 +135,7 @@ export const OutgoingLetters: React.FC = () => {
       await updateOutgoingLetterStatus(id, status);
       fetchData();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal mengubah status');
+      showAlert(err.response?.data?.message || 'Gagal mengubah status', 'Gagal');
     }
   };
 

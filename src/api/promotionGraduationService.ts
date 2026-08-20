@@ -58,6 +58,13 @@ export const processPromotion = async (payload: PromotionPayload) => {
 };
 
 export const processGraduation = async (payload: GraduationPayload) => {
-  const response = await api.post('/graduations/batch-graduate', payload);
+  const backendPayload = {
+    studentIds: payload.studentIds,
+    classroomId: payload.fromClassId,
+    academicYearId: payload.fromAcademicYearId,
+    graduationDate: payload.graduationDate,
+    notes: payload.graduationNotes
+  };
+  const response = await api.post('/graduations/batch-graduate', backendPayload);
   return response.data;
 };

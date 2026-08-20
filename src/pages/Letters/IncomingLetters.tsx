@@ -4,6 +4,7 @@ import { getIncomingLetters, createIncomingLetter, updateIncomingLetter, deleteI
 import type { IncomingLetter } from '../../api/letterService';
 import { Mail, Plus, Edit2, Trash2, X, Paperclip, Download } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const IncomingLetters: React.FC = () => {
@@ -12,6 +13,7 @@ export const IncomingLetters: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<Partial<IncomingLetter>>({
@@ -116,14 +118,14 @@ export const IncomingLetters: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Yakin ingin menghapus data surat masuk ini?')) {
+    showConfirm('Yakin ingin menghapus data surat masuk ini?', async () => {
       try {
         await deleteIncomingLetter(id);
         fetchLetters();
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal menghapus surat');
+        showAlert(err.response?.data?.message || 'Gagal menghapus surat');
       }
-    }
+    });
   };
 
   return (

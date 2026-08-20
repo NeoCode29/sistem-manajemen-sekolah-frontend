@@ -1,26 +1,39 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getAcademicYears, createAcademicYear, updateAcademicYear, toggleAcademicYearActive, deleteAcademicYear, type AcademicYear } from '../../api/academicService';
-import { Plus, CheckCircle, XCircle, Trash2, Edit, AlertCircle } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { DataTable, type Column } from '../../components/Common/DataTable';
+import { ActionButtons } from '../../components/Common/ActionButtons';
+import { useAcademicYears } from '../../hooks/useAcademicYears';
+import type { AcademicYear } from '../../api/academicService';
+import { useDialog } from '../../contexts/DialogContext';
 import './Academic.css';
 
 export const AcademicYears: React.FC = () => {
-  const [years, setYears] = useState<AcademicYear[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    years,
+    loading,
+    error: fetchError,
+    createAcademicYear,
+    updateAcademicYear,
+    deleteAcademicYear,
+    toggleAcademicYearActive
+  } = useAcademicYears();
+
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState('');
-  
-  // Form State
   const [name, setName] = useState('');
+  const [formError, setFormError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
+
+  const error = formError || fetchError;
 
   const handleCloseModal = () => {
     setShowModal(false);
     setIsEditing(false);
     setEditId('');
     setName('');
-    setError('');
+    setFormError('');
   };
 
   const handleEdit = (year: AcademicYear) => {
@@ -30,74 +43,65 @@ export const AcademicYears: React.FC = () => {
     setShowModal(true);
   };
 
-  const fetchYears = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await getAcademicYears();
-      setYears(data);
-    } catch (error: any) {
-      console.error('Failed to fetch academic years:', error);
-      setError(error.response?.data?.message || 'Gagal memuat data tahun ajaran');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchYears();
-  }, []);
-
   const handleToggle = async (id: string) => {
+    setFormError('');
     try {
-      setError('');
       await toggleAcademicYearActive(id);
-      fetchYears();
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Gagal mengubah status');
+    } catch (err: any) {
+      setFormError(err.message || 'Gagal mengubah status');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this academic year?')) {
+    showConfirm('Are you sure you want to delete this academic year?', async () => {
+      setFormError('');
       try {
-        setError('');
         await deleteAcademicYear(id);
-        fetchYears();
-      } catch (error: any) {
-        setError(error.response?.data?.message || 'Gagal menghapus tahun ajaran');
+      } catch (err: any) {
+        setFormError(err.message || 'Gagal menghapus tahun ajaran');
       }
-    }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('SUBMIT_CLICKED', { name, isEditing, editId });
+    setFormError('');
     try {
-      setError('');
-      const payload = {
-        name,
-      };
-      
+      const payload = { name };
       if (isEditing) {
         await updateAcademicYear(editId, payload);
       } else {
         await createAcademicYear(payload);
       }
-      
       handleCloseModal();
-      fetchYears();
-    } catch (error: any) {
-      console.error('HANDLE_SUBMIT_ERROR:', error);
-      console.error('RESPONSE_DATA:', error.response?.data);
-      const message = error.response?.data?.message;
-      if (Array.isArray(message)) {
-        setError(message.join(', '));
-      } else {
-        setError(message || 'Gagal menyimpan tahun ajaran');
-      }
+    } catch (err: any) {
+      setFormError(err.message || 'Gagal menyimpan tahun ajaran');
     }
   };
+
+  const columns: Column<AcademicYear>[] = [
+    { key: 'name', header: 'Nama', render: (row) => <span className="font-semibold">{row.name}</span> },
+    { key: 'status', header: 'Status', render: (row) => (
+      <span className={`status-badge ${row.isActive ? 'active' : 'inactive'}`}>
+        {row.isActive ? 'Aktif' : 'Tidak Aktif'}
+      </span>
+    )},
+    { key: 'actions', header: 'Aksi', render: (row) => (
+      <div className="action-buttons-group">
+        <button 
+          className={`action-btn ${row.isActive ? 'text-red-400' : 'text-green-400'}`}
+          onClick={() => handleToggle(row.id)}
+          title={row.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+        >
+          {row.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
+        </button>
+        <ActionButtons 
+          onEdit={() => handleEdit(row)}
+          onDelete={() => handleDelete(row.id)}
+        />
+      </div>
+    )}
+  ];
 
   return (
     <div className="academic-container">
@@ -119,64 +123,12 @@ export const AcademicYears: React.FC = () => {
       )}
 
       <div className="glass-panel">
-        {loading ? (
-          <div className="loading-state">Memuat data...</div>
-        ) : (
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Nama</th>
-                  <th>Status</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {years.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="text-center py-4 text-gray-500">Belum ada data.</td>
-                  </tr>
-                ) : (
-                  years.map((year) => (
-                    <tr key={year.id}>
-                      <td className="font-semibold">{year.name}</td>
-                      <td>
-                        <span className={`status-badge ${year.isActive ? 'active' : 'inactive'}`}>
-                          {year.isActive ? 'Aktif' : 'Tidak Aktif'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button 
-                            className={`btn-icon ${year.isActive ? 'text-red-400 hover:bg-red-400/10' : 'text-green-400 hover:bg-green-400/10'}`}
-                            onClick={() => handleToggle(year.id)}
-                            title={year.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                          >
-                            {year.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
-                          </button>
-                          <button 
-                            className="btn-icon text-blue-400 hover:bg-blue-400/10"
-                            onClick={() => handleEdit(year)}
-                            title="Edit"
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button 
-                            className="btn-icon text-red-400 hover:bg-red-400/10"
-                            onClick={() => handleDelete(year.id)}
-                            title="Hapus"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable 
+          columns={columns} 
+          data={years} 
+          loading={loading}
+          emptyMessage="Belum ada data Tahun Ajaran."
+        />
       </div>
 
       {showModal && createPortal(
@@ -205,8 +157,3 @@ export const AcademicYears: React.FC = () => {
     </div>
   );
 };
-
-
-
-
-

@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { batchPromote } from '../../api/promotionService';
-import { getAcademicYears, getClassrooms, getSemesters } from '../../api/academicService';
+import { getAcademicYears, getClassrooms, getSemesters, getClassroomCapacity } from '../../api/academicService';
 import type { AcademicYear, Classroom as ClassType, Semester } from '../../api/academicService';
 import { getStudents } from '../../api/studentService';
 import type { Student } from '../../api/studentService';
 import { TrendingUp, AlertTriangle, ChevronRight, ChevronLeft, ArrowLeft, CheckSquare } from 'lucide-react';
+import { useDialog } from '../../contexts/DialogContext';
 import './Academic.css';
 import './BatchPromote.css';
 
 export const BatchPromote: React.FC = () => {
   const navigate = useNavigate();
   const [, setError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
 
   // Dropdown Data State
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -30,10 +32,23 @@ export const BatchPromote: React.FC = () => {
   const [checkedSourceIds, setCheckedSourceIds] = useState<Set<string>>(new Set());
   const [promotedStudents, setPromotedStudents] = useState<Student[]>([]);
   const [checkedTargetIds, setCheckedTargetIds] = useState<Set<string>>(new Set());
+  
+  // Capacity State
+  const [targetCapacityInfo, setTargetCapacityInfo] = useState<{capacity: number | null, currentCount: number, remaining: number | null} | null>(null);
 
   useEffect(() => {
     fetchDropdowns();
   }, []);
+
+  useEffect(() => {
+    if (selectedTargetClass && selectedTargetAcademicYear) {
+      getClassroomCapacity(selectedTargetClass, selectedTargetAcademicYear)
+        .then(res => setTargetCapacityInfo(res))
+        .catch(() => setTargetCapacityInfo(null));
+    } else {
+      setTargetCapacityInfo(null);
+    }
+  }, [selectedTargetClass, selectedTargetAcademicYear]);
 
   const fetchDropdowns = async () => {
     try {
@@ -50,7 +65,7 @@ export const BatchPromote: React.FC = () => {
       if (activeAy) {
         setSelectedTargetAcademicYear(activeAy.id.toString());
         // For source, try to pick the previous year
-        const previousAy = ayData.find(ay => ay.id < activeAy.id);
+        const previousAy = ayData.find(ay => Number(ay.id) < Number(activeAy.id));
         if (previousAy) {
           setSelectedSourceAcademicYear(previousAy.id.toString());
         } else {
@@ -65,32 +80,36 @@ export const BatchPromote: React.FC = () => {
     }
   };
 
-  const handleSourceClassChange = async (classId: string) => {
+  const handleSourceClassChange = (classId: string) => {
     setSelectedSourceClass(classId);
-    if (!classId || !selectedSourceAcademicYear) {
-      setSourceStudents([]);
-      setPromotedStudents([]);
-      setCheckedSourceIds(new Set());
-      setCheckedTargetIds(new Set());
-      return;
-    }
-    
-    try {
-      // Students should be fetched by classroomId, academicYearId, and correct statuses (AKTIF / ENROLLED)
-      const students = await getStudents({ 
-        classroomId: classId, 
-        academicYearId: selectedSourceAcademicYear,
-        status: 'AKTIF', 
-        enrollmentStatus: 'ENROLLED' 
-      });
-      setSourceStudents(students);
-      setPromotedStudents([]);
-      setCheckedSourceIds(new Set());
-      setCheckedTargetIds(new Set());
-    } catch (err) {
-      setError('Gagal memuat daftar siswa');
-    }
   };
+
+  useEffect(() => {
+    const fetchSourceStudents = async () => {
+      if (!selectedSourceClass || !selectedSourceAcademicYear) {
+        setSourceStudents([]);
+        setPromotedStudents([]);
+        setCheckedSourceIds(new Set());
+        setCheckedTargetIds(new Set());
+        return;
+      }
+      try {
+        const students = await getStudents({ 
+          classroomId: selectedSourceClass, 
+          academicYearId: selectedSourceAcademicYear,
+          status: 'ACTIVE', 
+          enrollmentStatus: 'ENROLLED' 
+        });
+        setSourceStudents(students as Student[]);
+        setPromotedStudents([]);
+        setCheckedSourceIds(new Set());
+        setCheckedTargetIds(new Set());
+      } catch (err) {
+        setError('Gagal memuat daftar siswa');
+      }
+    };
+    fetchSourceStudents();
+  }, [selectedSourceClass, selectedSourceAcademicYear]);
 
   const toggleSourceSelection = (studentId: string) => {
     const next = new Set(checkedSourceIds);
@@ -106,6 +125,16 @@ export const BatchPromote: React.FC = () => {
 
   const moveRight = () => {
     const moving = sourceStudents.filter(s => checkedSourceIds.has(s.id.toString()));
+    
+    // Check if adding these students exceeds capacity
+    if (targetCapacityInfo && targetCapacityInfo.capacity !== null) {
+      const futureTotal = targetCapacityInfo.currentCount + promotedStudents.length + moving.length;
+      if (futureTotal > targetCapacityInfo.capacity) {
+        showAlert(`Gagal: Memindahkan ${moving.length} siswa akan melebihi kapasitas kelas tujuan (Sisa ruang: ${targetCapacityInfo.capacity - targetCapacityInfo.currentCount - promotedStudents.length})`, 'Peringatan');
+        return;
+      }
+    }
+
     const remaining = sourceStudents.filter(s => !checkedSourceIds.has(s.id.toString()));
     
     setPromotedStudents([...promotedStudents, ...moving]);
@@ -124,51 +153,49 @@ export const BatchPromote: React.FC = () => {
 
   const handleBatchPromoteSubmit = async () => {
     if (!selectedSourceAcademicYear || !selectedTargetAcademicYear || !selectedSourceClass || !selectedTargetClass || !selectedTargetSemester) {
-      alert('Tahun Ajaran, Kelas, dan Semester (Asal & Tujuan) harus dipilih lengkap!');
+      showAlert('Tahun Ajaran, Kelas, dan Semester (Asal & Tujuan) harus dipilih lengkap!', 'Peringatan');
       return;
     }
     
     if (selectedSourceAcademicYear === selectedTargetAcademicYear) {
-      alert('Tahun Ajaran Asal dan Tujuan tidak boleh sama!');
+      showAlert('Tahun Ajaran Asal dan Tujuan tidak boleh sama!', 'Peringatan');
       return;
     }
 
     if (sourceStudents.length === 0 && promotedStudents.length === 0) {
-      alert('Tidak ada siswa untuk diproses.');
+      showAlert('Tidak ada siswa untuk diproses.', 'Peringatan');
       return;
     }
 
     const studentIds = promotedStudents.map(s => s.id.toString());
     const retainedIds = sourceStudents.map(s => s.id.toString());
     
-    if (!window.confirm(`Siswa Naik Kelas: ${studentIds.length} orang\nSiswa Tinggal Kelas: ${retainedIds.length} orang\n\nLanjutkan proses?`)) {
-        return;
-    }
+    showConfirm(`Siswa Naik Kelas: ${studentIds.length} orang\nSiswa Tinggal Kelas: ${retainedIds.length} orang\n\nLanjutkan proses?`, async () => {
+      const payload = {
+        studentIds,
+        retainedStudentIds: retainedIds,
+        sourceClassroomId: selectedSourceClass,
+        targetClassroomId: selectedTargetClass,
+        sourceAcademicYearId: selectedSourceAcademicYear,
+        targetAcademicYearId: selectedTargetAcademicYear,
+        targetSemesterId: selectedTargetSemester,
+      };
 
-    const payload = {
-      studentIds,
-      retainedStudentIds: retainedIds,
-      sourceClassroomId: selectedSourceClass,
-      targetClassroomId: selectedTargetClass,
-      sourceAcademicYearId: selectedSourceAcademicYear,
-      targetAcademicYearId: selectedTargetAcademicYear,
-      targetSemesterId: selectedTargetSemester,
-    };
-
-    try {
-      const response = await batchPromote(payload);
-      
-      if (response.failedCount > 0) {
-        alert(`Diproses: ${response.promotedCount} naik, ${response.retainedCount} tinggal. Gagal: ${response.failedCount} siswa.`);
-      } else {
-        alert('Proses berhasil untuk semua siswa.');
+      try {
+        const response = await batchPromote(payload);
+        
+        if (response.failedCount > 0) {
+          showAlert(`Diproses: ${response.promotedCount} naik, ${response.retainedCount} tinggal. Gagal: ${response.failedCount} siswa.`, 'Peringatan');
+        } else {
+          showAlert('Proses berhasil untuk semua siswa.', 'Berhasil');
+        }
+        
+        // Navigate back after success
+        navigate('/academic/promotions');
+      } catch (err: any) {
+        showAlert(err.response?.data?.message || 'Gagal memproses kenaikan kelas', 'Gagal');
       }
-      
-      // Navigate back after success
-      navigate('/academic/promotions');
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal memproses kenaikan kelas');
-    }
+    });
   };
 
   return (
@@ -199,11 +226,10 @@ export const BatchPromote: React.FC = () => {
           </h3>
           <div className="bp-filter-row">
             <div className="bp-input-group">
-              <label>Tahun Ajaran Aktif</label>
+              <label>Tahun Ajaran</label>
               <select
                 value={selectedSourceAcademicYear}
                 onChange={(e) => setSelectedSourceAcademicYear(e.target.value)}
-                disabled
               >
                 <option value="">-- Pilih --</option>
                 {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}</option>)}
@@ -359,7 +385,18 @@ export const BatchPromote: React.FC = () => {
               <div className="bp-pane-title">
                 {classes.find(c => c.id === selectedTargetClass)?.name || 'Kelas Tujuan'}
               </div>
-              <div className="bp-pane-subtitle">Siswa yang akan naik kelas</div>
+              <div className="bp-pane-subtitle">
+                Siswa yang akan naik kelas 
+                {targetCapacityInfo && targetCapacityInfo.capacity !== null && (
+                  <span style={{ 
+                    marginLeft: '8px', 
+                    color: (targetCapacityInfo.currentCount + promotedStudents.length) > targetCapacityInfo.capacity ? 'var(--bp-danger)' : 'var(--bp-text-muted)',
+                    fontWeight: (targetCapacityInfo.currentCount + promotedStudents.length) > targetCapacityInfo.capacity ? 'bold' : 'normal'
+                  }}>
+                    (Kapasitas: {targetCapacityInfo.currentCount + promotedStudents.length}/{targetCapacityInfo.capacity})
+                  </span>
+                )}
+              </div>
             </div>
             <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
               <div style={{ fontSize: '0.75rem', cursor: 'pointer', color: 'var(--bp-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}

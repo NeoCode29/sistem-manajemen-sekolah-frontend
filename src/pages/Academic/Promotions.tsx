@@ -1,59 +1,75 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getPromotions, cancelPromotion } from '../../api/promotionService';
-import { TrendingUp, Undo2 } from 'lucide-react';
+import { TrendingUp, Undo2, AlertCircle } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
+import { DataTable, type Column } from '../../components/Common/DataTable';
+import { usePromotions } from '../../hooks/usePromotions';
+import { useDialog } from '../../contexts/DialogContext';
 import './Academic.css';
 
 export const Promotions: React.FC = () => {
   const navigate = useNavigate();
-  const [promotionsHistory, setPromotionsHistory] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [, setError] = useState('');
+  const {
+    promotionsHistory,
+    loading,
+    error: fetchError,
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    setCurrentPage,
+    setItemsPerPage,
+    cancelPromotion
+  } = usePromotions();
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(15);
-
-  const fetchHistory = async (page = 1, limit = itemsPerPage) => {
-    try {
-      setLoading(true);
-      const response = await getPromotions({ page, limit });
-      setPromotionsHistory(response.data || []);
-      setTotalPages(response.totalPages || 1);
-      setCurrentPage(page);
-    } catch (err: any) {
-      setError('Gagal memuat riwayat kenaikan kelas');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchHistory(currentPage, itemsPerPage);
-  }, [currentPage, itemsPerPage]);
-
+  const [actionError, setActionError] = useState('');
+  const error = actionError || fetchError;
+  const { showConfirm, showAlert } = useDialog();
 
   const handleCancelPromotion = async (id: string) => {
-    if (window.confirm('Yakin ingin membatalkan status kenaikan kelas ini?')) {
+    showConfirm('Yakin ingin membatalkan status kenaikan kelas ini?', async () => {
+      setActionError('');
       try {
         await cancelPromotion(id);
-        fetchHistory();
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal membatalkan');
+        setActionError(err.message || 'Gagal membatalkan');
       }
-    }
+    });
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'PROMOTED': return <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Naik Kelas</span>;
-      case 'STAYED': return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Tinggal Kelas</span>;
-      case 'DROPPED_OUT': return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Keluar / DO</span>;
-      case 'GRADUATED': return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Lulus</span>;
+      case 'PROMOTED': return <span className="status-badge active">Naik Kelas</span>;
+      case 'RETAINED': return <span className="status-badge inactive">Tinggal Kelas</span>;
+      case 'CANCELLED': return <span className="status-badge inactive" style={{ background: '#fef2f2', color: '#991b1b' }}>Dibatalkan</span>;
+      case 'DROPPED_OUT': return <span className="status-badge inactive" style={{ background: '#fef2f2', color: '#991b1b' }}>Keluar / DO</span>;
+      case 'GRADUATED': return <span className="status-badge active" style={{ background: '#eff6ff', color: '#1e40af' }}>Lulus</span>;
       default: return <span>{status}</span>;
     }
   };
+
+  const columns: Column<any>[] = [
+    { key: 'student', header: 'Siswa', render: (row) => (
+      <div>
+        <div className="font-medium text-gray-900">{row.student?.fullName || row.student?.name || 'Siswa tidak ditemukan'}</div>
+        <div className="text-xs text-gray-500">{row.student?.nis || row.student?.nisn}</div>
+      </div>
+    )},
+    { key: 'toAcademicYear', header: 'Tahun Ajaran Baru', render: (row) => row.toAcademicYear?.name || '-' },
+    { key: 'fromClassroom', header: 'Kelas Asal', render: (row) => row.fromClassroom?.name || '-' },
+    { key: 'toClassroom', header: 'Kelas Tujuan', render: (row) => row.toClassroom?.name || '-' },
+    { key: 'status', header: 'Status', render: (row) => getStatusBadge(row.status) },
+    { key: 'date', header: 'Tanggal Proses', render: (row) => new Date(row.promotionDate || row.createdAt).toLocaleDateString('id-ID') },
+    { key: 'actions', header: 'Aksi', render: (row) => (
+      <button
+        onClick={() => handleCancelPromotion(row.id)}
+        className="action-btn"
+        style={{ color: '#ea580c', border: '1px solid transparent' }}
+        title="Batalkan Kenaikan Kelas"
+      >
+        <Undo2 size={16} style={{ marginRight: '0.25rem' }} /> Batal
+      </button>
+    )}
+  ];
 
   return (
     <div className="academic-container">
@@ -70,74 +86,34 @@ export const Promotions: React.FC = () => {
         </div>
       </div>
 
-      <div className="glass-panel mt-6">
-        {loading ? (
-          <div className="p-8 text-center text-gray-500">Memuat data...</div>
-        ) : (
-          <>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Siswa</th>
-                  <th>Tahun Ajaran Baru</th>
-                  <th>Kelas Asal</th>
-                  <th>Kelas Tujuan</th>
-                  <th>Status</th>
-                  <th>Tanggal Proses</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {promotionsHistory.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-6 text-gray-500">
-                      Belum ada riwayat kenaikan kelas
-                    </td>
-                  </tr>
-                ) : (
-                  promotionsHistory.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <div className="font-medium text-gray-900">{item.student?.fullName || item.student?.name || 'Siswa tidak ditemukan'}</div>
-                        <div className="text-xs text-gray-500">{item.student?.nis || item.student?.nisn}</div>
-                      </td>
-                      <td>{item.toAcademicYear?.name || '-'}</td>
-                      <td>{item.fromClassroom?.name || '-'}</td>
-                      <td>{item.toClassroom?.name || '-'}</td>
-                      <td>{getStatusBadge(item.status)}</td>
-                      <td>{new Date(item.promotionDate || item.createdAt).toLocaleDateString('id-ID')}</td>
-                      <td>
-                        <button
-                          onClick={() => handleCancelPromotion(item.id)}
-                          className="p-1.5 text-orange-600 hover:bg-orange-50 rounded flex items-center gap-1 text-xs font-medium border border-transparent hover:border-orange-200"
-                          title="Batalkan Kenaikan Kelas"
-                        >
-                          <Undo2 size={14} /> Batal
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={(limit) => {
-                setItemsPerPage(limit);
-                setCurrentPage(1);
-              }}
-            />
-          )}
-          </>
+      {error && (
+        <div className="alert alert-error mb-4 flex items-center gap-2">
+          <AlertCircle size={18} />
+          {error}
+        </div>
+      )}
+
+      <div className="glass-panel">
+        <DataTable 
+          columns={columns} 
+          data={promotionsHistory} 
+          loading={loading}
+          emptyMessage="Belum ada riwayat kenaikan kelas."
+        />
+        
+        {!loading && totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(limit) => {
+              setItemsPerPage(limit);
+              setCurrentPage(1);
+            }}
+          />
         )}
       </div>
-
     </div>
   );
 };

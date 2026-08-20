@@ -1,20 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getSubjects, createSubject, updateSubject, deleteSubject, type Subject } from '../../api/academicService';
-import { Plus, Trash2, BookOpen, Edit } from 'lucide-react';
+import { Plus, BookOpen, AlertCircle } from 'lucide-react';
+import { DataTable, type Column } from '../../components/Common/DataTable';
+import { ActionButtons } from '../../components/Common/ActionButtons';
+import { useSubjects } from '../../hooks/useSubjects';
+import type { Subject } from '../../api/academicService';
+import { useDialog } from '../../contexts/DialogContext';
 import './Academic.css';
 
 export const Subjects: React.FC = () => {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    subjects,
+    loading,
+    error: fetchError,
+    createSubject,
+    updateSubject,
+    deleteSubject
+  } = useSubjects();
+
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState('');
   
-  // Form State
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [minimumPassingGrade, setMinimumPassingGrade] = useState(75);
+  const [formError, setFormError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
+
+  const error = formError || fetchError;
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -23,6 +37,7 @@ export const Subjects: React.FC = () => {
     setCode('');
     setName('');
     setMinimumPassingGrade(75);
+    setFormError('');
   };
 
   const handleEdit = (subject: Subject) => {
@@ -34,35 +49,20 @@ export const Subjects: React.FC = () => {
     setShowModal(true);
   };
 
-  const fetchSubjects = async () => {
-    try {
-      setLoading(true);
-      const data = await getSubjects();
-      setSubjects(data);
-    } catch (error) {
-      console.error('Failed to fetch subjects:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSubjects();
-  }, []);
-
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this subject?')) {
+    showConfirm('Are you sure you want to delete this subject?', async () => {
+      setFormError('');
       try {
         await deleteSubject(id);
-        fetchSubjects();
-      } catch (error) {
-        alert('Failed to delete subject');
+      } catch (err: any) {
+        setFormError(err.message || 'Gagal menghapus mata pelajaran');
       }
-    }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
     try {
       const payload = {
         code,
@@ -77,11 +77,31 @@ export const Subjects: React.FC = () => {
       }
       
       handleCloseModal();
-      fetchSubjects();
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to save subject');
+    } catch (err: any) {
+      setFormError(err.message || 'Gagal menyimpan mata pelajaran');
     }
   };
+
+  const columns: Column<Subject>[] = [
+    { key: 'code', header: 'Kode', render: (row) => <span className="font-semibold">{row.code}</span> },
+    { key: 'name', header: 'Mata Pelajaran', render: (row) => (
+      <div className="capacity-info" style={{ color: '#2563eb' }}>
+        <BookOpen size={16} />
+        {row.name}
+      </div>
+    )},
+    { key: 'minimumPassingGrade', header: 'KKM (Nilai Lulus)', render: (row) => (
+      <span className="grade-badge">
+        {row.minimumPassingGrade || '-'}
+      </span>
+    )},
+    { key: 'actions', header: 'Aksi', render: (row) => (
+      <ActionButtons 
+        onEdit={() => handleEdit(row)}
+        onDelete={() => handleDelete(row.id)}
+      />
+    )}
+  ];
 
   return (
     <div className="academic-container">
@@ -95,65 +115,20 @@ export const Subjects: React.FC = () => {
         </button>
       </div>
 
+      {error && (
+        <div className="alert alert-error mb-4 flex items-center gap-2">
+          <AlertCircle size={18} />
+          {error}
+        </div>
+      )}
+
       <div className="glass-panel">
-        {loading ? (
-          <div className="loading-state">Memuat data...</div>
-        ) : (
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Kode</th>
-                  <th>Mata Pelajaran</th>
-                  <th>KKM (Nilai Lulus)</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subjects.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="text-center py-4 text-gray-500">Belum ada data.</td>
-                  </tr>
-                ) : (
-                  subjects.map((subject) => (
-                    <tr key={subject.id}>
-                      <td className="font-semibold">{subject.code}</td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <BookOpen size={16} className="text-blue-600" />
-                          {subject.name}
-                        </div>
-                      </td>
-                      <td>
-                        <span className="text-sm px-2 py-1 rounded bg-blue-50 text-blue-600">
-                          {subject.minimumPassingGrade || '-'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button 
-                            className="btn-icon text-blue-400 hover:bg-blue-400/10"
-                            onClick={() => handleEdit(subject)}
-                            title="Edit"
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button 
-                            className="btn-icon text-red-400 hover:bg-red-400/10"
-                            onClick={() => handleDelete(subject.id)}
-                            title="Hapus"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable 
+          columns={columns} 
+          data={subjects} 
+          loading={loading}
+          emptyMessage="Belum ada data Mata Pelajaran."
+        />
       </div>
 
       {showModal && createPortal(

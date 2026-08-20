@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getEmployees, createEmployee, updateEmployee, deleteEmployee, type Employee, getPositions, type Position, type CreateEmployeePayload } from '../../api/employeeService';
+import { getEmployees, getEmployeesPaginated, createEmployee, updateEmployee, deleteEmployee, type Employee, getPositions, type Position, type CreateEmployeePayload } from '../../api/employeeService';
 import { getRoles, type Role } from '../../api/rbacService';
-import { Plus, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, Trash2, Edit, Search, Filter } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
-import '../Academic/Academic.css'; // Reuse existing styles
+import { useDialog } from '../../contexts/DialogContext';
+import '../Academic/Academic.css';
 
 export const Employees: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -16,6 +17,11 @@ export const Employees: React.FC = () => {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterPosition, setFilterPosition] = useState('');
   
   // Form State
   const [positionId, setPositionId] = useState('');
@@ -38,16 +44,24 @@ export const Employees: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const { showConfirm, showAlert } = useDialog();
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      const params: any = { page: currentPage, limit: itemsPerPage };
+      if (searchTerm) params.search = searchTerm;
+      if (filterPosition) params.positionId = filterPosition;
+
       const [empData, posData, rolesData] = await Promise.all([
-        getEmployees(),
-        getPositions(true), // Get only active positions for dropdown
+        getEmployeesPaginated(params),
+        getPositions(true), 
         getRoles()
       ]);
-      setEmployees(empData);
+      setEmployees(empData.data);
+      if (empData.meta?.totalPages) {
+        setTotalPages(empData.meta.totalPages);
+      }
       setPositions(posData);
       setRoles(rolesData);
       setError('');
@@ -60,7 +74,7 @@ export const Employees: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentPage, itemsPerPage, searchTerm, filterPosition]);
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -107,16 +121,16 @@ export const Employees: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus pegawai ini?')) {
+    showConfirm('Apakah Anda yakin ingin menghapus pegawai ini?', async () => {
       try {
         await deleteEmployee(id);
         setSuccess('Pegawai berhasil dihapus!');
         fetchData();
         setTimeout(() => setSuccess(''), 3000);
       } catch (err: any) {
-        setError(err.response?.data?.message || 'Gagal menghapus pegawai');
+        showAlert(err.response?.data?.message || 'Gagal menghapus pegawai', 'Gagal');
       }
-    }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,10 +168,6 @@ export const Employees: React.FC = () => {
       setError(err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
     }
   };
-
-  const paginatedEmployees = employees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(employees.length / itemsPerPage);
-
   return (
     <div className="academic-container">
       <div className="page-header">
@@ -172,6 +182,32 @@ export const Employees: React.FC = () => {
 
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
+
+      <div className="glass-panel mb-6 p-4 flex flex-col md:flex-row gap-4">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input 
+            type="text" 
+            className="input-field pl-10 w-full" 
+            placeholder="Cari NIP, NIK, atau Nama Pegawai..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="w-full md:w-64 relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <select 
+            className="input-field pl-10 w-full"
+            value={filterPosition}
+            onChange={(e) => setFilterPosition(e.target.value)}
+          >
+            <option value="">Semua Jabatan</option>
+            {positions.map(pos => (
+              <option key={pos.id} value={pos.id}>{pos.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       <div className="glass-panel">
         <div className="table-responsive">
@@ -197,7 +233,7 @@ export const Employees: React.FC = () => {
                   <td colSpan={7} className="text-center py-4 text-gray-500">Belum ada data pegawai.</td>
                 </tr>
               ) : (
-                paginatedEmployees.map((emp) => (
+                employees.map((emp) => (
                   <tr key={emp.id}>
                     <td className="font-semibold text-gray-600">{emp.employeeNumber}</td>
                     <td className="font-semibold">{emp.fullName}</td>
@@ -254,9 +290,9 @@ export const Employees: React.FC = () => {
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={employees.length}
-            itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
+            hasNextPage={employees.length === itemsPerPage}
+            itemsPerPage={itemsPerPage}
             onItemsPerPageChange={(limit) => {
               setItemsPerPage(limit);
               setCurrentPage(1);

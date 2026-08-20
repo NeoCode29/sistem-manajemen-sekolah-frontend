@@ -74,6 +74,11 @@ export const getEmployees = async (params?: Record<string, any>): Promise<Employ
   return response.data.data ? response.data.data : response.data;
 };
 
+export const getEmployeesPaginated = async (params?: Record<string, any>): Promise<{ data: Employee[], meta: any }> => {
+  const response = await api.get('/employees', { params });
+  return response.data;
+};
+
 export const createEmployee = async (data: CreateEmployeePayload) => {
   const response = await api.post('/employees', data);
   return response.data;

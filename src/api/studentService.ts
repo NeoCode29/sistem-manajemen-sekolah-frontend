@@ -64,6 +64,11 @@ export const getStudents = async (params?: Record<string, any>): Promise<{ data:
   return response.data.data || response.data;
 };
 
+export const getStudentsPaginated = async (params?: Record<string, any>): Promise<{ data: Student[], meta: any }> => {
+  const response = await api.get('/students', { params });
+  return response.data;
+};
+
 export const getStudentById = async (id: string): Promise<Student> => {
   const response = await api.get(`/students/${id}`);
   return response.data;

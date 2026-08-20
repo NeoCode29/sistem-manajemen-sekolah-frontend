@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getPermissions, createPermission, type Permission } from '../../api/rbacService';
 import { Plus, Shield } from 'lucide-react';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const Permissions: React.FC = () => {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const { showAlert } = useDialog();
   
   // Form State
   const [name, setName] = useState('');
@@ -38,7 +40,7 @@ export const Permissions: React.FC = () => {
       setGuardName('jwt');
       fetchPermissions();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to create permission');
+      showAlert(error.response?.data?.message || 'Failed to create permission', 'Gagal');
     }
   };
 

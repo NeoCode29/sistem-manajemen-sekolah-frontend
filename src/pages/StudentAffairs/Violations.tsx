@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { getViolations, createViolation, updateViolation, deleteViolation, type Violation } from '../../api/studentAffairsService';
 import { getStudents, type Student } from '../../api/studentService';
 import { AlertOctagon, Plus, Edit2, Trash2, Search, User } from 'lucide-react';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const Violations: React.FC = () => {
@@ -11,6 +12,9 @@ export const Violations: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  
+  const { showConfirm, showAlert } = useDialog();
   
   const [search, setSearch] = useState('');
   const [searchStudent, setSearchStudent] = useState('');
@@ -142,14 +146,16 @@ export const Violations: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Yakin ingin menghapus data pelanggaran ini?')) {
+    showConfirm('Yakin ingin menghapus data pelanggaran ini?', async () => {
       try {
         await deleteViolation(id);
+        setSuccess('Data pelanggaran berhasil dihapus!');
         fetchViolations();
+        setTimeout(() => setSuccess(''), 3000);
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal menghapus data');
+        showAlert(err.response?.data?.message || 'Gagal menghapus data');
       }
-    }
+    });
   };
 
   const getCategoryColor = (cat: string) => {
@@ -167,10 +173,13 @@ export const Violations: React.FC = () => {
           <h1 className="page-title">Pelanggaran Siswa</h1>
           <p className="page-subtitle">Pencatatan indisipliner, pelanggaran tata tertib, dan poin hukuman</p>
         </div>
-        <button className="btn-primary bg-red-600 hover:bg-red-700 flex items-center gap-2" onClick={openAddModal}>
+        <button className="btn-primary" onClick={() => openAddModal()}>
           <Plus size={18} /> Catat Pelanggaran
         </button>
       </div>
+
+      {error && <div className="alert alert-error">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
 
       <div className="glass-panel p-4 mb-6 flex flex-wrap gap-4 items-end bg-gray-50/50">
         <div className="form-group flex-1 min-w-[200px]">

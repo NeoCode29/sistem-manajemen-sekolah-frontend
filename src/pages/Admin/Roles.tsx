@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getRoles, createRole, assignPermissionsToRole, getPermissions, type Role, type Permission } from '../../api/rbacService';
 import { Plus, UserCheck, Shield } from 'lucide-react';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const Roles: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
+  const { showConfirm, showAlert } = useDialog();
   
   const [showModal, setShowModal] = useState(false);
   const [showPermModal, setShowPermModal] = useState(false);
@@ -49,7 +51,7 @@ export const Roles: React.FC = () => {
       setGuardName('jwt');
       fetchData();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to create role');
+      showAlert(error.response?.data?.message || 'Failed to create role', 'Gagal');
     }
   };
 
@@ -73,7 +75,7 @@ export const Roles: React.FC = () => {
       setShowPermModal(false);
       fetchData();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to assign permissions');
+      showAlert(error.response?.data?.message || 'Failed to assign permissions', 'Gagal');
     }
   };
 

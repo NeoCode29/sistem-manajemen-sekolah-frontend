@@ -112,6 +112,11 @@ export const updateClassroom = async (id: string, data: Partial<Classroom>) => {
   const response = await api.patch(`/classrooms/${id}`, data);
   return response.data;
 };
+export const getClassroomCapacity = async (id: string, academicYearId?: string) => {
+  const url = academicYearId ? `/classrooms/${id}/capacity?academicYearId=${academicYearId}` : `/classrooms/${id}/capacity`;
+  const response = await api.get(url);
+  return response.data;
+};
 
 // 5. Subjects
 export interface Subject {

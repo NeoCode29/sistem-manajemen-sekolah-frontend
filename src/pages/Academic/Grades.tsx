@@ -1,21 +1,35 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getGrades, createGrade, updateGrade, deleteGrade, type Grade } from '../../api/academicService';
-import { Plus, Trash2, GraduationCap, Edit } from 'lucide-react';
+import { Plus, GraduationCap, AlertCircle } from 'lucide-react';
+import { DataTable, type Column } from '../../components/Common/DataTable';
+import { ActionButtons } from '../../components/Common/ActionButtons';
+import { useGrades } from '../../hooks/useGrades';
+import type { Grade } from '../../api/academicService';
+import { useDialog } from '../../contexts/DialogContext';
 import './Academic.css';
 
 export const Grades: React.FC = () => {
-  const [grades, setGrades] = useState<Grade[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    grades,
+    loading,
+    error: fetchError,
+    createGrade,
+    updateGrade,
+    deleteGrade
+  } = useGrades();
+
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState('');
   
-  // Form State
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [level, setLevel] = useState(10);
   const [educationLevel, setEducationLevel] = useState('SMA');
+  const [formError, setFormError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
+
+  const error = formError || fetchError;
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -25,6 +39,7 @@ export const Grades: React.FC = () => {
     setName('');
     setLevel(10);
     setEducationLevel('SMA');
+    setFormError('');
   };
 
   const handleEdit = (grade: Grade) => {
@@ -37,35 +52,20 @@ export const Grades: React.FC = () => {
     setShowModal(true);
   };
 
-  const fetchGrades = async () => {
-    try {
-      setLoading(true);
-      const data = await getGrades();
-      setGrades(data);
-    } catch (error) {
-      console.error('Failed to fetch grades:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchGrades();
-  }, []);
-
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this grade level?')) {
+    showConfirm('Are you sure you want to delete this grade level?', async () => {
+      setFormError('');
       try {
         await deleteGrade(id);
-        fetchGrades();
-      } catch (error) {
-        alert('Failed to delete grade level');
+      } catch (err: any) {
+        setFormError(err.message || 'Gagal menghapus tingkat kelas');
       }
-    }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
     try {
       const payload = {
         code,
@@ -81,11 +81,28 @@ export const Grades: React.FC = () => {
       }
       
       handleCloseModal();
-      fetchGrades();
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to save grade level');
+    } catch (err: any) {
+      setFormError(err.message || 'Gagal menyimpan tingkat kelas');
     }
   };
+
+  const columns: Column<Grade>[] = [
+    { key: 'code', header: 'Kode', render: (row) => <span className="font-semibold">{row.code}</span> },
+    { key: 'name', header: 'Nama Tingkat' },
+    { key: 'level', header: 'Level (Angka)' },
+    { key: 'educationLevel', header: 'Jenjang Pendidikan', render: (row) => (
+      <div className="capacity-info">
+        <GraduationCap size={14} />
+        {row.educationLevel}
+      </div>
+    )},
+    { key: 'actions', header: 'Aksi', render: (row) => (
+      <ActionButtons 
+        onEdit={() => handleEdit(row)}
+        onDelete={() => handleDelete(row.id)}
+      />
+    )}
+  ];
 
   return (
     <div className="academic-container">
@@ -99,63 +116,20 @@ export const Grades: React.FC = () => {
         </button>
       </div>
 
+      {error && (
+        <div className="alert alert-error mb-4 flex items-center gap-2">
+          <AlertCircle size={18} />
+          {error}
+        </div>
+      )}
+
       <div className="glass-panel">
-        {loading ? (
-          <div className="loading-state">Memuat data...</div>
-        ) : (
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Kode</th>
-                  <th>Nama Tingkat</th>
-                  <th>Level (Angka)</th>
-                  <th>Jenjang Pendidikan</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {grades.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-4 text-gray-500">Belum ada data.</td>
-                  </tr>
-                ) : (
-                  grades.map((grade) => (
-                    <tr key={grade.id}>
-                      <td className="font-semibold">{grade.code}</td>
-                      <td>{grade.name}</td>
-                      <td>{grade.level}</td>
-                      <td>
-                        <div className="flex items-center gap-2 text-gray-500">
-                          <GraduationCap size={14} />
-                          {grade.educationLevel}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button 
-                            className="btn-icon text-blue-400 hover:bg-blue-400/10"
-                            onClick={() => handleEdit(grade)}
-                            title="Edit"
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button 
-                            className="btn-icon text-red-400 hover:bg-red-400/10"
-                            onClick={() => handleDelete(grade.id)}
-                            title="Hapus"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable 
+          columns={columns} 
+          data={grades} 
+          loading={loading}
+          emptyMessage="Belum ada data Tingkat Kelas."
+        />
       </div>
 
       {showModal && createPortal(

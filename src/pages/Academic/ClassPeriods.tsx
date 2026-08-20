@@ -1,22 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getClassPeriods, createClassPeriod, updateClassPeriod, deleteClassPeriod, type ClassPeriod } from '../../api/academicService';
-import { Plus, Trash2, Clock, Coffee, Edit } from 'lucide-react';
+import { Plus, Clock, Coffee, AlertCircle } from 'lucide-react';
+import { DataTable, type Column } from '../../components/Common/DataTable';
+import { ActionButtons } from '../../components/Common/ActionButtons';
+import { useClassPeriods } from '../../hooks/useClassPeriods';
+import type { ClassPeriod } from '../../api/academicService';
+import { useDialog } from '../../contexts/DialogContext';
 import './Academic.css';
 
 export const ClassPeriods: React.FC = () => {
-  const [periods, setPeriods] = useState<ClassPeriod[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    periods,
+    loading,
+    error: fetchError,
+    createClassPeriod,
+    updateClassPeriod,
+    deleteClassPeriod
+  } = useClassPeriods();
+
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState('');
   
-  // Form State
   const [code, setCode] = useState('');
   const [periodNumber, setPeriodNumber] = useState(1);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [isBreak, setIsBreak] = useState(false);
+  const [formError, setFormError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
+
+  const error = formError || fetchError;
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -27,6 +41,7 @@ export const ClassPeriods: React.FC = () => {
     setStartTime('');
     setEndTime('');
     setIsBreak(false);
+    setFormError('');
   };
 
   const handleEdit = (period: ClassPeriod) => {
@@ -40,37 +55,20 @@ export const ClassPeriods: React.FC = () => {
     setShowModal(true);
   };
 
-  const fetchPeriods = async () => {
-    try {
-      setLoading(true);
-      const data = await getClassPeriods();
-      // Sort by start time or period number
-      const sorted = data.sort((a, b) => a.periodNumber - b.periodNumber);
-      setPeriods(sorted);
-    } catch (error) {
-      console.error('Failed to fetch class periods:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPeriods();
-  }, []);
-
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this class period?')) {
+    showConfirm('Are you sure you want to delete this class period?', async () => {
+      setFormError('');
       try {
         await deleteClassPeriod(id);
-        fetchPeriods();
-      } catch (error) {
-        alert('Failed to delete class period');
+      } catch (err: any) {
+        setFormError(err.message || 'Gagal menghapus jam pelajaran');
       }
-    }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
     try {
       const payload = {
         code,
@@ -87,11 +85,38 @@ export const ClassPeriods: React.FC = () => {
       }
       
       handleCloseModal();
-      fetchPeriods();
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to save class period');
+    } catch (err: any) {
+      setFormError(err.message || 'Gagal menyimpan jam pelajaran');
     }
   };
+
+  const columns: Column<ClassPeriod>[] = [
+    { key: 'periodNumber', header: 'Jam Ke-', render: (row) => <span className="font-semibold">{row.periodNumber}</span> },
+    { key: 'code', header: 'Kode' },
+    { key: 'time', header: 'Waktu', render: (row) => (
+      <div className="capacity-info">
+        <Clock size={14} />
+        {row.startTime} - {row.endTime}
+      </div>
+    )},
+    { key: 'status', header: 'Status', render: (row) => (
+      row.isBreak ? (
+        <span className="status-badge inactive flex items-center gap-1 w-max">
+          <Coffee size={12} /> Istirahat
+        </span>
+      ) : (
+        <span className="status-badge active">
+          Pelajaran
+        </span>
+      )
+    )},
+    { key: 'actions', header: 'Aksi', render: (row) => (
+      <ActionButtons 
+        onEdit={() => handleEdit(row)}
+        onDelete={() => handleDelete(row.id)}
+      />
+    )}
+  ];
 
   return (
     <div className="academic-container">
@@ -105,73 +130,20 @@ export const ClassPeriods: React.FC = () => {
         </button>
       </div>
 
+      {error && (
+        <div className="alert alert-error mb-4 flex items-center gap-2">
+          <AlertCircle size={18} />
+          {error}
+        </div>
+      )}
+
       <div className="glass-panel">
-        {loading ? (
-          <div className="loading-state">Memuat data...</div>
-        ) : (
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Jam Ke-</th>
-                  <th>Kode</th>
-                  <th>Waktu</th>
-                  <th>Status</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {periods.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-4 text-gray-500">Belum ada data.</td>
-                  </tr>
-                ) : (
-                  periods.map((period) => (
-                    <tr key={period.id}>
-                      <td className="font-semibold">{period.periodNumber}</td>
-                      <td>{period.code}</td>
-                      <td>
-                        <div className="flex items-center gap-2 text-gray-500">
-                          <Clock size={14} />
-                          {period.startTime} - {period.endTime}
-                        </div>
-                      </td>
-                      <td>
-                        {period.isBreak ? (
-                          <span className="status-badge inactive flex items-center gap-1 w-max">
-                            <Coffee size={12} /> Istirahat
-                          </span>
-                        ) : (
-                          <span className="status-badge active">
-                            Pelajaran
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button 
-                            className="btn-icon text-blue-400 hover:bg-blue-400/10"
-                            onClick={() => handleEdit(period)}
-                            title="Edit"
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button 
-                            className="btn-icon text-red-400 hover:bg-red-400/10"
-                            onClick={() => handleDelete(period.id)}
-                            title="Hapus"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable 
+          columns={columns} 
+          data={periods} 
+          loading={loading}
+          emptyMessage="Belum ada data Jam Pelajaran."
+        />
       </div>
 
       {showModal && createPortal(
@@ -202,7 +174,7 @@ export const ClassPeriods: React.FC = () => {
                 </div>
               </div>
               <div className="form-group checkbox-group">
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="filter-label cursor-pointer" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input type="checkbox" checked={isBreak} onChange={(e) => setIsBreak(e.target.checked)} />
                   Tandai sebagai Jam Istirahat
                 </label>

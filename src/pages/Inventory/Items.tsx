@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getItems, createItem, updateItem, deleteItem, getRooms, type HardwareItem, type Room } from '../../api/inventoryService';
 import { Monitor, Plus, Edit2, Trash2, Search, MapPin } from 'lucide-react';
+import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const Items: React.FC = () => {
@@ -10,6 +11,7 @@ export const Items: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { showConfirm, showAlert } = useDialog();
   
   // Filters
   const [search, setSearch] = useState('');
@@ -139,14 +141,14 @@ export const Items: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Yakin ingin menghapus barang ini?')) {
+    showConfirm('Yakin ingin menghapus barang ini?', async () => {
       try {
         await deleteItem(id);
         fetchItems();
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal menghapus data');
+        showAlert(err.response?.data?.message || 'Gagal menghapus data');
       }
-    }
+    });
   };
 
   const getStatusColor = (s: string) => {

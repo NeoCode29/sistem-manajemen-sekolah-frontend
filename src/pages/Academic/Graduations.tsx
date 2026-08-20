@@ -1,83 +1,47 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getGraduations, batchGraduate, cancelGraduation } from '../../api/promotionService';
-import { getClassrooms, getAcademicYears } from '../../api/academicService';
-import type { Classroom as ClassType } from '../../api/academicService';
-import { getStudents } from '../../api/studentService';
-import type { Student } from '../../api/studentService';
-import { GraduationCap, X, AlertTriangle, Undo2, Award } from 'lucide-react';
+import { GraduationCap, X, AlertTriangle, Undo2, Award, AlertCircle } from 'lucide-react';
+import { DataTable, type Column } from '../../components/Common/DataTable';
+import { useGraduations } from '../../hooks/useGraduations';
+import { useDialog } from '../../contexts/DialogContext';
 import './Academic.css';
 
 export const Graduations: React.FC = () => {
-  const [graduationsHistory, setGraduationsHistory] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [, setError] = useState('');
+  const {
+    graduationsHistory,
+    loading,
+    error: fetchError,
+    classes,
+    sourceStudents,
+    selectedAcademicYear,
+    loadStudents,
+    batchGraduate,
+    cancelGraduation
+  } = useGraduations();
 
-  // Batch Graduate State
-  const [classes, setClasses] = useState<ClassType[]>([]);
-  const [academicYears, setAcademicYears] = useState<any[]>([]);
-  const [sourceStudents, setSourceStudents] = useState<Student[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [actionError, setActionError] = useState('');
   
+  // Batch Graduate Form State
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
-  const [graduationDate, setGraduationDate] = useState(new Date().toISOString().split('T')[0]);
+  const [graduationDate, setGraduationDate] = useState('');
   const [documentNumber, setDocumentNumber] = useState('');
-  
-  // Selected students for graduation
+  const { showConfirm, showAlert } = useDialog();
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    fetchHistory();
-    fetchClasses();
-  }, []);
-
-  const fetchHistory = async () => {
-    try {
-      setLoading(true);
-      const data = await getGraduations();
-      setGraduationsHistory(data);
-    } catch (err: any) {
-      setError('Gagal memuat riwayat kelulusan (Alumni)');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchClasses = async () => {
-    try {
-      const [classData, ayData] = await Promise.all([
-        getClassrooms(),
-        getAcademicYears()
-      ]);
-      setClasses(classData);
-      setAcademicYears(ayData);
-      
-      const activeAy = ayData.find((ay: any) => ay.isActive);
-      if (activeAy) {
-        setSelectedAcademicYear(activeAy.id);
-      }
-    } catch (err) {
-      console.error('Failed to load data');
-    }
-  };
+  const error = actionError || fetchError;
 
   const handleClassChange = async (classId: string) => {
     setSelectedClass(classId);
     if (!classId) {
-      setSourceStudents([]);
       setSelectedStudentIds(new Set());
       return;
     }
-    
     try {
-      // Students should be fetched by classroomId and enrollmentStatus
-      const students = await getStudents({ classroomId: classId, status: 'ACTIVE', enrollmentStatus: 'ACTIVE' });
-      setSourceStudents(students);
-      // Auto-select all by default
-      setSelectedStudentIds(new Set(students.map((s: Student) => s.id.toString())));
-    } catch (err) {
-      setError('Gagal memuat daftar siswa');
+      const students = await loadStudents(classId);
+      setSelectedStudentIds(new Set(students.map((s) => s.id.toString())));
+    } catch (err: any) {
+      setActionError(err.message || 'Gagal memuat daftar siswa');
     }
   };
 
@@ -103,42 +67,82 @@ export const Graduations: React.FC = () => {
 
   const handleBatchGraduateSubmit = async () => {
     if (!selectedClass || !graduationDate) {
-      alert('Kelas dan tanggal kelulusan harus diisi');
+      showAlert('Kelas dan tanggal kelulusan harus diisi', 'Peringatan');
       return;
     }
     if (selectedStudentIds.size === 0) {
-      alert('Pilih minimal satu siswa untuk diluluskan');
+      showAlert('Pilih minimal satu siswa untuk diluluskan', 'Peringatan');
       return;
     }
 
+    setActionError('');
     const payload = {
       classroomId: selectedClass,
       academicYearId: selectedAcademicYear,
       graduationDate: new Date(graduationDate).toISOString(),
-      notes: documentNumber,
+      certificateNumber: documentNumber,
+      notes: undefined,
       studentIds: Array.from(selectedStudentIds)
     };
 
     try {
       await batchGraduate(payload);
       setIsModalOpen(false);
-      fetchHistory();
-      alert('Proses kelulusan berhasil. Siswa kini menjadi Alumni.');
+      showAlert('Proses kelulusan berhasil. Siswa kini menjadi Alumni.', 'Berhasil');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal memproses kelulusan');
+      let errorMessage = err.message || 'Gagal memproses kelulusan';
+      if (Array.isArray(err.message)) {
+        errorMessage = err.message.join(', ');
+      } else if (err.response?.data?.message) {
+        errorMessage = Array.isArray(err.response.data.message) ? err.response.data.message.join(', ') : err.response.data.message;
+      }
+      showAlert(errorMessage, 'Gagal');
     }
   };
 
   const handleCancelGraduation = async (id: string) => {
-    if (window.confirm('Yakin ingin membatalkan status kelulusan ini? Siswa akan dikembalikan menjadi siswa aktif.')) {
+    showConfirm('Yakin ingin membatalkan status kelulusan ini? Siswa akan dikembalikan menjadi siswa aktif.', async () => {
+      setActionError('');
       try {
         await cancelGraduation(id);
-        fetchHistory();
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Gagal membatalkan kelulusan');
+        setActionError(err.message || 'Gagal membatalkan kelulusan');
       }
-    }
+    });
   };
+
+  const columns: Column<any>[] = [
+    { key: 'student', header: 'Siswa (Alumni)', render: (row) => (
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+          <GraduationCap size={16} />
+        </div>
+        <div>
+          <div className="font-medium text-gray-900">{row.student?.fullName || 'Siswa tidak ditemukan'}</div>
+          <div className="text-xs text-gray-500">{row.student?.nis || row.student?.nisn}</div>
+        </div>
+      </div>
+    )},
+    { key: 'class', header: 'Kelas Terakhir', render: (row) => row.classroom?.name || '-' },
+    { key: 'date', header: 'Tanggal Lulus', render: (row) => new Date(row.graduationDate).toLocaleDateString('id-ID') },
+    { key: 'document', header: 'No. SK / Ijazah', render: (row) => (
+      row.certificateNumber ? (
+        <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{row.certificateNumber}</span>
+      ) : (
+        <span className="text-xs text-gray-400 italic">Belum diinput</span>
+      )
+    )},
+    { key: 'actions', header: 'Aksi', render: (row) => (
+      <button
+        onClick={() => handleCancelGraduation(row.id)}
+        className="action-btn"
+        style={{ color: '#ea580c' }}
+        title="Batalkan Kelulusan"
+      >
+        <Undo2 size={16} style={{ marginRight: '0.25rem' }} /> Batal Lulus
+      </button>
+    )}
+  ];
 
   return (
     <div className="academic-container">
@@ -155,67 +159,20 @@ export const Graduations: React.FC = () => {
         </div>
       </div>
 
-      <div className="glass-panel mt-6">
-        {loading ? (
-          <div className="p-8 text-center text-gray-500">Memuat data...</div>
-        ) : (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Siswa (Alumni)</th>
-                  <th>Kelas Terakhir</th>
-                  <th>Tanggal Lulus</th>
-                  <th>No. SK / Ijazah</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {graduationsHistory.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-6 text-gray-500">
-                      Belum ada data kelulusan / alumni
-                    </td>
-                  </tr>
-                ) : (
-                  graduationsHistory.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                            <GraduationCap size={16} />
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900">{item.student?.name || 'Siswa tidak ditemukan'}</div>
-                            <div className="text-xs text-gray-500">{item.student?.nis || item.student?.nisn}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>{item.class?.name || '-'}</td>
-                      <td>{new Date(item.graduationDate).toLocaleDateString('id-ID')}</td>
-                      <td>
-                        {item.documentNumber ? (
-                          <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{item.documentNumber}</span>
-                        ) : (
-                          <span className="text-xs text-gray-400 italic">Belum diinput</span>
-                        )}
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => handleCancelGraduation(item.id)}
-                          className="p-1.5 text-orange-600 hover:bg-orange-50 rounded flex items-center gap-1 text-xs font-medium border border-transparent hover:border-orange-200"
-                          title="Batalkan Kelulusan"
-                        >
-                          <Undo2 size={14} /> Batal Lulus
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {error && (
+        <div className="alert alert-error mb-4 flex items-center gap-2">
+          <AlertCircle size={18} />
+          {error}
+        </div>
+      )}
+
+      <div className="glass-panel">
+        <DataTable 
+          columns={columns} 
+          data={graduationsHistory} 
+          loading={loading}
+          emptyMessage="Belum ada data kelulusan / alumni."
+        />
       </div>
 
       {/* Batch Processing Modal */}
@@ -305,8 +262,8 @@ export const Graduations: React.FC = () => {
                               type="checkbox" 
                               className="rounded text-blue-600 focus:ring-blue-500"
                               checked={selectedStudentIds.has(student.id.toString())}
-                              onChange={() => {}} // Handled by tr onClick
-                              onClick={(e) => e.stopPropagation()} // Prevent double trigger
+                              onChange={() => handleStudentToggle(student.id.toString())}
+                              onClick={(e) => e.stopPropagation()}
                             />
                           </td>
                           <td className="px-4 py-3 font-medium text-gray-900">{student.fullName}</td>
