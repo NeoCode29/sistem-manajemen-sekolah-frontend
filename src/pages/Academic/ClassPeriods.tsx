@@ -130,7 +130,7 @@ export const ClassPeriods: React.FC = () => {
         </button>
       </div>
 
-      {error && (
+      {error && !showModal && (
         <div className="alert alert-error mb-4 flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
@@ -155,6 +155,12 @@ export const ClassPeriods: React.FC = () => {
             </div>
             <form onSubmit={handleSubmit} className="modal-form-v4">
               <div className="modal-body-v4 form-grid">
+              {error && (
+                <div className="alert alert-error mb-4 flex items-center gap-2">
+                  <AlertCircle size={18} />
+                  {error}
+                </div>
+              )}
               <div className="form-group">
                 <label>Kode <span className="text-red-500">*</span></label>
                 <input type="text" className="input-field" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: JP-01" required />

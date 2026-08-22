@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { registerStudentIdentity, registerEmployeeIdentity, getRecentScans } from '../../api/hardwareService';
 import { getStudents } from '../../api/studentService';
 import type { Student } from '../../api/studentService';
@@ -227,20 +228,18 @@ export const IdentityRegistration: React.FC = () => {
       </div>
 
       {/* Registration Modal */}
-      {isModalOpen && selectedPerson && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+      {isModalOpen && selectedPerson && createPortal(
+        <div className="modal-backdrop-v4">
+          <div className="modal-content-v4" style={{ maxWidth: '550px' }}>
+            <div className="modal-header-v4">
+              <h2 className="flex items-center gap-2">
                 <Fingerprint size={20} className="text-blue-600" />
                 Registrasi ID Perangkat
               </h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 p-1">
-                <X size={20} />
-              </button>
+              <button type="button" className="btn-close" onClick={closeModal}>&times;</button>
             </div>
             
-            <div className="p-6">
+            <div className="modal-body-v4 p-6">
               {/* User Info Box */}
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl font-bold">
@@ -252,7 +251,7 @@ export const IdentityRegistration: React.FC = () => {
                 </div>
               </div>
 
-              <form id="reg-form" onSubmit={handleSubmit} className="space-y-5">
+              <form id="reg-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
                 <div className="form-group">
                   <label className="text-sm font-medium text-gray-700 flex justify-between items-center mb-1">
                     <span>ID Kartu RFID</span>
@@ -306,7 +305,7 @@ export const IdentityRegistration: React.FC = () => {
               </form>
             </div>
             
-            <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+            <div className="modal-footer-v4 flex justify-end gap-3 bg-gray-50/50 rounded-b-xl border-t border-gray-100 p-4">
               <button
                 type="button"
                 onClick={closeModal}
@@ -324,7 +323,8 @@ export const IdentityRegistration: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

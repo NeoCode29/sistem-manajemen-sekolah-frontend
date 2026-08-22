@@ -244,70 +244,77 @@ export const Exams: React.FC = () => {
 
       {error && !isModalOpen && <div className="error-message mb-4">{error}</div>}
 
-      <div className="glass-panel">
-        <div className="table-header">
-          <div className="flex items-center gap-2 text-gray-700 font-medium">
-            <FileEdit size={18} /> Daftar Agenda Penilaian
+      <div className="glass-panel overflow-hidden border border-gray-200 shadow-sm mt-4">
+        <div className="p-5 border-b bg-gray-50/50 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner shrink-0">
+            <FileEdit size={20} />
+          </div>
+          <div>
+            <h2 className="font-bold text-lg text-gray-800">Daftar Agenda Penilaian</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Seluruh agenda ujian dan tugas yang telah dijadwalkan</p>
           </div>
         </div>
         
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Memuat data...</div>
+          <div className="p-12 text-center text-gray-500 flex flex-col items-center">
+            <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+            <span className="text-sm font-medium">Memuat data...</span>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50 text-gray-600 text-sm border-y">
-                  <th className="p-3 font-medium">Judul Penilaian</th>
-                  <th className="p-3 font-medium text-center">Jenis</th>
-                  <th className="p-3 font-medium">Mapel & Kelas</th>
-                  <th className="p-3 font-medium">Tanggal</th>
-                  <th className="p-3 font-medium text-center">Bobot</th>
-                  <th className="p-3 font-medium text-center">Aksi</th>
+                <tr className="bg-white border-b border-gray-200">
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Judul Penilaian</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Jenis</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Mapel & Kelas</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Tanggal</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Bobot</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {exams.map((exam) => (
                   <tr key={exam.id} className="border-b hover:bg-gray-50/50">
-                    <td className="p-3">
-                      <div className="font-semibold text-gray-800">{exam.title}</div>
-                      {exam.description && <div className="text-xs text-gray-500 mt-1 line-clamp-1">{exam.description}</div>}
+                    <td className="p-4 align-top">
+                      <div className="font-bold text-gray-800 text-sm">{exam.title}</div>
+                      {exam.description && <div className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">{exam.description}</div>}
                     </td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2 py-1 rounded text-xs font-semibold border ${getExamTypeColor(exam.examType)}`}>
+                    <td className="p-4 text-center align-top">
+                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase border ${getExamTypeColor(exam.examType)}`}>
                         {exam.examType}
                       </span>
                     </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-1.5 text-sm font-medium text-blue-700">
-                        <BookOpen size={14} /> {exam.subject?.name}
+                    <td className="p-4 align-top">
+                      <div className="flex items-center gap-2 text-sm font-bold text-blue-700 bg-blue-50/50 w-fit px-2 py-1 rounded-md border border-blue-100">
+                        <BookOpen size={14} className="text-blue-500" /> {exam.subject?.name}
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-gray-600 mt-1">
-                        <Users size={14} /> Kelas {exam.classroom?.name}
+                      <div className="flex items-center gap-2 text-xs font-semibold text-gray-600 mt-2 pl-1">
+                        <Users size={14} className="text-gray-400" /> Kelas {exam.classroom?.name}
                       </div>
                     </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-1.5 text-sm text-gray-700">
-                        <Calendar size={14} className="text-gray-400" />
+                    <td className="p-4 align-top">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                        <Calendar size={15} className="text-emerald-500" />
                         {new Date(exam.examDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </div>
                     </td>
-                    <td className="p-3 text-center">
-                      <div className="font-medium text-gray-800">{exam.weight}</div>
-                      <div className="text-[10px] text-gray-500 uppercase">Max: {exam.maxScore}</div>
+                    <td className="p-4 text-center align-top">
+                      <div className="font-bold text-gray-800 text-base">{exam.weight}</div>
+                      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mt-0.5">Max: {exam.maxScore}</div>
                     </td>
-                    <td className="p-3">
-                      <div className="flex items-center justify-center gap-1">
+                    <td className="p-4 align-top">
+                      <div className="flex items-center justify-center gap-1.5">
                         <Link 
                           to={`/assessment/exams/${exam.id}/scores`}
-                          className="px-2 py-1.5 text-xs bg-green-50 text-green-700 hover:bg-green-100 rounded border border-green-200 font-medium"
+                          className="px-3 py-1.5 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-md border border-emerald-200 font-bold transition-colors shadow-sm"
                         >
                           Input Nilai
                         </Link>
-                        <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" onClick={() => openEditModal(exam)}>
+                        <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" onClick={() => openEditModal(exam)}>
                           <Edit2 size={16} />
                         </button>
-                        <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" onClick={() => handleDelete(exam.id)}>
+                        <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" onClick={() => handleDelete(exam.id)}>
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -316,7 +323,15 @@ export const Exams: React.FC = () => {
                 ))}
                 {exams.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-gray-500">Belum ada agenda penilaian. Silakan tambah baru.</td>
+                    <td colSpan={6} className="p-16 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-400 py-4">
+                        <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6 border border-gray-100 shadow-sm">
+                          <FileEdit size={36} className="text-gray-300" />
+                        </div>
+                        <div className="text-lg font-bold text-gray-700 tracking-wide">Belum ada agenda penilaian.</div>
+                        <div className="text-sm text-gray-500 font-medium" style={{ marginTop: '30px' }}>Silakan tambah agenda baru melalui tombol di atas.</div>
+                      </div>
+                    </td>
                   </tr>
                 )}
               </tbody>

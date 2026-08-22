@@ -17,6 +17,22 @@ const DAYS = [
   { id: 7, name: 'Minggu' }
 ];
 
+const getSubjectColor = (subjectName: string = '') => {
+  const colorMap = [
+    { border: 'border-t-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-600' },
+    { border: 'border-t-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' },
+    { border: 'border-t-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-600' },
+    { border: 'border-t-orange-500', bg: 'bg-orange-50', text: 'text-orange-600' },
+    { border: 'border-t-purple-500', bg: 'bg-purple-50', text: 'text-purple-600' },
+    { border: 'border-t-rose-500', bg: 'bg-rose-50', text: 'text-rose-600' },
+  ];
+  let hash = 0;
+  for (let i = 0; i < subjectName.length; i++) {
+    hash = subjectName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colorMap[Math.abs(hash) % colorMap.length];
+};
+
 export const Schedules: React.FC = () => {
   const { showConfirm, showAlert } = useDialog();
   const [activeTab, setActiveTab] = useState<'schedule' | 'assignments'>('schedule');
@@ -258,7 +274,7 @@ export const Schedules: React.FC = () => {
   ];
 
   return (
-    <div className="academic-container">
+    <div className="academic-container w-full min-w-0" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
       <div className="page-header">
         <div>
           <h1 className="page-title">Jadwal & Penugasan Pelajaran</h1>
@@ -364,19 +380,20 @@ export const Schedules: React.FC = () => {
                       <Plus size={16} /> Tambah Jadwal
                     </button>
                   </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {groupedSchedules.map(day => (
-                      <div key={day.id} className="glass-panel overflow-hidden border border-gray-200 hover:shadow-md transition-shadow flex flex-col h-full">
-                        <div className="bg-blue-600 p-3 text-center font-bold text-white shadow-sm flex items-center justify-center gap-2">
-                          <CalendarDays size={16} className="opacity-70" />
+                      <div key={day.id} className="glass-panel overflow-hidden border border-gray-200 hover:shadow-lg hover:border-blue-300 transition-all duration-300 flex flex-col h-full rounded-2xl">
+                        <div className="bg-gradient-to-r from-slate-50 to-white border-b border-gray-200 py-4 px-3 text-center font-bold text-gray-800 flex items-center justify-center gap-2 shadow-sm">
+                          <CalendarDays size={18} className="text-indigo-600" />
                           {day.name}
                         </div>
-                        <div className="p-0 flex-1 flex flex-col bg-white">
+                        <div className="p-3 flex-1 flex flex-col bg-gray-50/50 min-h-[300px]">
                           {day.schedules.length === 0 ? (
                             <div className="p-8 flex flex-col items-center justify-center text-gray-400 flex-1">
                               <span className="text-sm font-medium mb-4 opacity-70">Belum ada jadwal</span>
                               <button 
-                                className="text-blue-600 hover:text-white font-semibold border border-blue-600 hover:bg-blue-600 px-4 py-1.5 rounded-full text-xs transition-all flex items-center gap-1"
+                                className="text-blue-600 hover:text-white font-semibold border border-blue-600 hover:bg-blue-600 px-4 py-1.5 rounded-full text-xs transition-all flex items-center gap-1 shadow-sm hover:shadow"
                                 onClick={() => {
                                   openAddScheduleModal();
                                   setDayOfWeek(day.id);
@@ -386,42 +403,51 @@ export const Schedules: React.FC = () => {
                               </button>
                             </div>
                           ) : (
-                            <div className="divide-y divide-gray-100 flex-1">
-                              {day.schedules.map(item => (
-                                <div key={item.id} className="p-4 hover:bg-blue-50/40 transition-colors">
-                                  <div className="flex justify-between items-start mb-3">
-                                    <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
-                                      <Clock size={12} /> {item.classPeriod?.startTime} - {item.classPeriod?.endTime}
+                            <div className="flex-1 flex flex-col gap-4">
+                              {day.schedules.map(item => {
+                                const subjName = item.subjectAssignment?.subject?.name || '';
+                                const color = getSubjectColor(subjName);
+                                
+                                return (
+                                <div key={item.id} className={`group relative bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden border-t-4 ${color.border} p-4`}>
+                                  
+                                  <div className="flex justify-between items-start mb-4">
+                                    <div className={`w-11 h-11 rounded-xl ${color.bg} ${color.text} flex items-center justify-center shrink-0 shadow-inner`}>
+                                      <BookOpen size={20} />
                                     </div>
                                     
-                                    <div className="flex gap-1 bg-white rounded-md shadow-sm border border-gray-200 p-1">
-                                      <button className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors" onClick={() => openEditScheduleModal(item)} title="Edit">
-                                        <Edit2 size={14} />
-                                      </button>
-                                      <button className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors" onClick={() => handleDeleteSchedule(item.id)} title="Hapus">
-                                        <Trash2 size={14} />
-                                      </button>
+                                    <div className="flex flex-col items-end gap-2">
+                                      <div className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 tracking-wide">
+                                        <Clock size={12} className="text-gray-500" /> {item.classPeriod?.startTime} - {item.classPeriod?.endTime}
+                                      </div>
+                                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors" onClick={() => openEditScheduleModal(item)} title="Edit">
+                                          <Edit2 size={14} />
+                                        </button>
+                                        <button className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors" onClick={() => handleDeleteSchedule(item.id)} title="Hapus">
+                                          <Trash2 size={14} />
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
                                   
-                                  <div className="font-bold text-gray-800 flex items-center gap-2 mb-1.5 text-sm">
-                                    <BookOpen size={16} className="text-blue-500" />
-                                    {item.subjectAssignment?.subject?.name}
+                                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                    {item.subjectAssignment?.employee?.fullName}
                                   </div>
                                   
-                                  <div className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-1.5">
-                                    <Users size={14} className="text-gray-400" />
-                                    {item.subjectAssignment?.employee?.fullName}
+                                  <div className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                                    {subjName}
                                   </div>
 
                                   {item.room && (
-                                    <div className="text-xs font-semibold text-orange-600 flex items-center gap-2 mt-2 pt-2 border-t border-dashed border-gray-200">
-                                      <MapPin size={14} />
-                                      Ruangan: {item.room}
+                                    <div className="text-[11px] font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded-md flex items-center gap-1.5 w-fit mt-2">
+                                      <MapPin size={12} />
+                                      {item.room}
                                     </div>
                                   )}
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
                         </div>

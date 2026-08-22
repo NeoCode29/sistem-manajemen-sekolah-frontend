@@ -199,62 +199,70 @@ export const Violations: React.FC = () => {
 
       {error && !isModalOpen && <div className="error-message mb-4">{error}</div>}
 
-      <div className="glass-panel">
-        <div className="table-header border-b-2 border-red-100">
-          <div className="flex items-center gap-2 text-red-700 font-bold">
-            <AlertOctagon size={18} /> Daftar Kasus Pelanggaran
+      <div className="glass-panel overflow-hidden border border-gray-200 shadow-sm mt-4">
+        <div className="p-5 border-b bg-gray-50/50 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shadow-inner shrink-0">
+            <AlertOctagon size={20} />
+          </div>
+          <div>
+            <h2 className="font-bold text-lg text-gray-800">Daftar Kasus Pelanggaran</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Catatan indisipliner dan sanksi siswa</p>
           </div>
         </div>
         
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Memuat data...</div>
+          <div className="p-12 text-center text-gray-500 flex flex-col items-center">
+            <div className="w-8 h-8 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mb-4"></div>
+            <span className="text-sm font-medium">Memuat data...</span>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50 text-gray-600 text-sm border-y">
-                  <th className="p-3 font-medium">Siswa</th>
-                  <th className="p-3 font-medium">Kasus Pelanggaran</th>
-                  <th className="p-3 font-medium text-center">Kategori</th>
-                  <th className="p-3 font-medium text-center">Tanggal</th>
-                  <th className="p-3 font-medium text-center">Poin Plus (Penalti)</th>
-                  <th className="p-3 font-medium text-center">Aksi</th>
+                <tr className="bg-white border-b border-gray-200">
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Siswa</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Kasus Pelanggaran</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Kategori</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Tanggal</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Poin Plus (Penalti)</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {violations.map((item) => (
                   <tr key={item.id} className="border-b hover:bg-red-50/30">
-                    <td className="p-3">
-                      <div className="font-semibold text-gray-800">{item.student?.fullName}</div>
-                      <div className="text-xs text-gray-500 font-mono mt-0.5">NIS: {item.student?.nis}</div>
+                    <td className="p-4 align-top">
+                      <div className="font-bold text-gray-800 text-sm">{item.student?.fullName}</div>
+                      <div className="text-xs text-gray-500 font-mono mt-1 font-medium">NIS: {item.student?.nis}</div>
                     </td>
-                    <td className="p-3">
-                      <div className="font-medium text-red-700">{item.title}</div>
+                    <td className="p-4 align-top">
+                      <div className="font-bold text-red-700 text-sm">{item.title}</div>
                       {item.actionTaken && (
-                         <div className="text-xs text-gray-600 mt-1 flex items-center gap-1">
-                           <span className="font-semibold">Tindakan:</span> {item.actionTaken}
+                         <div className="text-xs text-gray-600 mt-1.5 flex items-start gap-1.5">
+                           <span className="font-bold shrink-0">Tindakan:</span> 
+                           <span className="line-clamp-2 leading-relaxed">{item.actionTaken}</span>
                          </div>
                       )}
                     </td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2 py-1 rounded text-xs ${getCategoryColor(item.category || '')}`}>
+                    <td className="p-4 text-center align-top">
+                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase shadow-sm border ${getCategoryColor(item.category || '')}`}>
                         {item.category}
                       </span>
                     </td>
-                    <td className="p-3 text-center text-sm text-gray-600">
-                      {new Date(item.date).toLocaleDateString('id-ID')}
+                    <td className="p-4 text-center text-sm text-gray-600 font-medium align-top">
+                      {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
-                    <td className="p-3 text-center">
-                      <span className="bg-red-100 text-red-700 px-2 py-1 rounded font-bold text-sm">
+                    <td className="p-4 text-center align-top">
+                      <span className="bg-red-100 text-red-700 px-3 py-1.5 rounded-md font-bold text-xs shadow-sm border border-red-200">
                         +{item.points}
                       </span>
                     </td>
-                    <td className="p-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" onClick={() => openEditModal(item)}>
+                    <td className="p-4 align-top">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" onClick={() => openEditModal(item)}>
                           <Edit2 size={16} />
                         </button>
-                        <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" onClick={() => handleDelete(item.id)}>
+                        <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" onClick={() => handleDelete(item.id)}>
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -263,7 +271,15 @@ export const Violations: React.FC = () => {
                 ))}
                 {violations.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-gray-500">Belum ada data pelanggaran.</td>
+                    <td colSpan={6} className="p-16 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-400 py-4">
+                        <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6 border border-gray-100 shadow-sm">
+                          <AlertOctagon size={36} className="text-gray-300" />
+                        </div>
+                        <div className="text-lg font-bold text-gray-700 tracking-wide">Belum ada data pelanggaran.</div>
+                        <div className="text-sm text-gray-500 font-medium" style={{ marginTop: '30px' }}>Silakan catat pelanggaran baru jika ada.</div>
+                      </div>
+                    </td>
                   </tr>
                 )}
               </tbody>

@@ -191,57 +191,64 @@ export const Achievements: React.FC = () => {
 
       {error && !isModalOpen && <div className="error-message mb-4">{error}</div>}
 
-      <div className="glass-panel">
-        <div className="table-header">
-          <div className="flex items-center gap-2 text-gray-700 font-medium">
-            <Award size={18} className="text-yellow-500" /> Daftar Prestasi
+      <div className="glass-panel overflow-hidden border border-gray-200 shadow-sm mt-4">
+        <div className="p-5 border-b bg-gray-50/50 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center shadow-inner shrink-0">
+            <Award size={20} />
+          </div>
+          <div>
+            <h2 className="font-bold text-lg text-gray-800">Daftar Prestasi</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Catatan pencapaian dan penghargaan siswa</p>
           </div>
         </div>
         
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Memuat data...</div>
+          <div className="p-12 text-center text-gray-500 flex flex-col items-center">
+            <div className="w-8 h-8 border-4 border-yellow-200 border-t-yellow-500 rounded-full animate-spin mb-4"></div>
+            <span className="text-sm font-medium">Memuat data...</span>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50 text-gray-600 text-sm border-y">
-                  <th className="p-3 font-medium">Siswa</th>
-                  <th className="p-3 font-medium">Prestasi</th>
-                  <th className="p-3 font-medium">Tingkat & Peringkat</th>
-                  <th className="p-3 font-medium text-center">Tanggal</th>
-                  <th className="p-3 font-medium text-center">Poin</th>
-                  <th className="p-3 font-medium text-center">Aksi</th>
+                <tr className="bg-white border-b border-gray-200">
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Siswa</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Prestasi</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Tingkat & Peringkat</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Tanggal</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Poin</th>
+                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {achievements.map((item) => (
                   <tr key={item.id} className="border-b hover:bg-gray-50/50">
-                    <td className="p-3">
-                      <div className="font-semibold text-gray-800">{item.student?.fullName}</div>
-                      <div className="text-xs text-gray-500 font-mono mt-0.5">NIS: {item.student?.nis}</div>
+                    <td className="p-4 align-top">
+                      <div className="font-bold text-gray-800 text-sm">{item.student?.fullName}</div>
+                      <div className="text-xs text-gray-500 font-mono mt-1 font-medium">NIS: {item.student?.nis}</div>
                     </td>
-                    <td className="p-3">
-                      <div className="font-medium text-blue-700">{item.title}</div>
-                      {item.description && <div className="text-xs text-gray-500 mt-1 line-clamp-1">{item.description}</div>}
+                    <td className="p-4 align-top">
+                      <div className="font-bold text-blue-700 text-sm">{item.title}</div>
+                      {item.description && <div className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">{item.description}</div>}
                     </td>
-                    <td className="p-3 text-sm">
-                      <div className="font-medium text-gray-700">{item.level}</div>
-                      <div className="text-gray-500">{item.rank}</div>
+                    <td className="p-4 text-sm align-top">
+                      <div className="font-semibold text-gray-700">{item.level}</div>
+                      <div className="text-gray-500 mt-1 text-xs">{item.rank}</div>
                     </td>
-                    <td className="p-3 text-center text-sm text-gray-600">
-                      {new Date(item.date).toLocaleDateString('id-ID')}
+                    <td className="p-4 text-center text-sm text-gray-600 font-medium align-top">
+                      {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
-                    <td className="p-3 text-center">
-                      <span className="bg-green-100 text-green-700 px-2 py-1 rounded font-bold text-sm">
+                    <td className="p-4 text-center align-top">
+                      <span className="bg-green-100 text-green-700 px-3 py-1.5 rounded-md font-bold text-xs shadow-sm border border-green-200">
                         +{item.points}
                       </span>
                     </td>
-                    <td className="p-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" onClick={() => openEditModal(item)}>
+                    <td className="p-4 align-top">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" onClick={() => openEditModal(item)}>
                           <Edit2 size={16} />
                         </button>
-                        <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" onClick={() => handleDelete(item.id)}>
+                        <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" onClick={() => handleDelete(item.id)}>
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -250,7 +257,15 @@ export const Achievements: React.FC = () => {
                 ))}
                 {achievements.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-gray-500">Belum ada data prestasi.</td>
+                    <td colSpan={6} className="p-16 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-400 py-4">
+                        <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6 border border-gray-100 shadow-sm">
+                          <Award size={36} className="text-gray-300" />
+                        </div>
+                        <div className="text-lg font-bold text-gray-700 tracking-wide">Belum ada data prestasi.</div>
+                        <div className="text-sm text-gray-500 font-medium" style={{ marginTop: '30px' }}>Silakan tambah prestasi baru melalui tombol di atas.</div>
+                      </div>
+                    </td>
                   </tr>
                 )}
               </tbody>
