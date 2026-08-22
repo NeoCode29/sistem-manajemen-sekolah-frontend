@@ -1,11 +1,30 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../Sidebar/Sidebar';
 import { Search, Bell, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { getAcademicYears, getSemesters, type AcademicYear, type Semester } from '../../api/academicService';
 
 export const Layout: React.FC = () => {
   const { user } = useAuth();
+  const [activeAy, setActiveAy] = useState<AcademicYear | null>(null);
+  const [activeSem, setActiveSem] = useState<Semester | null>(null);
+  const location = useLocation();
+
+  React.useEffect(() => {
+    const fetchMaster = async () => {
+      try {
+        const [ayData, semData] = await Promise.all([getAcademicYears(), getSemesters()]);
+        const currentAy = ayData.find(a => a.isActive);
+        const currentSem = semData.find(s => s.isActive);
+        if (currentAy) setActiveAy(currentAy);
+        if (currentSem) setActiveSem(currentSem);
+      } catch (err) {
+        console.error("Failed to fetch active academic year/semester");
+      }
+    };
+    fetchMaster();
+  }, [location.pathname]);
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
@@ -41,6 +60,19 @@ export const Layout: React.FC = () => {
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            {activeAy && activeSem && (
+              <div style={{ 
+                backgroundColor: '#eff6ff', 
+                color: '#1d4ed8', 
+                padding: '0.25rem 0.75rem', 
+                borderRadius: '9999px', 
+                fontSize: '0.75rem', 
+                fontWeight: 600,
+                border: '1px solid #bfdbfe'
+              }}>
+                TA {activeAy.name} - {activeSem.name}
+              </div>
+            )}
             <div style={{ position: 'relative', cursor: 'pointer' }}>
               <Bell size={20} color="#6b7280" />
               <span style={{ position: 'absolute', top: '-2px', right: '-2px', width: '8px', height: '8px', backgroundColor: '#ef4444', borderRadius: '50%', border: '2px solid white' }}></span>

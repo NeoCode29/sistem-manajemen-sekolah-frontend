@@ -72,7 +72,14 @@ export const EmployeeAttendancePage: React.FC = () => {
 
   const handleRowChange = (index: number, field: keyof AttendanceRow, value: string) => {
     const updatedRows = [...rows];
-    updatedRows[index] = { ...updatedRows[index], [field]: value };
+    const updatedRow = { ...updatedRows[index], [field]: value };
+    
+    if (field === 'status' && value !== 'Hadir' && value !== 'Terlambat') {
+      updatedRow.checkinTime = '';
+      updatedRow.checkoutTime = '';
+    }
+    
+    updatedRows[index] = updatedRow;
     setRows(updatedRows);
   };
 
@@ -87,13 +94,16 @@ export const EmployeeAttendancePage: React.FC = () => {
       setError('');
       setSuccess('');
       
-      const attendances: EmployeeAttendanceBatchItem[] = rows.map(r => ({
-        employeeId: r.employeeId,
-        status: r.status,
-        checkinTime: r.checkinTime || undefined,
-        checkoutTime: r.checkoutTime || undefined,
-        notes: r.notes || undefined
-      }));
+      const attendances: EmployeeAttendanceBatchItem[] = rows.map(r => {
+        const isPresent = r.status === 'Hadir' || r.status === 'Terlambat';
+        return {
+          employeeId: r.employeeId,
+          status: r.status,
+          checkinTime: isPresent ? (r.checkinTime || null) : null,
+          checkoutTime: isPresent ? (r.checkoutTime || null) : null,
+          notes: r.notes || undefined
+        };
+      });
       
       await upsertEmployeeAttendanceBatch(date, attendances);
       setSuccess('Data absensi pegawai berhasil disimpan!');

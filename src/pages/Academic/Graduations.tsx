@@ -12,8 +12,10 @@ export const Graduations: React.FC = () => {
     loading,
     error: fetchError,
     classes,
+    academicYears,
     sourceStudents,
     selectedAcademicYear,
+    setSelectedAcademicYear,
     loadStudents,
     batchGraduate,
     cancelGraduation
@@ -31,19 +33,7 @@ export const Graduations: React.FC = () => {
 
   const error = actionError || fetchError;
 
-  const handleClassChange = async (classId: string) => {
-    setSelectedClass(classId);
-    if (!classId) {
-      setSelectedStudentIds(new Set());
-      return;
-    }
-    try {
-      const students = await loadStudents(classId);
-      setSelectedStudentIds(new Set(students.map((s) => s.id.toString())));
-    } catch (err: any) {
-      setActionError(err.message || 'Gagal memuat daftar siswa');
-    }
-  };
+
 
   const handleStudentToggle = (studentId: string) => {
     setSelectedStudentIds(prev => {
@@ -197,13 +187,42 @@ export const Graduations: React.FC = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Pilih Kelas (Kelas Akhir) *</label>
+                  <label className="text-sm font-medium text-gray-700">Tahun Ajaran *</label>
+                  <select
+                    className="input-field mt-1 w-full"
+                    value={selectedAcademicYear}
+                    onChange={(e) => {
+                      setSelectedAcademicYear(e.target.value);
+                      if (selectedClass) {
+                        loadStudents(selectedClass, e.target.value).then(students => {
+                          setSelectedStudentIds(new Set(students.map((s: any) => s.id.toString())));
+                        });
+                      }
+                    }}
+                  >
+                    <option value="">-- Pilih --</option>
+                    {academicYears.map((ay: any) => (
+                      <option key={ay.id} value={ay.id}>{ay.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="text-sm font-medium text-gray-700">Pilih Kelas (Akhir) *</label>
                   <select
                     className="input-field mt-1 w-full"
                     value={selectedClass}
-                    onChange={(e) => handleClassChange(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedClass(e.target.value);
+                      if (!e.target.value) {
+                        setSelectedStudentIds(new Set());
+                        return;
+                      }
+                      loadStudents(e.target.value, selectedAcademicYear).then(students => {
+                        setSelectedStudentIds(new Set(students.map((s: any) => s.id.toString())));
+                      }).catch(err => setActionError(err.message || 'Gagal memuat daftar siswa'));
+                    }}
                   >
                     <option value="">-- Pilih Kelas --</option>
                     {classes.map(c => (

@@ -10,8 +10,6 @@ interface AttendanceRow {
   studentName: string;
   nis: string;
   status: string;
-  checkinTime: string;
-  checkoutTime: string;
   notes: string;
 }
 
@@ -95,7 +93,13 @@ export const StudentAttendancePage: React.FC = () => {
       setError('');
       
       const [studentsData, attendancesData] = await Promise.all([
-        getStudents({ classroomId: selectedClassroomId, enrollmentStatus: 'ACTIVE' }),
+        getStudents({ 
+          classroomId: selectedClassroomId, 
+          academicYearId: selectedAcademicYearId,
+          semesterId: selectedSemesterId,
+          status: 'ACTIVE',
+          limit: 1000
+        }),
         getStudentAttendances({
           classroomId: selectedClassroomId,
           academicYearId: selectedAcademicYearId,
@@ -116,8 +120,6 @@ export const StudentAttendancePage: React.FC = () => {
           studentName: student.fullName,
           nis: student.nis,
           status: att ? att.status : 'Hadir',
-          checkinTime: att?.checkinTime || '',
-          checkoutTime: att?.checkoutTime || '',
           notes: att?.notes || ''
         };
       });
@@ -138,6 +140,7 @@ export const StudentAttendancePage: React.FC = () => {
   const handleRowChange = (index: number, field: keyof AttendanceRow, value: string) => {
     const updatedRows = [...rows];
     updatedRows[index] = { ...updatedRows[index], [field]: value };
+    
     setRows(updatedRows);
   };
 
@@ -152,13 +155,15 @@ export const StudentAttendancePage: React.FC = () => {
       setError('');
       setSuccess('');
       
-      const attendances: StudentAttendanceBatchItem[] = rows.map(r => ({
-        studentId: r.studentId,
-        status: r.status,
-        checkinTime: r.checkinTime || undefined,
-        checkoutTime: r.checkoutTime || undefined,
-        notes: r.notes || undefined
-      }));
+      const attendances: StudentAttendanceBatchItem[] = rows.map(r => {
+        return {
+          studentId: r.studentId,
+          status: r.status,
+          checkinTime: null,
+          checkoutTime: null,
+          notes: r.notes || undefined
+        };
+      });
       
       await upsertStudentAttendanceBatch(selectedClassroomId, selectedAcademicYearId, selectedSemesterId, date, attendances);
       setSuccess('Data absensi berhasil disimpan!');
@@ -267,8 +272,6 @@ export const StudentAttendancePage: React.FC = () => {
                   <th>NIS</th>
                   <th>Nama Siswa</th>
                   <th className="w-40">Status</th>
-                  <th className="w-32">Check In</th>
-                  <th className="w-32">Check Out</th>
                   <th>Catatan</th>
                 </tr>
               </thead>
@@ -296,24 +299,6 @@ export const StudentAttendancePage: React.FC = () => {
                         <option value="Alpa">Alpa</option>
                         <option value="Terlambat">Terlambat</option>
                       </select>
-                    </td>
-                    <td>
-                      <input 
-                        type="time" 
-                        className="input-field py-1.5 px-2"
-                        value={row.checkinTime}
-                        onChange={(e) => handleRowChange(index, 'checkinTime', e.target.value)}
-                        disabled={row.status !== 'Hadir' && row.status !== 'Terlambat'}
-                      />
-                    </td>
-                    <td>
-                      <input 
-                        type="time" 
-                        className="input-field py-1.5 px-2"
-                        value={row.checkoutTime}
-                        onChange={(e) => handleRowChange(index, 'checkoutTime', e.target.value)}
-                        disabled={row.status !== 'Hadir' && row.status !== 'Terlambat'}
-                      />
                     </td>
                     <td>
                       <input 

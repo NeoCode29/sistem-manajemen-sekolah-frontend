@@ -27,14 +27,11 @@ import { Exams } from '../pages/Assessment/Exams';
 import { ExamScores } from '../pages/Assessment/ExamScores';
 import { Achievements } from '../pages/StudentAffairs/Achievements';
 import { Violations } from '../pages/StudentAffairs/Violations';
-import { Rooms } from '../pages/Inventory/Rooms';
-import { Items } from '../pages/Inventory/Items';
 import { Schedules } from '../pages/Academic/Schedules';
 import { Promotions } from '../pages/Academic/Promotions';
 import { BatchPromote } from '../pages/Academic/BatchPromote';
 import { Graduations } from '../pages/Academic/Graduations';
 import { SchoolProfilePage } from '../pages/SchoolProfile/SchoolProfile';
-import { FoundationProfilePage } from '../pages/SchoolProfile/FoundationProfile';
 import { Announcements } from '../pages/Announcements/Announcements';
 import { IncomingLetters } from '../pages/Letters/IncomingLetters';
 import { OutgoingLetters } from '../pages/Letters/OutgoingLetters';
@@ -74,15 +71,12 @@ export const AppRoutes: React.FC = () => {
               <Route path="/assessment/exams/:examId/scores" element={<ExamScores />} />
               <Route path="/student-affairs/achievements" element={<Achievements />} />
               <Route path="/student-affairs/violations" element={<Violations />} />
-              <Route path="/inventory/rooms" element={<Rooms />} />
-              <Route path="/inventory/items" element={<Items />} />
 
               <Route path="/academic/schedules" element={<Schedules />} />
               <Route path="/academic/promotions" element={<Promotions />} />
               <Route path="/academic/promotions/batch" element={<BatchPromote />} />
               <Route path="/academic/graduations" element={<Graduations />} />
               <Route path="/profile/school" element={<SchoolProfilePage />} />
-              <Route path="/profile/foundation" element={<FoundationProfilePage />} />
               <Route path="/announcements" element={<Announcements />} />
               <Route path="/letters/incoming" element={<IncomingLetters />} />
               <Route path="/letters/outgoing" element={<OutgoingLetters />} />

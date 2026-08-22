@@ -106,21 +106,28 @@ export const Semesters: React.FC = () => {
         {row.isActive ? 'Aktif' : 'Tidak Aktif'}
       </span>
     )},
-    { key: 'actions', header: 'Aksi', render: (row) => (
+    { key: 'actions', header: 'Aksi', render: (row) => {
+      const activeYearId = academicYears.find(y => y.isActive)?.id;
+      const isParentYearActive = row.academicYearId === activeYearId || row.academicYear?.isActive;
+
+      return (
       <div className="action-buttons-group">
-        <button 
-          className={`action-btn ${row.isActive ? 'text-red-400' : 'text-green-400'}`}
-          onClick={() => handleToggle(row.id)}
-          title={row.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-        >
-          {row.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
-        </button>
+        {isParentYearActive && (
+          <button 
+            className={`action-btn ${row.isActive ? 'text-red-400' : 'text-green-400'}`}
+            onClick={() => handleToggle(row.id)}
+            title={row.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+          >
+            {row.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
+          </button>
+        )}
         <ActionButtons 
           onEdit={() => handleEdit(row)}
           onDelete={() => handleDelete(row.id)}
         />
       </div>
-    )}
+      );
+    }}
   ];
 
   return (

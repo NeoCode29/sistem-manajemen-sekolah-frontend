@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, Settings, LogOut, BookOpen, Clock, Calendar, GraduationCap, Library, UserCog, ShieldCheck, UserCheck, Briefcase, User, BadgeCheck, Wallet, CalendarDays, FileText, ShoppingCart, Receipt, FileEdit, Award, AlertOctagon, Box, Monitor, Building2, Landmark, Megaphone, Mail, Send, FileCode, TrendingUp, UserPlus } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, LogOut, BookOpen, Clock, Calendar, GraduationCap, Library, UserCog, ShieldCheck, UserCheck, Briefcase, User, BadgeCheck, Wallet, CalendarDays, FileText, ShoppingCart, Receipt, FileEdit, Award, AlertOctagon, Building2, Megaphone, Mail, Send, FileCode, TrendingUp, UserPlus, Monitor } from 'lucide-react';
 import './Sidebar.css';
 
 export const Sidebar: React.FC = () => {
@@ -48,10 +48,6 @@ export const Sidebar: React.FC = () => {
             <NavLink to="/profile/school" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
               <Building2 size={20} />
               <span>Profil Sekolah</span>
-            </NavLink>
-            <NavLink to="/profile/foundation" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Landmark size={20} />
-              <span>Profil Yayasan</span>
             </NavLink>
 
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -162,17 +158,6 @@ export const Sidebar: React.FC = () => {
               <span>Pelanggaran (Kasus)</span>
             </NavLink>
 
-            <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Sarana & Prasarana
-            </div>
-            <NavLink to="/inventory/rooms" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Box size={20} />
-              <span>Ruangan & Gedung</span>
-            </NavLink>
-            <NavLink to="/inventory/items" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Monitor size={20} />
-              <span>Inventaris Barang</span>
-            </NavLink>
           </>
         )}
 

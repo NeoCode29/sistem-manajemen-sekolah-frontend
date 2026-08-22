@@ -41,14 +41,14 @@ export const BatchPromote: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedTargetClass && selectedTargetAcademicYear) {
-      getClassroomCapacity(selectedTargetClass, selectedTargetAcademicYear)
+    if (selectedTargetClass && selectedTargetAcademicYear && selectedTargetSemester) {
+      getClassroomCapacity(selectedTargetClass, selectedTargetAcademicYear, selectedTargetSemester)
         .then(res => setTargetCapacityInfo(res))
         .catch(() => setTargetCapacityInfo(null));
     } else {
       setTargetCapacityInfo(null);
     }
-  }, [selectedTargetClass, selectedTargetAcademicYear]);
+  }, [selectedTargetClass, selectedTargetAcademicYear, selectedTargetSemester]);
 
   const fetchDropdowns = async () => {
     try {
@@ -157,10 +157,8 @@ export const BatchPromote: React.FC = () => {
       return;
     }
     
-    if (selectedSourceAcademicYear === selectedTargetAcademicYear) {
-      showAlert('Tahun Ajaran Asal dan Tujuan tidak boleh sama!', 'Peringatan');
-      return;
-    }
+    // We allow same academic year for semester transitions (e.g. Ganjil to Genap)
+    // The backend will handle the enrollment updates.
 
     if (sourceStudents.length === 0 && promotedStudents.length === 0) {
       showAlert('Tidak ada siswa untuk diproses.', 'Peringatan');
@@ -270,7 +268,9 @@ export const BatchPromote: React.FC = () => {
                 onChange={(e) => setSelectedTargetSemester(e.target.value)}
               >
                 <option value="">-- Pilih --</option>
-                {semesters.map(sem => <option key={sem.id} value={sem.id}>{sem.name}</option>)}
+                {semesters
+                  .filter(sem => !selectedTargetAcademicYear || sem.academicYearId === selectedTargetAcademicYear)
+                  .map(sem => <option key={sem.id} value={sem.id}>{sem.name} ({sem.academicYear?.name || ''})</option>)}
               </select>
             </div>
             <div className="bp-input-group">
@@ -280,7 +280,7 @@ export const BatchPromote: React.FC = () => {
                 onChange={(e) => setSelectedTargetClass(e.target.value)}
               >
                 <option value="">-- Pilih Kelas --</option>
-                {classes.filter(c => c.id !== selectedSourceClass).map(c => (
+                {classes.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>

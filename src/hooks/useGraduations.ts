@@ -52,13 +52,17 @@ export function useGraduations() {
     fetchClasses();
   }, [fetchHistory, fetchClasses]);
 
-  const loadStudents = async (classId: string) => {
+  const loadStudents = async (classId: string, academicYearId: string) => {
     if (!classId) {
       setSourceStudents([]);
       return [];
     }
     try {
-      const res = await getStudents({ classroomId: classId, status: 'ACTIVE', enrollmentStatus: 'ENROLLED' });
+      const payload: any = { classroomId: classId, status: 'ACTIVE', enrollmentStatus: 'ENROLLED' };
+      if (academicYearId) {
+        payload.academicYearId = academicYearId;
+      }
+      const res = await getStudents(payload);
       const students = Array.isArray(res) ? res : (res.data || []);
       setSourceStudents(students as Student[]);
       return students as Student[];

@@ -51,6 +51,8 @@ export const Students: React.FC = () => {
   const [selectedSem, setSelectedSem] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [createUserAccount, setCreateUserAccount] = useState(true);
+  const [activeAyId, setActiveAyId] = useState('');
+  const [activeSemId, setActiveSemId] = useState('');
 
   const fetchStudents = async () => {
     try {
@@ -83,10 +85,16 @@ export const Students: React.FC = () => {
       setClassrooms(classData);
       
       const activeAy = ayData.find(ay => ay.isActive);
-      if (activeAy) setSelectedAy(activeAy.id);
+      if (activeAy) {
+        setSelectedAy(activeAy.id);
+        setActiveAyId(activeAy.id);
+      }
       
       const activeSem = semData.find(sem => sem.isActive);
-      if (activeSem) setSelectedSem(activeSem.id);
+      if (activeSem) {
+        setSelectedSem(activeSem.id);
+        setActiveSemId(activeSem.id);
+      }
 
     } catch (err) {
       console.error("Failed to fetch wizard master data", err);
@@ -116,22 +124,7 @@ export const Students: React.FC = () => {
     });
   };
 
-  const handleToggle = async (student: Student) => {
-    const userAccount = student.users?.[0];
-    if (!userAccount) {
-      setError('Siswa ini belum memiliki akun login.');
-      return;
-    }
-    
-    try {
-      await updateUser(userAccount.id, { isActive: !userAccount.isActive });
-      setSuccess(`Status akun siswa berhasil diubah!`);
-      fetchStudents();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal merubah status akun siswa');
-    }
-  };
+
 
 
 
@@ -229,7 +222,7 @@ export const Students: React.FC = () => {
                 <th>NIS / NISN</th>
                 <th>Nama Lengkap</th>
                 <th>Status</th>
-                <th>Akun Aktif</th>
+                <th>Kelas Saat Ini</th>
                 <th>Aksi</th>
               </tr>
             </thead>
@@ -260,13 +253,16 @@ export const Students: React.FC = () => {
                       </span>
                     </td>
                     <td>
-                      {student.users && student.users.length > 0 ? (
-                        <span className={`status-badge ${student.users[0].isActive ? 'active' : 'inactive'}`}>
-                          {student.users[0].isActive ? 'Aktif' : 'Tidak Aktif'}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-gray-400 italic">Tidak Ada Akun</span>
-                      )}
+                      {(() => {
+                        const currentEnrollment = student.enrollments?.find(
+                          e => e.academicYearId === activeAyId && e.semesterId === activeSemId
+                        );
+                        return currentEnrollment?.classroom?.name ? (
+                          <span className="font-semibold text-gray-700">{currentEnrollment.classroom.name}</span>
+                        ) : (
+                          <span className="text-sm text-gray-400 italic">Belum Masuk Kelas</span>
+                        );
+                      })()}
                     </td>
                     <td>
                       <div className="action-buttons">
@@ -278,16 +274,7 @@ export const Students: React.FC = () => {
                           <ChevronRight size={18} />
                         </button>
                         
-                        
-                        {student.users && student.users.length > 0 && (
-                          <button 
-                            className={`btn-icon ${student.users[0].isActive ? 'text-red-400 hover:bg-red-400/10' : 'text-green-400 hover:bg-green-400/10'}`}
-                            onClick={() => handleToggle(student)}
-                            title={student.users[0].isActive ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
-                          >
-                            {student.users[0].isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
-                          </button>
-                        )}
+
                         <button 
                           className="btn-icon text-red-400 hover:bg-red-400/10"
                           onClick={() => handleDelete(student.id)}
