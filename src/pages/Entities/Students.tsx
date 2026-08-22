@@ -329,7 +329,15 @@ export const Students: React.FC = () => {
               </div>
 
               <div className="modal-body-v4 form-grid">
-                {error && <div className="alert alert-error" style={{ gridColumn: '1 / -1' }}>{error}</div>}
+                {error && (
+                  <div 
+                    className="bg-red-50 text-red-600 border border-red-200 p-3 rounded-md text-sm flex items-center gap-2 mb-4" 
+                    style={{ gridColumn: '1 / -1' }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-alert-circle shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                    <span>{error}</span>
+                  </div>
+                )}
                 
                 {/* STEP 1 */}
                 {wizardStep === 1 && (
