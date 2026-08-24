@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { User, Key, Save } from 'lucide-react';
+import { User, Key, Save, Eye, EyeOff } from 'lucide-react';
 import api from '../../api/axios';
 import './AccountSettings.css';
 
@@ -21,6 +21,10 @@ export const AccountSettings: React.FC = () => {
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [error, setError] = useState('');
+
+  // Show/hide password
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,29 +129,39 @@ export const AccountSettings: React.FC = () => {
           <form onSubmit={handlePasswordSubmit} className="settings-form">
             
             <div className="input-group">
-              <label>Password Baru</label>
-              <input 
-                type="password" 
-                className="premium-input"
-                value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
-                placeholder="Minimal 6 karakter"
-                minLength={6}
-                required
-              />
+              <label style={{ textAlign: 'left', display: 'block', width: '100%' }}>Password Baru</label>
+              <div className="password-wrapper">
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  className="premium-input"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                  placeholder="Minimal 6 karakter"
+                  minLength={6}
+                  required
+                />
+                <button type="button" className="password-toggle" onClick={() => setShowNewPassword(v => !v)} tabIndex={-1}>
+                  {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             <div className="input-group">
-              <label>Konfirmasi Password</label>
-              <input 
-                type="password" 
-                className="premium-input"
-                value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
-                placeholder="Ketik ulang password baru"
-                minLength={6}
-                required
-              />
+              <label style={{ textAlign: 'left', display: 'block', width: '100%' }}>Konfirmasi Password</label>
+              <div className="password-wrapper">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  className="premium-input"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                  placeholder="Ketik ulang password baru"
+                  minLength={6}
+                  required
+                />
+                <button type="button" className="password-toggle" onClick={() => setShowConfirmPassword(v => !v)} tabIndex={-1}>
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

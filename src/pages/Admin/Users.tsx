@@ -9,6 +9,10 @@ export const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [allRoles, setAllRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const { showConfirm, showAlert } = useDialog();
   
   const [showModal, setShowModal] = useState(false);
@@ -146,7 +150,7 @@ export const Users: React.FC = () => {
                     <td colSpan={5} className="text-center py-4 text-gray-500">Belum ada data.</td>
                   </tr>
                 ) : (
-                  users.map((user) => (
+                  users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((user) => (
                     <tr key={user.id}>
                       <td className="font-semibold">{user.username}</td>
                       <td>
@@ -198,6 +202,40 @@ export const Users: React.FC = () => {
             </table>
           </div>
         )}
+
+        {/* PAGINATION */}
+        {!loading && users.length > itemsPerPage && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 0.5rem 0.25rem', borderTop: '1px solid var(--border-color, #e5e7eb)', marginTop: '0.5rem' }}>
+            <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+              Menampilkan {Math.min((currentPage - 1) * itemsPerPage + 1, users.length)}–{Math.min(currentPage * itemsPerPage, users.length)} dari {users.length} pengguna
+            </span>
+            <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color, #e5e7eb)', background: currentPage === 1 ? '#f3f4f6' : 'white', color: currentPage === 1 ? '#9ca3af' : '#374151', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 500 }}
+              >
+                ← Sebelumnya
+              </button>
+              {Array.from({ length: Math.ceil(users.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color, #e5e7eb)', background: currentPage === page ? 'var(--primary-color, #3b82f6)' : 'white', color: currentPage === page ? 'white' : '#374151', cursor: 'pointer', fontSize: '0.85rem', fontWeight: currentPage === page ? 700 : 400, minWidth: '36px' }}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(p + 1, Math.ceil(users.length / itemsPerPage)))}
+                disabled={currentPage === Math.ceil(users.length / itemsPerPage)}
+                style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color, #e5e7eb)', background: currentPage === Math.ceil(users.length / itemsPerPage) ? '#f3f4f6' : 'white', color: currentPage === Math.ceil(users.length / itemsPerPage) ? '#9ca3af' : '#374151', cursor: currentPage === Math.ceil(users.length / itemsPerPage) ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 500 }}
+              >
+                Selanjutnya →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showModal && createPortal(
@@ -218,7 +256,7 @@ export const Users: React.FC = () => {
                 <input type="text" className="input-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Joko Anwar, S.Pd." required />
               </div>
               <div className="form-group">
-                <label>Password {isEditing ? '(Kosongkan jika tidak diubah)' : '<span className="text-red-500">*</span>'}</label>
+                <label>Password {isEditing ? '(Kosongkan jika tidak diubah)' : <span className="text-red-500">*</span>}</label>
                 <input type="password" className="input-field" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Minimal 8 karakter" required={!isEditing} />
                 <span className="text-xs text-gray-500 mt-1">Harus mengandung huruf besar, kecil, angka, dan karakter khusus.</span>
               </div>
