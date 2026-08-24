@@ -180,7 +180,7 @@ export const Students: React.FC = () => {
           <p className="page-subtitle">Pendaftaran dan manajemen riwayat siswa terpadu</p>
         </div>
         <button className="btn-primary" onClick={() => setShowWizardModal(true)}>
-          <Plus size={18} /> Pendaftaran Wizard
+          <Plus size={18} /> Pendaftaran Siswa Baru
         </button>
       </div>
 
@@ -311,7 +311,7 @@ export const Students: React.FC = () => {
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '600px' }}>
             <div className="modal-header-v4">
-              <h2>Pendaftaran Siswa Baru (Wizard)</h2>
+              <h2>Pendaftaran Siswa Baru</h2>
               <button type="button" className="btn-close" onClick={closeWizard}>&times;</button>
             </div>
             <form onSubmit={wizardStep === 3 ? submitWizard : (e) => { e.preventDefault(); setWizardStep(wizardStep + 1); }} className="modal-form-v4">
@@ -323,8 +323,8 @@ export const Students: React.FC = () => {
                 <div style={{ flex: 1, height: '4px', backgroundColor: wizardStep >= 3 ? 'var(--primary-color)' : '#374151', borderRadius: '4px', margin: '0 4px' }} />
               </div>
               <div style={{ padding: '0 24px', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#9ca3af', marginTop: '8px' }}>
-                <span style={{ color: wizardStep >= 1 ? 'var(--primary-color)' : ''}}>1. Identitas Siswa</span>
-                <span style={{ color: wizardStep >= 2 ? 'var(--primary-color)' : ''}}>2. Wali Utama</span>
+                <span style={{ color: wizardStep >= 1 ? 'var(--primary-color)' : ''}}>1. Data Siswa</span>
+                <span style={{ color: wizardStep >= 2 ? 'var(--primary-color)' : ''}}>2. Data Wali</span>
                 <span style={{ color: wizardStep >= 3 ? 'var(--primary-color)' : ''}}>3. Penempatan Kelas</span>
               </div>
 
