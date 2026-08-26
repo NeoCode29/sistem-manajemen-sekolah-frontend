@@ -157,6 +157,8 @@
 .input-icon {
   position: absolute;
   left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--text-secondary);
   pointer-events: none;
   transition: color 0.3s ease;

@@ -71,9 +71,6 @@ export const Dashboard: React.FC = () => {
           <button className="action-button" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '0.5rem', color: '#374151', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer' }}>
             <Calendar size={16} /> {currentDate}
           </button>
-          <button className="action-button" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#1d4ed8', border: 'none', borderRadius: '0.5rem', color: '#ffffff', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer' }}>
-            + Input Cepat
-          </button>
         </div>
       </div>
 
