@@ -31,6 +31,7 @@ export interface Employee {
   hireDate?: string;
   employmentType?: string;
   employmentStatus?: string;
+  signatureUrl?: string;
   isActive: boolean;
   position?: Position;
   deletedAt?: string;

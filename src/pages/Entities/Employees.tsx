@@ -31,6 +31,7 @@ export const Employees: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [gender, setGender] = useState('Laki-laki');
   const [employmentStatus, setEmploymentStatus] = useState('Aktif');
+  const [signatureUrl, setSignatureUrl] = useState('');
   const [isActive, setIsActive] = useState(true);
   
   // Account Form State (For Creation)
@@ -87,6 +88,7 @@ export const Employees: React.FC = () => {
     setPhone('');
     setGender('Laki-laki');
     setEmploymentStatus('Aktif');
+    setSignatureUrl('');
     setIsActive(true);
     setCreateAccount(false);
     setUsername('');
@@ -105,6 +107,7 @@ export const Employees: React.FC = () => {
     setPhone(emp.phone || '');
     setGender(emp.gender || 'Laki-laki');
     setEmploymentStatus(emp.employmentStatus || 'Aktif');
+    setSignatureUrl(emp.signatureUrl || '');
     setIsActive(emp.isActive);
     setShowModal(true);
   };
@@ -144,6 +147,7 @@ export const Employees: React.FC = () => {
         phone: phone || undefined,
         gender,
         employmentStatus,
+        signatureUrl: signatureUrl || undefined,
         isActive,
       };
 
@@ -355,6 +359,12 @@ export const Employees: React.FC = () => {
                     <option value="Resign">Resign</option>
                     <option value="Pensiun">Pensiun</option>
                   </select>
+                </div>
+
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>URL / Path Tanda Tangan (Opsional)</label>
+                  <input type="text" className="input-field" value={signatureUrl} onChange={(e) => setSignatureUrl(e.target.value)} placeholder="Contoh: /uploads/signatures/guru1.png" />
+                  <p className="text-xs text-gray-500 mt-1">Digunakan untuk ttd otomatis di Raport jika bertugas sebagai Wali Kelas.</p>
                 </div>
 
                 <div className="form-group checkbox-group" style={{ gridColumn: '1 / -1' }}>
