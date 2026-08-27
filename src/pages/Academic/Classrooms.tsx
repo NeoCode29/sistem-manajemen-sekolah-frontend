@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Users } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { DataTable, type Column } from '../../components/Common/DataTable';
@@ -10,6 +11,7 @@ import { useDialog } from '../../contexts/DialogContext';
 import './Academic.css';
 
 export const Classrooms: React.FC = () => {
+  const navigate = useNavigate();
   const [filterGradeId, setFilterGradeId] = useState('');
   
   // Custom Hook for Data Layer
@@ -111,6 +113,7 @@ export const Classrooms: React.FC = () => {
     },
     { key: 'actions', header: 'Aksi', render: (row) => (
         <ActionButtons 
+          onView={() => navigate(`/academic/classrooms/${row.id}`)}
           onEdit={() => handleEdit(row)}
           onDelete={() => handleDelete(row.id)}
         />

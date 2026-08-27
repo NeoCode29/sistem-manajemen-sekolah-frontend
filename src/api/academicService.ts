@@ -100,6 +100,10 @@ export const getClassrooms = async (gradeId?: string): Promise<Classroom[]> => {
   const response = await api.get(url);
   return response.data.data ? response.data.data : response.data;
 };
+export const getClassroomById = async (id: string): Promise<Classroom> => {
+  const response = await api.get(`/classrooms/${id}`);
+  return response.data;
+};
 export const createClassroom = async (data: Partial<Classroom>) => {
   const response = await api.post('/classrooms', data);
   return response.data;
@@ -123,6 +127,11 @@ export const getClassroomCapacity = async (id: string, academicYearId?: string, 
   }
   
   const response = await api.get(url);
+  return response.data;
+};
+
+export const assignHomeroomTeacher = async (classroomId: string, data: { employeeId: number, academicYearId: number, semesterId: number }) => {
+  const response = await api.post(`/classrooms/${classroomId}/homeroom-teachers`, data);
   return response.data;
 };
 
