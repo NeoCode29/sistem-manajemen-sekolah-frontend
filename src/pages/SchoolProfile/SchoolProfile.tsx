@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getSchoolProfile, updateSchoolProfile, uploadSchoolLogo } from '../../api/schoolProfileService';
+import { getSchoolProfile, updateSchoolProfile, uploadSchoolLogo, downloadTemplateDocx } from '../../api/schoolProfileService';
 import type { SchoolProfile } from '../../api/schoolProfileService';
-import { Save, Building2, UploadCloud, MapPin, Phone } from 'lucide-react';
+import { Save, Building2, UploadCloud, MapPin, Phone, Download, FileText } from 'lucide-react';
 import '../Academic/Academic.css';
 import './SchoolProfile.css';
 
 export const SchoolProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
@@ -83,6 +84,26 @@ export const SchoolProfilePage: React.FC = () => {
     }
   };
 
+  const handleDownloadTemplate = async () => {
+    try {
+      setDownloading(true);
+      const data = await downloadTemplateDocx();
+      const url = window.URL.createObjectURL(new Blob([data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Template_Kop_Surat_${profile.name?.replace(/\s+/g, '_') || 'Sekolah'}.docx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setSuccess('Template berhasil diunduh!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError('Gagal mengunduh template docx');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="academic-container">
       <div className="page-header">
@@ -136,7 +157,11 @@ export const SchoolProfilePage: React.FC = () => {
                 </div>
                 
                 {/* Action button in header */}
-                <div className="profile-actions">
+                <div className="profile-actions flex gap-3">
+                  <button type="button" onClick={handleDownloadTemplate} className="btn-secondary" disabled={downloading}>
+                    <Download size={18} />
+                    {downloading ? 'Mengunduh...' : 'Download Kop Surat'}
+                  </button>
                   <button type="submit" className="btn-primary" disabled={saving}>
                     <Save size={18} />
                     {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
@@ -209,7 +234,7 @@ export const SchoolProfilePage: React.FC = () => {
                   </div>
 
                   {/* Alamat & Lokasi */}
-                  <div className="premium-glass-card p-6 relative overflow-hidden">
+                  <div className="premium-glass-card p-6 relative overflow-hidden flex flex-col">
                     <div className="flex items-center gap-4 mb-8 pb-5 border-b border-orange-200/60">
                       <div className="premium-icon-box p-3 bg-orange-100 text-orange-600 rounded-xl shadow-sm">
                         <MapPin size={24} />
@@ -220,10 +245,36 @@ export const SchoolProfilePage: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="form-group h-full flex flex-col pt-1">
-                      <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-3">Alamat Lengkap</label>
-                      <textarea className="input-field premium-input flex-1 resize-none" style={{ minHeight: '180px' }} name="address" value={profile.address || ''} onChange={handleChange} placeholder="Masukkan alamat lengkap sekolah, termasuk jalan, RT/RW, dan kode pos di sini..."></textarea>
+                    <div className="form-grid gap-6 flex-1 flex flex-col">
+                      <div className="form-group">
+                        <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Kota / Kabupaten <span className="text-red-500">*</span></label>
+                        <input type="text" className="input-field premium-input" name="city" value={profile.city || ''} onChange={handleChange} required placeholder="Contoh: Tasikmalaya" />
+                        <p className="text-xs text-gray-500 mt-1">Digunakan untuk lokasi tanggal tanda tangan (misal: Tasikmalaya, 27 Agustus 2026)</p>
+                      </div>
+                      <div className="form-group h-full flex flex-col pt-1">
+                        <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-1">Alamat Lengkap</label>
+                        <textarea className="input-field premium-input flex-1 resize-none" style={{ minHeight: '110px' }} name="address" value={profile.address || ''} onChange={handleChange} placeholder="Masukkan alamat lengkap sekolah, termasuk jalan, RT/RW, dan kode pos di sini..."></textarea>
+                      </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Kop Surat & Cetakan */}
+                <div className="premium-glass-card p-6 relative overflow-hidden">
+                  <div className="flex items-center gap-4 mb-8 pb-5 border-b border-purple-200/60">
+                    <div className="premium-icon-box p-3 bg-purple-100 text-purple-600 rounded-xl shadow-sm">
+                      <FileText size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl text-gray-800 tracking-tight">Kop Surat & Cetakan</h3>
+                      <p className="text-sm text-gray-500 mt-1">Pengaturan teks untuk cetakan rapor dan surat resmi</p>
+                    </div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="text-xs uppercase tracking-wider font-bold text-gray-600 mb-2">Teks Header Kop Surat</label>
+                    <textarea className="input-field premium-input resize-none w-full" style={{ minHeight: '120px' }} name="headerText" value={profile.headerText || ''} onChange={handleChange} placeholder={"PEMERINTAH KABUPATEN TASIKMALAYA\nDINAS PENDIDIKAN\nYAYASAN BINA UMMAT AL-QOMARIYAH\nSMK YASBU AL-QOMARIYAH"}></textarea>
+                    <p className="text-xs text-gray-500 mt-2">Masukkan setiap baris dengan menekan Enter. Teks ini akan otomatis dicetak rata tengah (center) pada bagian atas PDF Rapor. Kosongkan jika ingin menggunakan bawaan sistem.</p>
                   </div>
                 </div>
 

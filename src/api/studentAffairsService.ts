@@ -5,7 +5,9 @@ export interface Achievement {
   studentId: string;
   title: string;
   description?: string;
-  date: string;
+  date?: string;
+  eventDate?: string;
+  category?: string;
   level?: string; // e.g. "Sekolah", "Kabupaten", "Provinsi", "Nasional", "Internasional"
   rank?: string; // e.g. "Juara 1", "Medali Emas"
   points?: number;
@@ -15,13 +17,15 @@ export interface Achievement {
 export interface Violation {
   id: string;
   studentId: string;
-  title: string;
-  description?: string;
-  date: string;
-  category?: string; // e.g. "Ringan", "Sedang", "Berat"
-  points?: number; // penalty points
+  violationTypeId?: string;
+  title?: string;
+  category?: string;
   actionTaken?: string;
+  violationDate: string;
+  points: number;
+  notes?: string;
   student?: any;
+  violationType?: any;
 }
 
 // ==========================
@@ -66,4 +70,18 @@ export const updateViolation = async (id: string, data: Partial<Violation>): Pro
 
 export const deleteViolation = async (id: string): Promise<void> => {
   await api.delete(`/student-violations/${id}`);
+};
+
+export interface ViolationType {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  points: number;
+  description?: string;
+}
+
+export const getViolationTypes = async (): Promise<ViolationType[]> => {
+  const response = await api.get('/violation-types');
+  return response.data;
 };

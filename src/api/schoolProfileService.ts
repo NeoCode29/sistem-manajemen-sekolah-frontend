@@ -11,6 +11,7 @@ export interface SchoolProfile {
   principalName?: string;
   principalNip?: string;
   headerText?: string;
+  city?: string;
   logoUrl?: string;
 }
 
@@ -31,6 +32,13 @@ export const uploadSchoolLogo = async (file: File) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+  });
+  return response.data;
+};
+
+export const downloadTemplateDocx = async () => {
+  const response = await api.get('/schools/template-docx', {
+    responseType: 'blob',
   });
   return response.data;
 };

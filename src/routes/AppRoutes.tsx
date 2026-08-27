@@ -25,6 +25,7 @@ import { EmployeeAttendancePage } from '../pages/Attendance/EmployeeAttendance';
 import { AssessmentComponents } from '../pages/Assessment/AssessmentComponents';
 import { Exams } from '../pages/Assessment/Exams';
 import { ExamScores } from '../pages/Assessment/ExamScores';
+import { ReportCards } from '../pages/Assessment/ReportCards';
 import { Achievements } from '../pages/StudentAffairs/Achievements';
 import { Violations } from '../pages/StudentAffairs/Violations';
 import { Schedules } from '../pages/Academic/Schedules';
@@ -69,6 +70,7 @@ export const AppRoutes: React.FC = () => {
               <Route path="/assessment/components" element={<AssessmentComponents />} />
               <Route path="/assessment/exams" element={<Exams />} />
               <Route path="/assessment/exams/:examId/scores" element={<ExamScores />} />
+              <Route path="/assessment/report-cards" element={<ReportCards />} />
               <Route path="/student-affairs/achievements" element={<Achievements />} />
               <Route path="/student-affairs/violations" element={<Violations />} />
 

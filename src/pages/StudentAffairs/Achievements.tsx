@@ -29,6 +29,7 @@ export const Achievements: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
+  const [category, setCategory] = useState('Akademik');
   const [level, setLevel] = useState('Sekolah');
   const [rank, setRank] = useState('');
   const [points, setPoints] = useState<number>(0);
@@ -78,6 +79,7 @@ export const Achievements: React.FC = () => {
     setTitle('');
     setDescription('');
     setDate(new Date().toISOString().split('T')[0]);
+    setCategory('Akademik');
     setLevel('Sekolah');
     setRank('');
     setPoints(0);
@@ -92,7 +94,8 @@ export const Achievements: React.FC = () => {
     setSearchStudent('');
     setTitle(item.title);
     setDescription(item.description || '');
-    setDate(item.date ? item.date.split('T')[0] : '');
+    setDate(item.eventDate ? item.eventDate.split('T')[0] : (item.date ? item.date.split('T')[0] : ''));
+    setCategory(item.category || 'Akademik');
     setLevel(item.level || 'Sekolah');
     setRank(item.rank || '');
     setPoints(item.points || 0);
@@ -124,7 +127,8 @@ export const Achievements: React.FC = () => {
         studentId,
         title,
         description,
-        date: new Date(date).toISOString(),
+        category,
+        eventDate: new Date(date).toISOString(),
         level,
         rank,
         points: Number(points)
@@ -236,7 +240,7 @@ export const Achievements: React.FC = () => {
                       <div className="text-gray-500 mt-1 text-xs">{item.rank}</div>
                     </td>
                     <td className="p-4 text-center text-sm text-gray-600 font-medium align-top">
-                      {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {new Date(item.eventDate || item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="p-4 text-center align-top">
                       <span className="bg-green-100 text-green-700 px-3 py-1.5 rounded-md font-bold text-xs shadow-sm border border-green-200">
@@ -350,6 +354,13 @@ export const Achievements: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="form-group">
+                  <label className="text-sm font-medium text-gray-700">Kategori</label>
+                  <select className="input-field mt-1" value={category} onChange={(e) => setCategory(e.target.value)}>
+                    <option value="Akademik">Akademik</option>
+                    <option value="Non-Akademik">Non-Akademik</option>
+                  </select>
+                </div>
+                <div className="form-group">
                   <label className="text-sm font-medium text-gray-700">Tingkat</label>
                   <select className="input-field mt-1" value={level} onChange={(e) => setLevel(e.target.value)}>
                     <option value="Sekolah">Sekolah</option>
@@ -360,6 +371,9 @@ export const Achievements: React.FC = () => {
                     <option value="Internasional">Internasional</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="form-group">
                   <label className="text-sm font-medium text-gray-700">Peringkat / Predikat</label>
                   <input 
@@ -370,9 +384,6 @@ export const Achievements: React.FC = () => {
                     placeholder="Misal: Juara 1, Medali Emas"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="form-group">
                   <label className="text-sm font-medium text-gray-700">Tanggal *</label>
                   <input 
@@ -383,6 +394,9 @@ export const Achievements: React.FC = () => {
                     required 
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="form-group">
                   <label className="text-sm font-medium text-gray-700">Poin Prestasi</label>
                   <input 
@@ -394,6 +408,8 @@ export const Achievements: React.FC = () => {
                   />
                 </div>
               </div>
+
+
 
               <div className="form-group mb-6">
                 <label className="text-sm font-medium text-gray-700">Keterangan Tambahan</label>

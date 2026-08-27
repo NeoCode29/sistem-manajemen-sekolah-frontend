@@ -27,11 +27,11 @@ export const Violations: React.FC = () => {
   const [studentId, setStudentId] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [date, setDate] = useState('');
   const [category, setCategory] = useState('Ringan');
-  const [actionTaken, setActionTaken] = useState('');
   const [points, setPoints] = useState<number>(0);
+  const [actionTaken, setActionTaken] = useState('');
+  const [notes, setNotes] = useState('');
+  const [violationDate, setViolationDate] = useState('');
 
   useEffect(() => {
     fetchViolations();
@@ -76,11 +76,11 @@ export const Violations: React.FC = () => {
     setSelectedStudent(null);
     setSearchStudent('');
     setTitle('');
-    setDescription('');
-    setDate(new Date().toISOString().split('T')[0]);
     setCategory('Ringan');
-    setActionTaken('');
     setPoints(0);
+    setActionTaken('');
+    setNotes('');
+    setViolationDate(new Date().toISOString().split('T')[0]);
     setIsModalOpen(true);
     setError('');
   };
@@ -90,12 +90,12 @@ export const Violations: React.FC = () => {
     setStudentId(item.studentId);
     setSelectedStudent(item.student);
     setSearchStudent('');
-    setTitle(item.title);
-    setDescription(item.description || '');
-    setDate(item.date ? item.date.split('T')[0] : '');
+    setTitle(item.title || '');
     setCategory(item.category || 'Ringan');
-    setActionTaken(item.actionTaken || '');
     setPoints(item.points || 0);
+    setActionTaken(item.actionTaken || '');
+    setNotes(item.notes || '');
+    setViolationDate(item.violationDate ? item.violationDate.split('T')[0] : '');
     setIsModalOpen(true);
     setError('');
   };
@@ -123,11 +123,11 @@ export const Violations: React.FC = () => {
       const payload = {
         studentId,
         title,
-        description,
-        date: new Date(date).toISOString(),
         category,
+        points: Number(points),
         actionTaken,
-        points: Number(points)
+        notes,
+        violationDate: new Date(violationDate).toISOString(),
       };
       
       if (editingItem) {
@@ -236,7 +236,7 @@ export const Violations: React.FC = () => {
                       <div className="text-xs text-gray-500 font-mono mt-1 font-medium">NIS: {item.student?.nis}</div>
                     </td>
                     <td className="p-4 align-top">
-                      <div className="font-bold text-red-700 text-sm">{item.title}</div>
+                      <div className="font-bold text-red-700 text-sm">{item.title || item.violationType?.name || '-'}</div>
                       {item.actionTaken && (
                          <div className="text-xs text-gray-600 mt-1.5 flex items-start gap-1.5">
                            <span className="font-bold shrink-0">Tindakan:</span> 
@@ -245,12 +245,12 @@ export const Violations: React.FC = () => {
                       )}
                     </td>
                     <td className="p-4 text-center align-top">
-                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase shadow-sm border ${getCategoryColor(item.category || '')}`}>
-                        {item.category}
+                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase shadow-sm border ${getCategoryColor(item.category || item.violationType?.category || '')}`}>
+                        {item.category || item.violationType?.category || '-'}
                       </span>
                     </td>
                     <td className="p-4 text-center text-sm text-gray-600 font-medium align-top">
-                      {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {new Date(item.violationDate || item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="p-4 text-center align-top">
                       <span className="bg-red-100 text-red-700 px-3 py-1.5 rounded-md font-bold text-xs shadow-sm border border-red-200">
@@ -368,7 +368,7 @@ export const Violations: React.FC = () => {
                   <select className="input-field mt-1" value={category} onChange={(e) => setCategory(e.target.value)}>
                     <option value="Ringan">Ringan</option>
                     <option value="Sedang">Sedang</option>
-                    <option value="Berat">Berat</option>
+                    <option value="Tinggi">Tinggi</option>
                   </select>
                 </div>
                 <div className="form-group">
@@ -376,8 +376,8 @@ export const Violations: React.FC = () => {
                   <input 
                     type="date" 
                     className="input-field mt-1" 
-                    value={date} 
-                    onChange={(e) => setDate(e.target.value)}
+                    value={violationDate} 
+                    onChange={(e) => setViolationDate(e.target.value)}
                     required 
                   />
                 </div>
@@ -409,8 +409,8 @@ export const Violations: React.FC = () => {
                 <label className="text-sm font-medium text-gray-700">Keterangan Tambahan / Kronologi</label>
                 <textarea 
                   className="input-field mt-1" 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={notes} 
+                  onChange={(e) => setNotes(e.target.value)}
                   rows={2}
                 ></textarea>
               </div>

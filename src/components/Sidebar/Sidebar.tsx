@@ -101,6 +101,10 @@ export const Sidebar: React.FC = () => {
               <FileEdit size={20} />
               <span>Agenda Penilaian</span>
             </NavLink>
+            <NavLink to="/assessment/report-cards" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <FileText size={20} />
+              <span>Cetak Rapor</span>
+            </NavLink>
           </>
         )}
 
