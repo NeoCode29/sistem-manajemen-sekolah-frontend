@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getAchievements, createAchievement, updateAchievement, deleteAchievement, type Achievement } from '../../api/studentAffairsService';
 import { getStudents, type Student } from '../../api/studentService';
-import { Award, Plus, Edit2, Trash2, Search, User } from 'lucide-react';
+import { Award, Plus, Edit2, Trash2, Search, User, Star, AlertCircle } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
@@ -164,110 +164,156 @@ export const Achievements: React.FC = () => {
 
   return (
     <div className="academic-container">
-      <div className="page-header">
+      <div className="page-header" style={{ marginBottom: '2.5rem' }}>
         <div>
-          <h1 className="page-title">Prestasi Siswa</h1>
-          <p className="page-subtitle">Pencatatan penghargaan dan pencapaian siswa</p>
+          <h1 className="page-title" style={{ fontSize: '2rem' }}>Prestasi Siswa</h1>
+          <p className="page-description" style={{ fontSize: '1rem', marginTop: '0.25rem' }}>Kelola pencatatan penghargaan dan pencapaian akademik maupun non-akademik siswa.</p>
         </div>
-        <button className="btn-primary" onClick={() => openAddModal()}>
-          <Plus size={18} /> Tambah Prestasi
-        </button>
+        <div className="header-actions">
+          <button 
+            className="btn-primary" 
+            onClick={() => openAddModal()}
+            style={{ padding: '0.875rem 1.75rem', borderRadius: '12px', fontSize: '0.95rem' }}
+          >
+            <Plus size={20} /> Tambah Prestasi
+          </button>
+        </div>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
+      {error && !isModalOpen && (
+        <div className="alert flex items-center gap-3" style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '1.5rem', fontWeight: 500 }}>
+          <AlertCircle size={20} className="text-red-500" />
+          {error}
+        </div>
+      )}
+      
+      {success && (
+        <div className="alert flex items-center gap-3" style={{ background: '#ecfdf5', color: '#065f46', padding: '1rem', borderRadius: '12px', border: '1px solid #a7f3d0', marginBottom: '1.5rem', fontWeight: 500 }}>
+          <Star size={20} className="text-emerald-500" />
+          {success}
+        </div>
+      )}
 
-      <div className="glass-panel p-4 mb-6 flex flex-wrap gap-4 items-end bg-gray-50/50">
-        <div className="form-group flex-1 min-w-[200px]">
-          <label className="text-xs font-semibold text-gray-500 uppercase">Cari Prestasi / Nama Siswa</label>
-          <div className="relative">
+      {/* Modern Filter Section */}
+      <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', borderRadius: '16px' }}>
+        <div className="flex items-center gap-2 mb-4">
+          <Search size={18} style={{ color: '#4f46e5' }} />
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1f2937' }}>Pencarian Data Prestasi</h2>
+        </div>
+        <div className="form-group" style={{ gap: '0.35rem', maxWidth: '500px' }}>
+          <label style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>Cari Nama Siswa atau Judul Prestasi</label>
+          <div style={{ position: 'relative' }}>
             <input 
               type="text" 
-              className="input-field mt-1 pl-9" 
-              placeholder="Ketik pencarian..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              className="input-field" 
+              style={{ paddingLeft: '2.5rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }} 
+              placeholder="Ketik kata kunci pencarian..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
             />
             <Search className="absolute left-3 top-3 text-gray-400" size={18} />
           </div>
         </div>
       </div>
 
-      {error && !isModalOpen && <div className="error-message mb-4">{error}</div>}
-
-      <div className="glass-panel overflow-hidden border border-gray-200 shadow-sm mt-4">
-        <div className="p-5 border-b bg-gray-50/50 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center shadow-inner shrink-0">
-            <Award size={20} />
-          </div>
+      {/* Table Section */}
+      <div className="glass-panel" style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.8)' }}>
+        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.4)' }}>
           <div>
-            <h2 className="font-bold text-lg text-gray-800">Daftar Prestasi</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Catatan pencapaian dan penghargaan siswa</p>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Daftar Prestasi</h3>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0.2rem 0 0 0' }}>Seluruh catatan pencapaian siswa yang terdaftar dalam sistem.</p>
           </div>
         </div>
         
         {loading ? (
-          <div className="p-12 text-center text-gray-500 flex flex-col items-center">
-            <div className="w-8 h-8 border-4 border-yellow-200 border-t-yellow-500 rounded-full animate-spin mb-4"></div>
-            <span className="text-sm font-medium">Memuat data...</span>
+          <div style={{ padding: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+            <span style={{ fontSize: '1rem', fontWeight: 600, color: '#6b7280' }}>Memuat data prestasi...</span>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
-                <tr className="bg-white border-b border-gray-200">
-                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Siswa</th>
-                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Prestasi</th>
-                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Tingkat & Peringkat</th>
-                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Tanggal</th>
-                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Poin</th>
-                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Aksi</th>
+                <tr style={{ background: 'rgba(248, 250, 252, 0.7)', borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Siswa</th>
+                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Judul Prestasi</th>
+                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tingkat & Peringkat</th>
+                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Tanggal</th>
+                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Poin</th>
+                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {achievements.map((item) => (
-                  <tr key={item.id} className="border-b hover:bg-gray-50/50">
-                    <td className="p-4 align-top">
-                      <div className="font-bold text-gray-800 text-sm">{item.student?.fullName}</div>
-                      <div className="text-xs text-gray-500 font-mono mt-1 font-medium">NIS: {item.student?.nis}</div>
+                  <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                    <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <User size={18} style={{ color: '#4f46e5' }} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.95rem' }}>{item.student?.fullName}</div>
+                          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>NIS: {item.student?.nis}</div>
+                        </div>
+                      </div>
                     </td>
-                    <td className="p-4 align-top">
-                      <div className="font-bold text-blue-700 text-sm">{item.title}</div>
-                      {item.description && <div className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">{item.description}</div>}
+                    
+                    <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
+                      <div style={{ fontWeight: 700, color: '#3b82f6', fontSize: '0.95rem' }}>{item.title}</div>
+                      {item.description && <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.description}</div>}
                     </td>
-                    <td className="p-4 text-sm align-top">
-                      <div className="font-semibold text-gray-700">{item.level}</div>
-                      <div className="text-gray-500 mt-1 text-xs">{item.rank}</div>
+
+                    <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
+                      <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{item.level}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.15rem' }}>{item.rank}</div>
                     </td>
-                    <td className="p-4 text-center text-sm text-gray-600 font-medium align-top">
-                      {new Date(item.eventDate || item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    
+                    <td style={{ padding: '1.25rem 2rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#475569', fontWeight: 500 }}>
+                        {new Date(item.eventDate || item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
                     </td>
-                    <td className="p-4 text-center align-top">
-                      <span className="bg-green-100 text-green-700 px-3 py-1.5 rounded-md font-bold text-xs shadow-sm border border-green-200">
+
+                    <td style={{ padding: '1.25rem 2rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <span style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', display: 'inline-block' }}>
                         +{item.points}
                       </span>
                     </td>
-                    <td className="p-4 align-top">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" onClick={() => openEditModal(item)}>
+
+                    <td style={{ padding: '1.25rem 2rem', textAlign: 'right', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', alignItems: 'center' }}>
+                        <button 
+                          onClick={() => openEditModal(item)}
+                          style={{ padding: '0.5rem', color: '#64748b', backgroundColor: 'transparent', borderRadius: '8px', border: '1px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }} 
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.color = '#4f46e5'; }} 
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
+                        >
                           <Edit2 size={16} />
                         </button>
-                        <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" onClick={() => handleDelete(item.id)}>
+                        <button 
+                          onClick={() => handleDelete(item.id)}
+                          style={{ padding: '0.5rem', color: '#64748b', backgroundColor: 'transparent', borderRadius: '8px', border: '1px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }} 
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.color = '#ef4444'; }} 
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
+                        >
                           <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
                   </tr>
                 ))}
+                
                 {achievements.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-16 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-400 py-4">
-                        <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6 border border-gray-100 shadow-sm">
-                          <Award size={36} className="text-gray-300" />
+                    <td colSpan={6} style={{ padding: '6rem 2rem', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyItems: 'center' }}>
+                        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', boxShadow: '0 10px 15px -3px rgba(245, 158, 11, 0.1)' }}>
+                          <Award size={36} style={{ color: '#d97706' }} />
                         </div>
-                        <div className="text-lg font-bold text-gray-700 tracking-wide">Belum ada data prestasi.</div>
-                        <div className="text-sm text-gray-500 font-medium" style={{ marginTop: '30px' }}>Silakan tambah prestasi baru melalui tombol di atas.</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1f2937' }}>Belum Ada Data Prestasi</div>
+                        <div style={{ fontSize: '0.95rem', color: '#6b7280', marginTop: '0.5rem', maxWidth: '400px', lineHeight: 1.5 }}>
+                          Belum ada data prestasi siswa yang ditambahkan. Gunakan tombol "Tambah Prestasi" untuk mulai mendata.
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -280,158 +326,158 @@ export const Achievements: React.FC = () => {
 
       {isModalOpen && createPortal(
         <div className="modal-backdrop-v4">
-          <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
-            <div className="modal-header-v4">
-              <h2>{editingItem ? 'Edit Prestasi' : 'Tambah Prestasi Baru'}</h2>
+          <div className="modal-content-v4" style={{ maxWidth: '600px' }}>
+            <div className="modal-header-v4" style={{ background: 'linear-gradient(to right, #f8fafc, #ffffff)' }}>
+              <h2>{editingItem ? 'Edit Data Prestasi' : 'Tambah Prestasi Baru'}</h2>
               <button type="button" className="btn-close" onClick={closeModal}>&times;</button>
             </div>
+            
             <form onSubmit={handleSubmit} className="modal-form-v4">
-              <div className="modal-body-v4 form-grid">
-              {error && <div className="error-message mb-4">{error}</div>}
-              
-              <div className="form-group mb-4">
-                <label className="text-sm font-medium text-gray-700 block mb-1">Siswa *</label>
-                {!selectedStudent ? (
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      className="input-field pl-9" 
-                      placeholder="Cari nama atau NIS (min 3 huruf)..."
-                      value={searchStudent}
-                      onChange={(e) => setSearchStudent(e.target.value)}
-                    />
-                    <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-                    
-                    {students.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                        {students.map(s => (
-                          <div 
-                            key={s.id} 
-                            className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-b-0"
-                            onClick={() => handleSelectStudent(s)}
-                          >
-                            <div className="font-medium text-gray-800">{s.fullName}</div>
-                            <div className="text-xs text-gray-500 font-mono">NIS: {s.nis}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex justify-between items-center bg-blue-50 p-3 rounded-md border border-blue-100">
-                    <div className="flex items-center gap-2">
-                      <User size={16} className="text-blue-600" />
-                      <div>
-                        <div className="font-bold text-sm text-gray-800">{selectedStudent.fullName}</div>
-                        <div className="text-xs text-gray-600 font-mono">{selectedStudent.nis}</div>
-                      </div>
+              <div className="modal-body-v4 form-grid" style={{ padding: '2rem 1.5rem' }}>
+                {error && <div className="alert flex items-center gap-3" style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '1.5rem', fontWeight: 500 }}><AlertCircle size={20} />{error}</div>}
+                
+                <div className="form-group mb-4">
+                  <label className="text-sm font-semibold text-gray-700 block mb-1">Siswa *</label>
+                  {!selectedStudent ? (
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        className="input-field pl-9" 
+                        placeholder="Cari nama atau NIS (min 3 huruf)..."
+                        value={searchStudent}
+                        onChange={(e) => setSearchStudent(e.target.value)}
+                      />
+                      <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+                      
+                      {students.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                          {students.map(s => (
+                            <div 
+                              key={s.id} 
+                              className="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              onClick={() => handleSelectStudent(s)}
+                            >
+                              <div className="font-medium text-gray-800">{s.fullName}</div>
+                              <div className="text-xs text-gray-500 font-mono">NIS: {s.nis}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <button 
-                      type="button"
-                      className="text-xs text-blue-600 hover:underline px-2 py-1 bg-white rounded border border-blue-200"
-                      onClick={() => {
-                        setSelectedStudent(null);
-                        setStudentId('');
-                      }}
-                    >
-                      Ganti
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group mb-4">
-                <label className="text-sm font-medium text-gray-700">Nama Prestasi *</label>
-                <input 
-                  type="text" 
-                  className="input-field mt-1" 
-                  value={title} 
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Misal: Juara 1 Olimpiade Matematika"
-                  required 
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Kategori</label>
-                  <select className="input-field mt-1" value={category} onChange={(e) => setCategory(e.target.value)}>
-                    <option value="Akademik">Akademik</option>
-                    <option value="Non-Akademik">Non-Akademik</option>
-                  </select>
+                  ) : (
+                    <div className="flex justify-between items-center bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-indigo-600 shadow-sm"><User size={16} /></div>
+                        <div>
+                          <div className="font-bold text-sm text-gray-800">{selectedStudent.fullName}</div>
+                          <div className="text-xs text-gray-600 font-mono">{selectedStudent.nis}</div>
+                        </div>
+                      </div>
+                      <button 
+                        type="button"
+                        className="text-xs text-indigo-600 font-semibold hover:bg-white px-3 py-1.5 rounded border border-indigo-200 transition-colors"
+                        onClick={() => {
+                          setSelectedStudent(null);
+                          setStudentId('');
+                        }}
+                      >
+                        Ganti Siswa
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Tingkat</label>
-                  <select className="input-field mt-1" value={level} onChange={(e) => setLevel(e.target.value)}>
-                    <option value="Sekolah">Sekolah</option>
-                    <option value="Kecamatan">Kecamatan</option>
-                    <option value="Kabupaten">Kabupaten / Kota</option>
-                    <option value="Provinsi">Provinsi</option>
-                    <option value="Nasional">Nasional</option>
-                    <option value="Internasional">Internasional</option>
-                  </select>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Peringkat / Predikat</label>
+                <div className="form-group mb-4">
+                  <label className="text-sm font-semibold text-gray-700">Nama / Judul Prestasi *</label>
                   <input 
                     type="text" 
-                    className="input-field mt-1" 
-                    value={rank} 
-                    onChange={(e) => setRank(e.target.value)}
-                    placeholder="Misal: Juara 1, Medali Emas"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Tanggal *</label>
-                  <input 
-                    type="date" 
-                    className="input-field mt-1" 
-                    value={date} 
-                    onChange={(e) => setDate(e.target.value)}
+                    className="input-field" 
+                    value={title} 
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Misal: Juara 1 Olimpiade Matematika Nasional"
                     required 
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Poin Prestasi</label>
-                  <input 
-                    type="number" 
-                    className="input-field mt-1" 
-                    value={points} 
-                    onChange={(e) => setPoints(Number(e.target.value))}
-                    min={0}
-                  />
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="form-group">
+                    <label className="text-sm font-semibold text-gray-700">Kategori</label>
+                    <select className="input-field" value={category} onChange={(e) => setCategory(e.target.value)}>
+                      <option value="Akademik">Akademik</option>
+                      <option value="Non-Akademik">Non-Akademik</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="text-sm font-semibold text-gray-700">Tingkat</label>
+                    <select className="input-field" value={level} onChange={(e) => setLevel(e.target.value)}>
+                      <option value="Sekolah">Sekolah</option>
+                      <option value="Kecamatan">Kecamatan</option>
+                      <option value="Kabupaten">Kabupaten / Kota</option>
+                      <option value="Provinsi">Provinsi</option>
+                      <option value="Nasional">Nasional</option>
+                      <option value="Internasional">Internasional</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
 
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="form-group">
+                    <label className="text-sm font-semibold text-gray-700">Peringkat / Predikat</label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      value={rank} 
+                      onChange={(e) => setRank(e.target.value)}
+                      placeholder="Misal: Juara 1, Medali Emas"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="text-sm font-semibold text-gray-700">Tanggal Diperoleh *</label>
+                    <input 
+                      type="date" 
+                      className="input-field" 
+                      value={date} 
+                      onChange={(e) => setDate(e.target.value)}
+                      required 
+                    />
+                  </div>
+                </div>
 
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="form-group">
+                    <label className="text-sm font-semibold text-gray-700">Poin Prestasi</label>
+                    <input 
+                      type="number" 
+                      className="input-field" 
+                      value={points} 
+                      onChange={(e) => setPoints(Number(e.target.value))}
+                      min={0}
+                    />
+                  </div>
+                </div>
 
-              <div className="form-group mb-6">
-                <label className="text-sm font-medium text-gray-700">Keterangan Tambahan</label>
-                <textarea 
-                  className="input-field mt-1" 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={2}
-                ></textarea>
-              </div>
+                <div className="form-group">
+                  <label className="text-sm font-semibold text-gray-700">Keterangan Tambahan (Opsional)</label>
+                  <textarea 
+                    className="input-field" 
+                    value={description} 
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    style={{ resize: 'none' }}
+                    placeholder="Tuliskan detail tambahan tentang prestasi ini..."
+                  ></textarea>
+                </div>
 
               </div>
               <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={closeModal}>Batal</button>
-                <button type="submit" className="btn-primary" disabled={isSubmitting || !studentId}>
+                <button type="button" className="btn-secondary" onClick={closeModal} style={{ padding: '0.75rem 1.5rem', fontSize: '0.95rem' }}>Batal</button>
+                <button type="submit" className="btn-primary" disabled={isSubmitting || !studentId} style={{ padding: '0.75rem 1.5rem', fontSize: '0.95rem' }}>
                   {isSubmitting ? 'Menyimpan...' : 'Simpan Data'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
-      ,
+        </div>,
         document.body
       )}
     </div>

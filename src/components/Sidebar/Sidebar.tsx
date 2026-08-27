@@ -49,62 +49,6 @@ export const Sidebar: React.FC = () => {
               <Building2 size={20} />
               <span>Profil Sekolah</span>
             </NavLink>
-
-            <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Data Master
-            </div>
-            <NavLink to="/academic/years" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Calendar size={20} />
-              <span>Tahun Ajaran</span>
-            </NavLink>
-            <NavLink to="/academic/semesters" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Library size={20} />
-              <span>Semester</span>
-            </NavLink>
-            <NavLink to="/academic/grades" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <GraduationCap size={20} />
-              <span>Tingkat Kelas</span>
-            </NavLink>
-            <NavLink to="/academic/classrooms" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Users size={20} />
-              <span>Rombel / Kelas</span>
-            </NavLink>
-            <NavLink to="/academic/subjects" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <BookOpen size={20} />
-              <span>Mata Pelajaran</span>
-            </NavLink>
-            <NavLink to="/academic/schedules" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <CalendarDays size={20} />
-              <span>Jadwal Pelajaran</span>
-            </NavLink>
-            <NavLink to="/academic/class-periods" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Clock size={20} />
-              <span>Jam Pelajaran</span>
-            </NavLink>
-            <NavLink to="/academic/promotions" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <TrendingUp size={20} />
-              <span>Kenaikan Kelas</span>
-            </NavLink>
-            <NavLink to="/academic/graduations" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Award size={20} />
-              <span>Kelulusan</span>
-            </NavLink>
-
-            <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Penilaian & Ujian
-            </div>
-            <NavLink to="/assessment/components" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Settings size={20} />
-              <span>Komponen Penilaian</span>
-            </NavLink>
-            <NavLink to="/assessment/exams" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <FileEdit size={20} />
-              <span>Agenda Penilaian</span>
-            </NavLink>
-            <NavLink to="/assessment/report-cards" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <FileText size={20} />
-              <span>Cetak Rapor</span>
-            </NavLink>
           </>
         )}
 
@@ -113,17 +57,65 @@ export const Sidebar: React.FC = () => {
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Sivitas Akademika
             </div>
-            <NavLink to="/entities/positions" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <BadgeCheck size={20} />
-              <span>Jabatan</span>
+            <NavLink to="/entities/students" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <User size={20} />
+              <span>Siswa & Wali</span>
             </NavLink>
             <NavLink to="/entities/employees" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
               <Briefcase size={20} />
               <span>Pegawai / Guru</span>
             </NavLink>
-            <NavLink to="/entities/students" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <User size={20} />
-              <span>Siswa & Wali</span>
+            <NavLink to="/entities/positions" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <BadgeCheck size={20} />
+              <span>Jabatan</span>
+            </NavLink>
+          </>
+        )}
+
+        {canManageMaster && (
+          <>
+            <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Data Master
+            </div>
+            <NavLink to="/academic/classrooms" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <Users size={20} />
+              <span>Rombel / Kelas</span>
+            </NavLink>
+            <NavLink to="/academic/grades" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <GraduationCap size={20} />
+              <span>Tingkat Kelas</span>
+            </NavLink>
+            <NavLink to="/academic/years" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <Calendar size={20} />
+              <span>Tahun Ajaran</span>
+            </NavLink>
+            <NavLink to="/academic/semesters" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <Library size={20} />
+              <span>Semester</span>
+            </NavLink>
+
+            <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Akademik & Kurikulum
+            </div>
+            <NavLink to="/academic/subjects" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <BookOpen size={20} />
+              <span>Mata Pelajaran</span>
+            </NavLink>
+            <NavLink to="/academic/class-periods" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <Clock size={20} />
+              <span>Jam Pelajaran</span>
+            </NavLink>
+            <NavLink to="/academic/schedules" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <CalendarDays size={20} />
+              <span>Jadwal Pelajaran</span>
+            </NavLink>
+            <NavLink to="/academic/promotions" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <TrendingUp size={20} />
+              <span>Kenaikan Kelas</span>
+            </NavLink>
+            <NavLink to="/academic/graduations" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <Award size={20} />
+              <span>Kelulusan</span>
             </NavLink>
           </>
         )}
@@ -148,6 +140,26 @@ export const Sidebar: React.FC = () => {
           </>
         )}
 
+        {canManageMaster && (
+          <>
+            <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Penilaian & Ujian
+            </div>
+            <NavLink to="/assessment/components" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <Settings size={20} />
+              <span>Komponen Penilaian</span>
+            </NavLink>
+            <NavLink to="/assessment/exams" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <FileEdit size={20} />
+              <span>Agenda Penilaian</span>
+            </NavLink>
+            <NavLink to="/assessment/report-cards" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <FileText size={20} />
+              <span>Cetak Rapor</span>
+            </NavLink>
+          </>
+        )}
+
         {canManageSivitas && (
           <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -160,27 +172,6 @@ export const Sidebar: React.FC = () => {
             <NavLink to="/student-affairs/violations" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
               <AlertOctagon size={20} />
               <span>Pelanggaran (Kasus)</span>
-            </NavLink>
-
-          </>
-        )}
-
-        {canManageRBAC && (
-          <>
-            <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Pengaturan Admin
-            </div>
-            <NavLink to="/admin/users" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <UserCog size={20} />
-              <span>Pengguna</span>
-            </NavLink>
-            <NavLink to="/admin/roles" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <UserCheck size={20} />
-              <span>Peran (Roles)</span>
-            </NavLink>
-            <NavLink to="/admin/permissions" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <ShieldCheck size={20} />
-              <span>Hak Akses</span>
             </NavLink>
           </>
         )}
@@ -209,10 +200,30 @@ export const Sidebar: React.FC = () => {
           </>
         )}
 
+        {canManageRBAC && (
+          <>
+            <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Sistem & Akses
+            </div>
+            <NavLink to="/admin/users" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <UserCog size={20} />
+              <span>Pengguna</span>
+            </NavLink>
+            <NavLink to="/admin/roles" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <UserCheck size={20} />
+              <span>Peran (Roles)</span>
+            </NavLink>
+            <NavLink to="/admin/permissions" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <ShieldCheck size={20} />
+              <span>Hak Akses</span>
+            </NavLink>
+          </>
+        )}
+        
         {canManageMaster && (
           <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Perangkat & Sistem
+              Perangkat
             </div>
             <NavLink to="/hardware/logs" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
               <Monitor size={20} />
