@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getAcademicYears, getSemesters, getGrades, getClassrooms, getSubjects, type AcademicYear, type Semester, type Grade, type Classroom, type Subject } from '../../api/academicService';
 import { getAssessmentComponents, createAssessmentComponent, updateAssessmentComponent, deleteAssessmentComponent, getAssessmentTypes, type AssessmentComponent, type AssessmentType } from '../../api/assessmentService';
-import { Plus, Edit2, Trash2, Settings, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Settings, AlertCircle, Target, BookOpen, PieChart, CheckCircle2 } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
@@ -208,69 +208,83 @@ export const AssessmentComponents: React.FC = () => {
 
   return (
     <div className="academic-container">
-      <div className="page-header">
+      <div className="page-header" style={{ marginBottom: '2.5rem' }}>
         <div>
-          <h1 className="page-title">Komponen Penilaian</h1>
-          <p className="page-description">Atur jenis dan bobot penilaian untuk perhitungan nilai akhir rapor</p>
+          <h1 className="page-title" style={{ fontSize: '2rem' }}>Komponen Penilaian</h1>
+          <p className="page-description" style={{ fontSize: '1rem', marginTop: '0.25rem' }}>Atur struktur penilaian, jenis ujian, dan proporsi bobot untuk perhitungan nilai akhir.</p>
         </div>
         <div className="header-actions">
           <button 
-            className="btn btn-primary" 
+            className="btn-primary" 
             onClick={() => handleOpenModal()}
+            style={{ padding: '0.875rem 1.75rem', borderRadius: '12px', fontSize: '0.95rem' }}
           >
-            <Plus size={18} />
+            <Plus size={20} />
             Tambah Komponen
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="alert alert-error mb-4 flex items-center gap-2">
-          <AlertCircle size={18} />
+        <div className="alert flex items-center gap-3" style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '1.5rem', fontWeight: 500 }}>
+          <AlertCircle size={20} className="text-red-500" />
           {error}
         </div>
       )}
 
-      {/* Filters */}
-      <div className="glass-panel overflow-hidden border border-gray-200 shadow-sm mb-6">
-        <div className="p-4 border-b bg-gray-50/50 flex items-center gap-2">
-          <Settings size={18} className="text-gray-500" />
-          <h2 className="font-semibold text-gray-700">Filter Data</h2>
+      {/* Modern Filter Section */}
+      <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', borderRadius: '16px' }}>
+        <div className="flex items-center gap-2 mb-4">
+          <Settings size={18} style={{ color: '#4f46e5' }} />
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1f2937' }}>Parameter Penilaian</h2>
         </div>
-        <div className="p-5">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="form-group">
-              <label className="text-sm font-medium text-gray-700">Tahun Ajaran</label>
-              <select className="input-field mt-1" value={filterAcademicYearId} onChange={e => setFilterAcademicYearId(e.target.value)}>
-                <option value="">Pilih...</option>
+        
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
+          <div className="form-group" style={{ gap: '0.35rem' }}>
+            <label style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>Tahun Ajaran</label>
+            <div style={{ position: 'relative' }}>
+              <select className="input-field" style={{ paddingLeft: '1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer' }} value={filterAcademicYearId} onChange={e => setFilterAcademicYearId(e.target.value)}>
+                <option value="">Pilih Tahun Ajaran...</option>
                 {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label className="text-sm font-medium text-gray-700">Semester</label>
-              <select className="input-field mt-1" value={filterSemesterId} onChange={e => setFilterSemesterId(e.target.value)}>
-                <option value="">Pilih...</option>
+          </div>
+          
+          <div className="form-group" style={{ gap: '0.35rem' }}>
+            <label style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>Semester</label>
+            <div style={{ position: 'relative' }}>
+              <select className="input-field" style={{ paddingLeft: '1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer' }} value={filterSemesterId} onChange={e => setFilterSemesterId(e.target.value)}>
+                <option value="">Pilih Semester...</option>
                 {semesters.map(s => <option key={s.id} value={s.id}>{s.name} ({s.semesterType})</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label className="text-sm font-medium text-gray-700">Tingkat Kelas</label>
-              <select className="input-field mt-1" value={filterGradeId} onChange={e => setFilterGradeId(e.target.value)}>
-                <option value="">Pilih...</option>
+          </div>
+
+          <div className="form-group" style={{ gap: '0.35rem' }}>
+            <label style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>Tingkat Kelas</label>
+            <div style={{ position: 'relative' }}>
+              <select className="input-field" style={{ paddingLeft: '1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer' }} value={filterGradeId} onChange={e => setFilterGradeId(e.target.value)}>
+                <option value="">Pilih Tingkat...</option>
                 {grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label className="text-sm font-medium text-gray-700">Rombel / Kelas</label>
-              <select className="input-field mt-1" value={filterClassroomId} onChange={e => setFilterClassroomId(e.target.value)} disabled={!filterGradeId}>
-                <option value="">Pilih...</option>
+          </div>
+
+          <div className="form-group" style={{ gap: '0.35rem' }}>
+            <label style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>Rombel / Kelas</label>
+            <div style={{ position: 'relative' }}>
+              <select className="input-field" style={{ paddingLeft: '1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', opacity: filterGradeId ? 1 : 0.6 }} value={filterClassroomId} onChange={e => setFilterClassroomId(e.target.value)} disabled={!filterGradeId}>
+                <option value="">Pilih Rombel...</option>
                 {classrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label className="text-sm font-medium text-gray-700">Mata Pelajaran</label>
-              <select className="input-field mt-1" value={filterSubjectId} onChange={e => setFilterSubjectId(e.target.value)}>
-                <option value="">Pilih...</option>
+          </div>
+
+          <div className="form-group" style={{ gap: '0.35rem' }}>
+            <label style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>Mata Pelajaran</label>
+            <div style={{ position: 'relative' }}>
+              <select className="input-field" style={{ paddingLeft: '1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer' }} value={filterSubjectId} onChange={e => setFilterSubjectId(e.target.value)}>
+                <option value="">Pilih Mapel...</option>
                 {subjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
               </select>
             </div>
@@ -278,73 +292,114 @@ export const AssessmentComponents: React.FC = () => {
         </div>
       </div>
 
-      <div className="glass-panel overflow-hidden border border-gray-200 shadow-sm">
+      <div className="glass-panel" style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.8)' }}>
         {loading && !isModalOpen ? (
-          <div className="p-12 text-center text-gray-500 flex flex-col items-center">
-            <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-            <span className="text-sm font-medium">Memuat data...</span>
+          <div style={{ padding: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+            <span style={{ fontSize: '1rem', fontWeight: 600, color: '#6b7280' }}>Memuat konfigurasi...</span>
           </div>
         ) : components.length === 0 ? (
-          <div className="p-16 text-center">
-            <div className="flex flex-col items-center justify-center text-gray-400 py-4">
-              <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6 border border-gray-100 shadow-sm">
-                <AlertCircle size={36} className="text-gray-300" />
+          <div style={{ padding: '6rem 2rem', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', boxShadow: '0 10px 15px -3px rgba(79, 70, 229, 0.1)' }}>
+                <Target size={36} style={{ color: '#4f46e5' }} />
               </div>
-              <div className="text-lg font-bold text-gray-700 tracking-wide">Belum ada komponen penilaian.</div>
-              <div className="text-sm text-gray-500 font-medium" style={{ marginTop: '30px' }}>Silakan tambah komponen penilaian baru melalui tombol di atas.</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1f2937' }}>Data Komponen Kosong</div>
+              <div style={{ fontSize: '0.95rem', color: '#6b7280', marginTop: '0.5rem', maxWidth: '400px', lineHeight: 1.5 }}>
+                {isFiltersComplete ? 'Belum ada komponen penilaian yang diatur untuk kelas dan mapel ini. Silakan tambahkan komponen baru.' : 'Pastikan Anda telah memilih semua filter di atas untuk melihat data komponen penilaian.'}
+              </div>
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-white border-b border-gray-200">
-                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider w-16">No</th>
-                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Jenis Penilaian</th>
-                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Kode</th>
-                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Bobot (%)</th>
-                  <th className="p-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {components.map((comp, index) => (
-                  <tr key={comp.id} className="border-b hover:bg-gray-50/50">
-                    <td className="p-4 align-middle text-gray-600">{index + 1}</td>
-                    <td className="p-4 align-middle">
-                      <div className="font-semibold text-gray-800">{comp.type?.name || 'Unknown'}</div>
-                    </td>
-                    <td className="p-4 align-middle">
-                      <span className="px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase bg-blue-50 text-blue-700 border border-blue-200">
-                        {comp.type?.code}
-                      </span>
-                    </td>
-                    <td className="p-4 align-middle text-center">
-                      <div className="font-bold text-gray-800">{comp.weight}%</div>
-                    </td>
-                    <td className="p-4 align-middle text-right">
-                      <div className="flex justify-end gap-1.5">
-                        <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" onClick={() => handleOpenModal(comp)}>
-                          <Edit2 size={16} />
-                        </button>
-                        <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" onClick={() => handleDelete(comp.id)}>
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
+          <div>
+            {/* Header section of the table card */}
+            <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.4)' }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Daftar Komponen</h3>
+                <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0.2rem 0 0 0' }}>Sebaran bobot persentase penilaian siswa</p>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: totalWeight === 100 ? '#059669' : '#dc2626' }}>Total Bobot</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: totalWeight === 100 ? '#10b981' : '#ef4444', lineHeight: 1 }}>{totalWeight}%</div>
+                </div>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: totalWeight === 100 ? '#d1fae5' : '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <PieChart size={24} style={{ color: totalWeight === 100 ? '#10b981' : '#ef4444' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(248, 250, 252, 0.7)', borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', width: '80px' }}>No</th>
+                    <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Jenis Penilaian</th>
+                    <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kode Referensi</th>
+                    <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Bobot (%)</th>
+                    <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Aksi</th>
                   </tr>
-                ))}
-                <tr className="bg-gray-50/80 border-t-2 border-gray-200">
-                  <td colSpan={3} className="text-right p-4 font-bold text-gray-700">Total Bobot:</td>
-                  <td className={`text-center p-4 font-bold text-lg ${totalWeight === 100 ? 'text-green-600' : 'text-red-600'}`}>
-                    {totalWeight}%
-                    {totalWeight !== 100 && (
-                      <div className="text-xs font-semibold mt-1 text-red-500 bg-red-50 py-0.5 px-2 rounded border border-red-100 inline-block block">Total harus 100%</div>
-                    )}
-                  </td>
-                  <td></td>
-                </tr>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {components.map((comp, index) => (
+                    <tr key={comp.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                      <td style={{ padding: '1.25rem 2rem', color: '#64748b', fontWeight: 500 }}>{index + 1}</td>
+                      <td style={{ padding: '1.25rem 2rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <BookOpen size={18} style={{ color: '#4f46e5' }} />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.95rem' }}>{comp.type?.name || 'Unknown'}</div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Komponen Penilaian Akademik</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '1.25rem 2rem' }}>
+                        <span style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#64748b' }}></div>
+                          {comp.type?.code}
+                        </span>
+                      </td>
+                      <td style={{ padding: '1.25rem 2rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>{comp.weight}%</div>
+                      </td>
+                      <td style={{ padding: '1.25rem 2rem', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                          <button style={{ padding: '0.5rem', color: '#64748b', backgroundColor: 'transparent', borderRadius: '8px', border: '1px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }} onClick={() => handleOpenModal(comp)} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.color = '#4f46e5'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#64748b'; }}>
+                            <Edit2 size={16} />
+                          </button>
+                          <button style={{ padding: '0.5rem', color: '#64748b', backgroundColor: 'transparent', borderRadius: '8px', border: '1px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }} onClick={() => handleDelete(comp.id)} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.color = '#ef4444'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#64748b'; }}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Progress Bar Footer */}
+            <div style={{ padding: '1.5rem 2rem', background: 'rgba(248, 250, 252, 0.8)', borderTop: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Distribusi Total Bobot</span>
+                {totalWeight === 100 ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 600, color: '#10b981' }}>
+                    <CheckCircle2 size={16} /> Konfigurasi Sempurna
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ef4444' }}>
+                    Sisa {100 - totalWeight}% yang belum dialokasikan
+                  </span>
+                )}
+              </div>
+              <div style={{ width: '100%', height: '12px', backgroundColor: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min(totalWeight, 100)}%`, backgroundColor: totalWeight === 100 ? '#10b981' : (totalWeight > 100 ? '#ef4444' : '#4f46e5'), borderRadius: '999px', transition: 'width 0.5s ease-in-out' }}></div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -353,77 +408,84 @@ export const AssessmentComponents: React.FC = () => {
       {isModalOpen && createPortal(
         <div className="modal-backdrop-v4">
           <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
-            <div className="modal-header-v4">
+            <div className="modal-header-v4" style={{ background: 'linear-gradient(to right, #f8fafc, #ffffff)' }}>
               <h2>{editingId ? 'Edit Komponen' : 'Tambah Komponen'}</h2>
               <button className="btn-close" onClick={handleCloseModal}>&times;</button>
             </div>
             <form onSubmit={handleSubmit} className="modal-form-v4">
-              <div className="modal-body-v4 form-grid">
+              <div className="modal-body-v4 form-grid" style={{ padding: '2rem 1.5rem' }}>
                 
                 {/* Independent Modal Inputs */}
                 <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Tahun Ajaran *</label>
-                  <select className="input-field mt-1" value={modalAcademicYearId} onChange={e => setModalAcademicYearId(e.target.value)} required disabled={!!editingId}>
-                    <option value="">Pilih...</option>
+                  <label className="text-sm font-semibold text-gray-700">Tahun Ajaran <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select className="input-field" value={modalAcademicYearId} onChange={e => setModalAcademicYearId(e.target.value)} required disabled={!!editingId} style={{ backgroundColor: !!editingId ? '#f1f5f9' : 'white' }}>
+                    <option value="">Pilih Tahun Ajaran...</option>
                     {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Semester *</label>
-                  <select className="input-field mt-1" value={modalSemesterId} onChange={e => setModalSemesterId(e.target.value)} required disabled={!!editingId}>
-                    <option value="">Pilih...</option>
+                  <label className="text-sm font-semibold text-gray-700">Semester <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select className="input-field" value={modalSemesterId} onChange={e => setModalSemesterId(e.target.value)} required disabled={!!editingId} style={{ backgroundColor: !!editingId ? '#f1f5f9' : 'white' }}>
+                    <option value="">Pilih Semester...</option>
                     {semesters.map(s => <option key={s.id} value={s.id}>{s.name} ({s.semesterType})</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Tingkat Kelas *</label>
-                  <select className="input-field mt-1" value={modalGradeId} onChange={e => setModalGradeId(e.target.value)} required disabled={!!editingId}>
-                    <option value="">Pilih...</option>
+                  <label className="text-sm font-semibold text-gray-700">Tingkat Kelas <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select className="input-field" value={modalGradeId} onChange={e => setModalGradeId(e.target.value)} required disabled={!!editingId} style={{ backgroundColor: !!editingId ? '#f1f5f9' : 'white' }}>
+                    <option value="">Pilih Tingkat Kelas...</option>
                     {grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Rombel / Kelas *</label>
-                  <select className="input-field mt-1" value={modalClassroomId} onChange={e => setModalClassroomId(e.target.value)} disabled={!modalGradeId || !!editingId} required>
-                    <option value="">Pilih...</option>
+                  <label className="text-sm font-semibold text-gray-700">Rombel / Kelas <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select className="input-field" value={modalClassroomId} onChange={e => setModalClassroomId(e.target.value)} disabled={!modalGradeId || !!editingId} required style={{ backgroundColor: (!modalGradeId || !!editingId) ? '#f1f5f9' : 'white' }}>
+                    <option value="">Pilih Rombel / Kelas...</option>
                     {modalClassrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="text-sm font-medium text-gray-700">Mata Pelajaran *</label>
-                  <select className="input-field mt-1" value={modalSubjectId} onChange={e => setModalSubjectId(e.target.value)} required disabled={!!editingId}>
-                    <option value="">Pilih...</option>
+                  <label className="text-sm font-semibold text-gray-700">Mata Pelajaran <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select className="input-field" value={modalSubjectId} onChange={e => setModalSubjectId(e.target.value)} required disabled={!!editingId} style={{ backgroundColor: !!editingId ? '#f1f5f9' : 'white' }}>
+                    <option value="">Pilih Mata Pelajaran...</option>
                     {subjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
                   </select>
                 </div>
 
-                <hr className="my-2 border-gray-200" style={{ gridColumn: '1 / -1' }} />
+                <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '1rem 0', gridColumn: '1 / -1' }}></div>
+                
                 <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Jenis Penilaian *</label>
-                  <select className="input-field mt-1" value={typeId} onChange={e => setTypeId(e.target.value)} required disabled={!!editingId}>
-                    <option value="">Pilih...</option>
+                  <label className="text-sm font-semibold text-gray-700">Jenis Penilaian <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select className="input-field" value={typeId} onChange={e => setTypeId(e.target.value)} required disabled={!!editingId} style={{ backgroundColor: !!editingId ? '#f1f5f9' : 'white' }}>
+                    <option value="">Pilih Jenis Penilaian...</option>
                     {types.map(t => <option key={t.id} value={t.id}>{t.name} ({t.code})</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Bobot Persentase (%) *</label>
+                  <label className="text-sm font-semibold text-gray-700">Bobot Persentase (%) <span style={{ color: '#ef4444' }}>*</span></label>
                   <input 
                     type="number" 
-                    className="input-field mt-1" 
+                    className="input-field" 
                     value={weight || ''} 
                     onChange={e => setWeight(Number(e.target.value))} 
                     min={1} 
                     max={100}
                     step="0.01"
                     required 
+                    style={{ fontSize: '1.25rem', fontWeight: 700 }}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Sisa bobot yang bisa ditambahkan: {100 - (totalWeight - (editingId ? (components.find(c => c.id === editingId)?.weight || 0) : 0))}%</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4f46e5' }}></div>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                      Sisa kuota: <strong>{100 - (totalWeight - (editingId ? (components.find(c => c.id === editingId)?.weight || 0) : 0))}%</strong>
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={isSubmitting}>Batal</button>
-                <button type="submit" className="btn-primary" disabled={isSubmitting}>
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={isSubmitting} style={{ padding: '0.75rem 1.5rem', fontSize: '0.95rem' }}>Batal</button>
+                <button type="submit" className="btn-primary" disabled={isSubmitting} style={{ padding: '0.75rem 1.5rem', fontSize: '0.95rem' }}>
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </button>
               </div>
             </form>
@@ -435,3 +497,4 @@ export const AssessmentComponents: React.FC = () => {
     </div>
   );
 };
+
