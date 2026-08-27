@@ -1,30 +1,47 @@
 import React, { useEffect, useState } from 'react';
 import { Users, FileText, AlertOctagon, Award, BookOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { getHomeroomByTeacher, getAcademicYears, getSemesters } from '../../api/academicService';
 import '../Academic/Academic.css';
 
 export const HomeroomDashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
-  // Placeholder data that will later be fetched from the backend API
   const [loading, setLoading] = useState(false);
   const [classroom, setClassroom] = useState<any>(null);
 
   useEffect(() => {
-    // In a real scenario, fetch the classroom info assigned to this employeeId
-    // API call: /homeroom/my-classroom
-    setLoading(true);
-    setTimeout(() => {
-      setClassroom({
-        id: '1',
-        name: 'X MIPA 1',
-        totalStudents: 32,
-        academicYear: '2023/2024',
-        semester: 'Ganjil',
-      });
-      setLoading(false);
-    }, 1000);
-  }, []);
+    const fetchMyClassroom = async () => {
+      if (!user?.employeeId) {
+        setLoading(false);
+        return;
+      }
+      
+      setLoading(true);
+      try {
+        const [years, semesters] = await Promise.all([
+          getAcademicYears(),
+          getSemesters()
+        ]);
+        
+        const activeAy = years.find((y: any) => y.isActive);
+        const activeSm = semesters.find((s: any) => s.isActive);
+        
+        if (activeAy && activeSm) {
+          const myRoom = await getHomeroomByTeacher(user.employeeId, activeAy.id, activeSm.id);
+          setClassroom(myRoom);
+        }
+      } catch (error) {
+        console.error("Failed to fetch homeroom data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyClassroom();
+  }, [user]);
 
   return (
     <div className="academic-container">
@@ -65,7 +82,7 @@ export const HomeroomDashboard: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">E-Rapor Selesai</p>
-                <h3 className="text-2xl font-bold text-gray-800">12 / {classroom.totalStudents}</h3>
+                <h3 className="text-2xl font-bold text-gray-800">{classroom.completedReports || 0} / {classroom.totalStudents}</h3>
               </div>
             </div>
 
@@ -75,7 +92,7 @@ export const HomeroomDashboard: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">Prestasi Siswa</p>
-                <h3 className="text-2xl font-bold text-gray-800">5</h3>
+                <h3 className="text-2xl font-bold text-gray-800">{classroom.totalAchievements || 0}</h3>
               </div>
             </div>
 
@@ -85,7 +102,7 @@ export const HomeroomDashboard: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">Pelanggaran</p>
-                <h3 className="text-2xl font-bold text-gray-800">2</h3>
+                <h3 className="text-2xl font-bold text-gray-800">{classroom.totalViolations || 0}</h3>
               </div>
             </div>
           </div>
@@ -97,15 +114,24 @@ export const HomeroomDashboard: React.FC = () => {
                 Aksi Cepat
               </h3>
               <div className="space-y-3">
-                <button className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-primary transition-colors flex justify-between items-center">
+                <button 
+                  onClick={() => navigate(`/academic/classrooms/${classroom.id}`)}
+                  className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-primary transition-colors flex justify-between items-center"
+                >
                   <span className="font-medium text-gray-700">Lihat Daftar Siswa</span>
                   <Users size={16} className="text-gray-400" />
                 </button>
-                <button className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-primary transition-colors flex justify-between items-center">
+                <button 
+                  onClick={() => navigate('/student-affairs/violations')}
+                  className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-primary transition-colors flex justify-between items-center"
+                >
                   <span className="font-medium text-gray-700">Catat Pelanggaran Siswa</span>
                   <AlertOctagon size={16} className="text-gray-400" />
                 </button>
-                <button className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-primary transition-colors flex justify-between items-center">
+                <button 
+                  onClick={() => navigate('/assessment/report-cards')}
+                  className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-primary transition-colors flex justify-between items-center"
+                >
                   <span className="font-medium text-gray-700">Kelola Catatan Wali Kelas (Rapor)</span>
                   <FileText size={16} className="text-gray-400" />
                 </button>
@@ -115,20 +141,19 @@ export const HomeroomDashboard: React.FC = () => {
             <div className="glass-panel p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4">Aktivitas Terakhir</h3>
               <div className="space-y-4">
-                <div className="flex gap-3">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 mt-2"></div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">Input Catatan Rapor untuk Budi</p>
-                    <p className="text-xs text-gray-500">2 jam yang lalu</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <div className="w-2 h-2 rounded-full bg-red-500 mt-2"></div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">Mencatat pelanggaran terlambat (Siti)</p>
-                    <p className="text-xs text-gray-500">Kemarin, 07:30</p>
-                  </div>
-                </div>
+                {classroom.recentActivities && classroom.recentActivities.length > 0 ? (
+                  classroom.recentActivities.map((act: any) => (
+                    <div className="flex gap-3" key={act.id}>
+                      <div className={`w-2 h-2 rounded-full mt-2 ${act.type === 'violation' ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{act.title}</p>
+                        <p className="text-xs text-gray-500">{new Date(act.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 italic">Belum ada aktivitas yang tercatat untuk kelas ini.</p>
+                )}
               </div>
             </div>
           </div>

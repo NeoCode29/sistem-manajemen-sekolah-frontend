@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { getStudentById, updateStudent, createGuardian, updateGuardian, deleteGuardian, createEnrollment, updateEnrollment, deleteEnrollment, type Student, type StudentGuardian, type StudentEnrollment } from '../../api/studentService';
 import { getAcademicYears, getSemesters, getClassrooms, type AcademicYear, type Semester, type Classroom } from '../../api/academicService';
 import { ArrowLeft, User, BookOpen, CreditCard, Award, Pencil, Plus, Trash2 } from 'lucide-react';
@@ -16,6 +17,9 @@ export const StudentDetail: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const { showConfirm, showAlert } = useDialog();
+  const { user } = useAuth();
+
+  const canManageSivitas = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin');
 
   // Master Data
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -243,14 +247,16 @@ export const StudentDetail: React.FC = () => {
 
       {/* Header Card */}
       <div className="student-detail-header" style={{ position: 'relative' }}>
-        <button 
-          onClick={handleOpenEditProfil}
-          className="btn-icon" 
-          style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: '#f3f4f6' }}
-          title="Edit Profil"
-        >
-          <Pencil size={18} />
-        </button>
+        {canManageSivitas && (
+          <button 
+            onClick={handleOpenEditProfil}
+            className="btn-icon" 
+            style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: '#f3f4f6' }}
+            title="Edit Profil"
+          >
+            <Pencil size={18} />
+          </button>
+        )}
         <div className="student-detail-avatar">
           {student.fullName.charAt(0).toUpperCase()}
         </div>
@@ -297,9 +303,11 @@ export const StudentDetail: React.FC = () => {
             <div className="student-detail-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem' }}>
                 <h3 style={{ margin: 0, border: 'none', padding: 0 }}>Data Wali (Guardians)</h3>
-                <button className="btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleOpenAddGuardian}>
-                  <Plus size={14} style={{ display: 'inline', marginRight: '4px' }}/> Tambah
-                </button>
+                {canManageSivitas && (
+                  <button className="btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleOpenAddGuardian}>
+                    <Plus size={14} style={{ display: 'inline', marginRight: '4px' }}/> Tambah
+                  </button>
+                )}
               </div>
               {(!student.guardians || student.guardians.length === 0) ? (
                 <p style={{ color: '#6b7280', fontStyle: 'italic' }}>Belum ada data wali.</p>
@@ -307,10 +315,12 @@ export const StudentDetail: React.FC = () => {
                 <div>
                   {student.guardians.map((g: any) => (
                     <div key={g.id} className="guardian-item" style={{ position: 'relative' }}>
-                      <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn-icon" style={{ background: 'white' }} onClick={() => handleOpenEditGuardian(g)}><Pencil size={14} color="#3b82f6" /></button>
-                        <button className="btn-icon" style={{ background: 'white' }} onClick={() => handleDeleteGuardian(g.id)}><Trash2 size={14} color="#ef4444" /></button>
-                      </div>
+                      {canManageSivitas && (
+                        <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.5rem' }}>
+                          <button className="btn-icon" style={{ background: 'white' }} onClick={() => handleOpenEditGuardian(g)}><Pencil size={14} color="#3b82f6" /></button>
+                          <button className="btn-icon" style={{ background: 'white' }} onClick={() => handleDeleteGuardian(g.id)}><Trash2 size={14} color="#ef4444" /></button>
+                        </div>
+                      )}
                       <div className="guardian-item-name">{g.fullName} <span className="guardian-item-rel">{g.relationship}</span> {g.isPrimary && <span className="guardian-item-rel" style={{ background: '#dcfce7', color: '#166534' }}>Utama</span>}</div>
                       <div className="guardian-item-details">
                         <span><strong>Telepon:</strong> {g.phone || '-'}</span>
@@ -329,9 +339,11 @@ export const StudentDetail: React.FC = () => {
           <div className="student-detail-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem' }}>
               <h3 style={{ margin: 0, border: 'none', padding: 0 }}>Riwayat Kelas & Penempatan</h3>
-              <button className="btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleOpenAddEnrollment}>
-                <Plus size={14} style={{ display: 'inline', marginRight: '4px' }}/> Tambah
-              </button>
+              {canManageSivitas && (
+                <button className="btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleOpenAddEnrollment}>
+                  <Plus size={14} style={{ display: 'inline', marginRight: '4px' }}/> Tambah
+                </button>
+              )}
             </div>
             {(!student.enrollments || student.enrollments.length === 0) ? (
               <p style={{ color: '#6b7280', fontStyle: 'italic' }}>Belum ada riwayat penempatan kelas.</p>
@@ -355,8 +367,12 @@ export const StudentDetail: React.FC = () => {
                         <td className="font-semibold" style={{ color: '#2563eb' }}>{enr.classroom?.name || '-'}</td>
                         <td style={{ color: '#6b7280' }}>{new Date(enr.createdAt).toLocaleDateString('id-ID')}</td>
                         <td style={{ textAlign: 'right' }}>
-                          <button className="btn-icon" onClick={() => handleOpenEditEnrollment(enr)}><Pencil size={14} color="#3b82f6" /></button>
-                          <button className="btn-icon" onClick={() => handleDeleteEnrollment(enr.id)}><Trash2 size={14} color="#ef4444" /></button>
+                          {canManageSivitas && (
+                            <>
+                              <button className="btn-icon" onClick={() => handleOpenEditEnrollment(enr)}><Pencil size={14} color="#3b82f6" /></button>
+                              <button className="btn-icon" onClick={() => handleDeleteEnrollment(enr.id)}><Trash2 size={14} color="#ef4444" /></button>
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}

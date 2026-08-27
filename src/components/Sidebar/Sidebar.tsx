@@ -15,9 +15,13 @@ export const Sidebar: React.FC = () => {
   const isTeacher = user?.roles?.some(r => r.name === 'Guru / Wali Kelas');
   const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin');
 
-  const canManageMaster = isSuperAdminOrAdmin || isTeacher;
-  const canManageSivitas = isSuperAdminOrAdmin || isTeacher;
+  const canManageMaster = isSuperAdminOrAdmin;
+  const canManageSivitas = isSuperAdminOrAdmin;
+  const canManageAssessment = isSuperAdminOrAdmin || isTeacher;
+  const canManageStudentAffairs = isSuperAdminOrAdmin || isTeacher;
   const canManageRBAC = isSuperAdmin;
+  const canManageCommunication = isSuperAdminOrAdmin;
+  const canManageHardware = isSuperAdminOrAdmin;
 
   return (
     <div className="sidebar">
@@ -102,13 +106,20 @@ export const Sidebar: React.FC = () => {
               <span>Kelulusan</span>
             </NavLink>
 
+          </>
+        )}
+
+        {canManageAssessment && (
+          <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Penilaian & Ujian
             </div>
-            <NavLink to="/assessment/components" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Settings size={20} />
-              <span>Komponen Penilaian</span>
-            </NavLink>
+            {canManageMaster && (
+              <NavLink to="/assessment/components" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+                <Settings size={20} />
+                <span>Komponen Penilaian</span>
+              </NavLink>
+            )}
             <NavLink to="/assessment/exams" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
               <FileEdit size={20} />
               <span>Agenda Penilaian</span>
@@ -140,27 +151,33 @@ export const Sidebar: React.FC = () => {
           </>
         )}
 
-        {canManageSivitas && (
+        {(canManageMaster || canManageStudentAffairs) && (
           <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Kehadiran & Absensi
             </div>
-            <NavLink to="/attendance/settings" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Settings size={20} />
-              <span>Pengaturan Absensi</span>
-            </NavLink>
-            <NavLink to="/attendance/students" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <UserCheck size={20} />
-              <span>Absensi Siswa</span>
-            </NavLink>
-            <NavLink to="/attendance/employees" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Briefcase size={20} />
-              <span>Absensi Pegawai</span>
-            </NavLink>
+            {canManageMaster && (
+              <NavLink to="/attendance/settings" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+                <Settings size={20} />
+                <span>Pengaturan Absensi</span>
+              </NavLink>
+            )}
+            {(canManageStudentAffairs) && (
+              <NavLink to="/attendance/students" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+                <UserCheck size={20} />
+                <span>Absensi Siswa</span>
+              </NavLink>
+            )}
+            {canManageMaster && (
+              <NavLink to="/attendance/employees" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+                <Briefcase size={20} />
+                <span>Absensi Pegawai</span>
+              </NavLink>
+            )}
           </>
         )}
 
-        {canManageSivitas && (
+        {canManageStudentAffairs && (
           <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Kesiswaan
@@ -197,7 +214,7 @@ export const Sidebar: React.FC = () => {
           </>
         )}
 
-        {canManageMaster && (
+        {canManageCommunication && (
           <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Komunikasi
@@ -221,7 +238,7 @@ export const Sidebar: React.FC = () => {
           </>
         )}
 
-        {canManageMaster && (
+        {canManageHardware && (
           <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Perangkat & Sistem

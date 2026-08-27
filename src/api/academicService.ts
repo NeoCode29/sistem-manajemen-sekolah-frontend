@@ -135,6 +135,20 @@ export const assignHomeroomTeacher = async (classroomId: string, data: { employe
   return response.data;
 };
 
+export const getHomeroomTeacher = async (classroomId: string, academicYearId: string, semesterId: string) => {
+  const response = await api.get(`/classrooms/${classroomId}/homeroom-teachers`, {
+    params: { academicYearId, semesterId }
+  });
+  return response.data;
+};
+
+export const getHomeroomByTeacher = async (employeeId: string, academicYearId: string, semesterId: string) => {
+  const response = await api.get(`/classrooms/homeroom/teacher/${employeeId}`, {
+    params: { academicYearId, semesterId }
+  });
+  return response.data;
+};
+
 // 5. Subjects
 export interface Subject {
   id: string;
