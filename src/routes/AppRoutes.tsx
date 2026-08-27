@@ -41,6 +41,7 @@ import { LetterTemplates } from '../pages/Letters/LetterTemplates';
 import { HardwareLogs } from '../pages/Hardware/HardwareLogs';
 import { IdentityRegistration } from '../pages/Hardware/IdentityRegistration';
 import { AccountSettings } from '../pages/Settings/AccountSettings';
+import { HomeroomDashboard } from '../pages/Homeroom/HomeroomDashboard';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -51,6 +52,7 @@ export const AppRoutes: React.FC = () => {
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/homeroom/dashboard" element={<HomeroomDashboard />} />
               <Route path="/academic/years" element={<AcademicYears />} />
               <Route path="/academic/semesters" element={<Semesters />} />
               <Route path="/academic/grades" element={<Grades />} />

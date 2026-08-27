@@ -39,6 +39,18 @@ export const Sidebar: React.FC = () => {
           <LayoutDashboard size={20} />
           <span>Dashboard</span>
         </NavLink>
+
+        {isTeacher && (
+          <>
+            <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Wali Kelas Portal
+            </div>
+            <NavLink to="/homeroom/dashboard" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <Users size={20} />
+              <span>Kelas Binaan</span>
+            </NavLink>
+          </>
+        )}
         
         {canManageMaster && (
           <>
