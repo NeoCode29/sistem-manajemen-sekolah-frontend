@@ -69,31 +69,15 @@ export const Sidebar: React.FC = () => {
           </>
         )}
 
-        {canManageSivitas && (
-          <>
-            <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Sivitas Akademika
-            </div>
-            <NavLink to="/entities/students" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <User size={20} />
-              <span>Siswa & Wali</span>
-            </NavLink>
-            <NavLink to="/entities/employees" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Briefcase size={20} />
-              <span>Pegawai / Guru</span>
-            </NavLink>
-            <NavLink to="/entities/positions" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <BadgeCheck size={20} />
-              <span>Jabatan</span>
-            </NavLink>
-          </>
-        )}
-
         {canManageMaster && (
           <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Data Master
             </div>
+            <NavLink to="/entities/positions" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <BadgeCheck size={20} />
+              <span>Jabatan</span>
+            </NavLink>
             <NavLink to="/academic/classrooms" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
               <Users size={20} />
               <span>Rombel / Kelas</span>
@@ -110,7 +94,27 @@ export const Sidebar: React.FC = () => {
               <Library size={20} />
               <span>Semester</span>
             </NavLink>
+          </>
+        )}
 
+        {canManageSivitas && (
+          <>
+            <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Sivitas Akademika
+            </div>
+            <NavLink to="/entities/students" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <User size={20} />
+              <span>Siswa & Wali</span>
+            </NavLink>
+            <NavLink to="/entities/employees" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <Briefcase size={20} />
+              <span>Pegawai / Guru</span>
+            </NavLink>
+          </>
+        )}
+
+        {canManageMaster && (
+          <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Akademik & Kurikulum
             </div>
