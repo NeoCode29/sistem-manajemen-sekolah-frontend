@@ -42,7 +42,7 @@ export const getDashboardSummary = async (): Promise<DashboardSummary> => {
     ]);
 
     // Calculate dynamic values
-    const activeStudentsCount = students.filter(s => s.status === 'AKTIF' || s.isActive).length;
+    const activeStudentsCount = students.filter(s => s.status === 'AKTIF' || s.status === 'ACTIVE' || s.isActive).length;
     const activeEmployeesCount = employees.filter(e => e.isActive).length;
     const activeClassroomsCount = classrooms.length;
     
