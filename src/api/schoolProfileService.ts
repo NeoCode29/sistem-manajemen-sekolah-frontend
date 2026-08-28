@@ -13,6 +13,7 @@ export interface SchoolProfile {
   headerText?: string;
   city?: string;
   logoUrl?: string;
+  principalSignatureUrl?: string;
 }
 
 export const getSchoolProfile = async () => {
@@ -29,6 +30,17 @@ export const uploadSchoolLogo = async (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
   const response = await api.post('/schools/singleton/logo', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+export const uploadSchoolSignature = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post('/schools/singleton/signature', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

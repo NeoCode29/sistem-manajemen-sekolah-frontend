@@ -3,14 +3,15 @@ import api from './axios';
 // Interfaces
 export interface IncomingLetter {
   id: string;
-  referenceNumber: string;
+  letterNumber: string;
   sender: string;
   subject: string;
   receivedDate: string;
   letterDate: string;
-  fileUrl?: string;
-  description?: string;
-  createdById: string;
+  recipient?: string;
+  notes?: string;
+  attachmentUrl?: string;
+  recordedById: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,8 +20,9 @@ export interface LetterTemplate {
   id: string;
   name: string;
   code: string;
-  content: string; // HTML or Text with placeholders
+  category: string;
   isActive: boolean;
+  attachmentUrl?: string;
   createdById: string;
   createdAt: string;
   updatedAt: string;
@@ -28,15 +30,15 @@ export interface LetterTemplate {
 
 export interface OutgoingLetter {
   id: string;
-  referenceNumber: string;
-  recipient: string;
-  subject: string;
-  status: string; // DRAFT, PENDING_APPROVAL, APPROVED, SENT, REJECTED
-  content?: string;
-  variables?: any;
+  letterNumber: string;
   templateId?: string;
-  fileUrl?: string;
-  createdById: string;
+  subject: string;
+  recipient: string;
+  letterDate: string;
+  renderedContent?: string;
+  attachmentUrl?: string;
+  notes?: string;
+  issuedById: string;
   createdAt: string;
   updatedAt: string;
   template?: LetterTemplate;
@@ -71,7 +73,7 @@ export const deleteIncomingLetter = async (id: string) => {
 export const uploadIncomingLetterFile = async (id: string, file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await api.post(`/letters/incoming/${id}/upload`, formData, {
+  const response = await api.post(`/letters/incoming/${id}/attachment`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
@@ -103,15 +105,9 @@ export const deleteOutgoingLetter = async (id: string) => {
   return response.data;
 };
 
-export const updateOutgoingLetterStatus = async (id: string, status: string) => {
-  const response = await api.patch(`/letters/outgoing/${id}/status`, { status });
-  return response.data;
-};
 
-export const generateOutgoingLetterDocument = async (id: string) => {
-  const response = await api.post(`/letters/outgoing/${id}/generate`);
-  return response.data;
-};
+
+
 
 // LETTER TEMPLATES
 export const getLetterTemplates = async (params?: Record<string, any>) => {
@@ -131,5 +127,14 @@ export const updateLetterTemplate = async (id: string, data: Partial<LetterTempl
 
 export const deleteLetterTemplate = async (id: string) => {
   const response = await api.delete(`/letters/templates/${id}`);
+  return response.data;
+};
+
+export const uploadTemplateAttachment = async (id: string, file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/letters/templates/${id}/attachment`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return response.data;
 };

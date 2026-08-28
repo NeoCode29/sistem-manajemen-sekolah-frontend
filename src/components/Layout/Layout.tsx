@@ -83,7 +83,7 @@ export const Layout: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingLeft: '1.5rem', borderLeft: '1px solid #e5e7eb' }}>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.875rem' }}>{user?.name || 'Admin Utama'}</div>
-                <div style={{ fontSize: '0.65rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SUPER ADMINISTRATOR</div>
+                <div style={{ fontSize: '0.65rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{user?.roles && user.roles.length > 0 ? user.roles.map(r => r.name).join(', ') : 'SUPER ADMINISTRATOR'}</div>
               </div>
               <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1d4ed8', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                 {user?.name?.charAt(0) || 'A'}

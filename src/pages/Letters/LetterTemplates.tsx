@@ -1,16 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getLetterTemplates, createLetterTemplate, updateLetterTemplate, deleteLetterTemplate } from '../../api/letterService';
+import { getLetterTemplates, createLetterTemplate, updateLetterTemplate, deleteLetterTemplate, uploadTemplateAttachment } from '../../api/letterService';
 import type { LetterTemplate } from '../../api/letterService';
-import { FileCode, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { getSchoolProfile, updateSchoolProfile, uploadSchoolLogo } from '../../api/schoolProfileService';
+import { FileCode, Plus, Edit2, Trash2, X, Download, Settings, FileText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
 import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
 export const LetterTemplates: React.FC = () => {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'KOP_SURAT' | 'TEMPLATE'>('KOP_SURAT');
+  
+  // Tab: KOP_SURAT
+  const [profile, setProfile] = useState<any>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [profileSaving, setProfileSaving] = useState(false);
+  
+  // Tab: TEMPLATE
   const [templates, setTemplates] = useState<LetterTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,34 +27,74 @@ export const LetterTemplates: React.FC = () => {
   const [formData, setFormData] = useState<Partial<LetterTemplate>>({
     name: '',
     code: '',
-    content: '',
+    category: 'UMUM',
     isActive: true,
   });
-
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchTemplates();
-  }, []);
+    fetchData();
+  }, [activeTab]);
 
-  const fetchTemplates = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await getLetterTemplates();
-      setTemplates(data);
+      if (activeTab === 'KOP_SURAT') {
+        const data = await getSchoolProfile();
+        setProfile(data);
+      } else {
+        const data = await getLetterTemplates();
+        setTemplates(data);
+      }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat template surat');
+      setError(err.response?.data?.message || 'Gagal memuat data');
     } finally {
       setLoading(false);
     }
   };
 
+  // --- KOP_SURAT HANDLERS ---
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setProfile((prev: any) => ({ ...prev, [name]: value }));
+  };
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile) return;
+    try {
+      setProfileSaving(true);
+      await updateSchoolProfile({
+        code: profile.code || 'SCH001',
+        name: profile.name,
+        address: profile.address,
+        phone: profile.phone,
+        email: profile.email,
+        website: profile.website,
+      });
+
+      if (logoFile) {
+        await uploadSchoolLogo(logoFile);
+      }
+      
+      showAlert('Pengaturan Kop Surat berhasil disimpan', 'Berhasil');
+      fetchData();
+      setLogoFile(null);
+    } catch (err: any) {
+      showAlert(err.response?.data?.message || 'Gagal menyimpan profil', 'Gagal');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  // --- TEMPLATE HANDLERS ---
   const openModal = (template?: LetterTemplate) => {
     if (template) {
       setFormData({
         name: template.name,
         code: template.code,
-        content: template.content,
+        category: template.category,
         isActive: template.isActive,
       });
       setEditingId(template.id);
@@ -55,11 +102,12 @@ export const LetterTemplates: React.FC = () => {
       setFormData({
         name: '',
         code: '',
-        content: '',
+        category: 'UMUM',
         isActive: true,
       });
       setEditingId(null);
     }
+    setSelectedFile(null);
     setIsModalOpen(true);
     setError('');
   };
@@ -67,9 +115,10 @@ export const LetterTemplates: React.FC = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
+    setSelectedFile(null);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
     setFormData((prev) => ({
@@ -78,20 +127,39 @@ export const LetterTemplates: React.FC = () => {
     }));
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let savedTemplate: any;
       if (editingId) {
-        await updateLetterTemplate(editingId, formData);
+        savedTemplate = await updateLetterTemplate(editingId, formData);
       } else {
-        await createLetterTemplate({ ...formData, createdById: user?.id?.toString() || '1' });
+        savedTemplate = await createLetterTemplate(formData);
+      }
+
+      if (selectedFile) {
+        await uploadTemplateAttachment(savedTemplate.id, selectedFile);
       }
       
       closeModal();
-      fetchTemplates();
+      fetchData();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Gagal menyimpan template surat');
+    }
+  };
+
+  const handleDownloadDocx = async () => {
+    try {
+      const blob = await import('../../api/schoolProfileService').then(m => m.downloadTemplateDocx());
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'template_surat_kosong.docx');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      showAlert('Gagal mengunduh template docx', 'Gagal');
     }
   };
 
@@ -99,7 +167,7 @@ export const LetterTemplates: React.FC = () => {
     showConfirm('Yakin ingin menghapus template ini?', async () => {
       try {
         await deleteLetterTemplate(id);
-        fetchTemplates();
+        fetchData();
       } catch (err: any) {
         showAlert(err.response?.data?.message || 'Gagal menghapus template');
       }
@@ -111,35 +179,154 @@ export const LetterTemplates: React.FC = () => {
       <div className="page-header">
         <div>
           <h1 className="page-title">Template Surat</h1>
-          <p className="page-subtitle">Kelola format baku untuk surat keluar otomatis</p>
+          <p className="page-subtitle">Kelola Kop Surat dan Bank File Template</p>
         </div>
-        <div className="header-actions">
-          <button className="btn-primary" onClick={() => openModal()}>
-            <Plus size={18} />
-            <span>Buat Template</span>
-          </button>
-        </div>
+        {activeTab === 'TEMPLATE' && (
+          <div className="header-actions">
+            <button className="btn-primary" onClick={() => openModal()}>
+              <Plus size={18} />
+              <span>Upload Template Baru</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-4 border-b border-gray-200 mt-6 px-1">
+        <button
+          className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'KOP_SURAT' 
+              ? 'border-blue-600 text-blue-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+          onClick={() => setActiveTab('KOP_SURAT')}
+        >
+          <div className="flex items-center gap-2">
+            <Settings size={16} /> Pengaturan Kop Surat
+          </div>
+        </button>
+        <button
+          className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'TEMPLATE' 
+              ? 'border-blue-600 text-blue-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+          onClick={() => setActiveTab('TEMPLATE')}
+        >
+          <div className="flex items-center gap-2">
+            <FileText size={16} /> Bank File Template
+          </div>
+        </button>
       </div>
 
       <div className="glass-panel mt-6">
         {loading ? (
           <div className="p-8 text-center text-gray-500">Memuat data...</div>
+        ) : activeTab === 'KOP_SURAT' && profile ? (
+          <div className="p-6 max-w-3xl">
+            <h2 className="text-lg font-semibold text-gray-800 mb-6 border-b pb-2">Informasi Kop Surat Sekolah</h2>
+            <form onSubmit={handleProfileSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="form-group">
+                  <label className="text-sm font-medium text-gray-700">Nama Sekolah</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={profile.name || ''}
+                    onChange={handleProfileChange}
+                    className="input-field mt-1 w-full"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="text-sm font-medium text-gray-700">Logo Sekolah (PNG/JPG)</label>
+                  <div className="mt-1 flex items-center gap-4">
+                    {profile.logoUrl && !logoFile && (
+                      <img src={`http://localhost:3000${profile.logoUrl}`} alt="Logo" className="h-12 w-12 object-contain bg-gray-50 rounded border" />
+                    )}
+                    <input
+                      type="file"
+                      accept=".png,.jpg,.jpeg"
+                      onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="text-sm font-medium text-gray-700">Alamat Lengkap</label>
+                <textarea
+                  name="address"
+                  value={profile.address || ''}
+                  onChange={handleProfileChange}
+                  className="input-field mt-1 w-full"
+                  rows={2}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="form-group">
+                  <label className="text-sm font-medium text-gray-700">Telepon / Fax</label>
+                  <input
+                    type="text"
+                    name="phone"
+                    value={profile.phone || ''}
+                    onChange={handleProfileChange}
+                    className="input-field mt-1 w-full"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="text-sm font-medium text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={profile.email || ''}
+                    onChange={handleProfileChange}
+                    className="input-field mt-1 w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="form-group">
+                  <label className="text-sm font-medium text-gray-700">Website</label>
+                  <input
+                    type="text"
+                    name="website"
+                    value={profile.website || ''}
+                    onChange={handleProfileChange}
+                    className="input-field mt-1 w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t flex gap-4">
+                <button type="submit" className="btn-primary" disabled={profileSaving}>
+                  {profileSaving ? 'Menyimpan...' : 'Simpan Pengaturan Kop'}
+                </button>
+                <button type="button" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors border border-gray-300" onClick={handleDownloadDocx}>
+                  <Download size={16} /> Unduh Contoh Kop (DOCX)
+                </button>
+              </div>
+            </form>
+          </div>
         ) : (
           <div className="table-container">
             <table className="data-table">
               <thead>
                 <tr>
                   <th>Nama Template</th>
+                  <th>Kategori</th>
                   <th>Kode</th>
                   <th>Status</th>
-                  <th>Tanggal Dibuat</th>
+                  <th>File Master</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {templates.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-6 text-gray-500">
+                    <td colSpan={6} className="text-center py-6 text-gray-500">
                       Belum ada template surat
                     </td>
                   </tr>
@@ -155,6 +342,11 @@ export const LetterTemplates: React.FC = () => {
                         </div>
                       </td>
                       <td>
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                          {item.category}
+                        </span>
+                      </td>
+                      <td>
                         <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md font-mono text-sm border">
                           {item.code}
                         </span>
@@ -166,21 +358,21 @@ export const LetterTemplates: React.FC = () => {
                           <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">Nonaktif</span>
                         )}
                       </td>
-                      <td>{new Date(item.createdAt).toLocaleDateString('id-ID')}</td>
+                      <td>
+                        {item.attachmentUrl ? (
+                          <a href={`http://localhost:3000${item.attachmentUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-blue-600 hover:underline">
+                            <Download size={14} /> Unduh
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-500">Belum ada file</span>
+                        )}
+                      </td>
                       <td>
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => openModal(item)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                            title="Edit"
-                          >
+                          <button onClick={() => openModal(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
                             <Edit2 size={16} />
                           </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                            title="Hapus"
-                          >
+                          <button onClick={() => handleDelete(item.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Hapus">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -194,14 +386,14 @@ export const LetterTemplates: React.FC = () => {
         )}
       </div>
 
-      {/* Modal Form */}
+      {/* Modal Form Template */}
       {isModalOpen && createPortal(
         <div className="modal-backdrop-v4">
-          <div className="modal-content-v4" style={{ maxWidth: '800px' }}>
+          <div className="modal-content-v4" style={{ maxWidth: '600px' }}>
             <div className="modal-header-v4">
               <h2 className="flex items-center gap-2">
                 <FileCode size={20} className="text-blue-600" />
-                {editingId ? 'Edit Template Surat' : 'Buat Template Baru'}
+                {editingId ? 'Edit Template Surat' : 'Upload Template Baru'}
               </h2>
               <button type="button" className="btn-close" onClick={closeModal}>&times;</button>
             </div>
@@ -209,19 +401,21 @@ export const LetterTemplates: React.FC = () => {
             <form id="template-form" onSubmit={handleSubmit} className="modal-form-v4">
               <div className="modal-body-v4 form-grid">
                 {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
+                
+                <div className="form-group">
+                  <label className="text-sm font-medium text-gray-700">Nama Template *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    className="input-field mt-1 w-full"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="Misal: Surat Keterangan Aktif"
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="form-group">
-                    <label className="text-sm font-medium text-gray-700">Nama Template *</label>
-                    <input
-                      type="text"
-                      name="name"
-                      className="input-field mt-1 w-full"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Misal: Surat Keterangan Aktif"
-                    />
-                  </div>
                   <div className="form-group">
                     <label className="text-sm font-medium text-gray-700">Kode Unik *</label>
                     <input
@@ -234,45 +428,34 @@ export const LetterTemplates: React.FC = () => {
                       placeholder="Misal: SK-AKTIF-01"
                     />
                   </div>
+                  <div className="form-group">
+                    <label className="text-sm font-medium text-gray-700">Kategori</label>
+                    <select
+                      name="category"
+                      className="input-field mt-1 w-full"
+                      value={formData.category}
+                      onChange={handleInputChange}
+                    >
+                      <option value="UMUM">UMUM</option>
+                      <option value="PANGGILAN">PANGGILAN</option>
+                      <option value="UNDANGAN">UNDANGAN</option>
+                      <option value="KETERANGAN">KETERANGAN</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Isi Surat (Template) *
-                  </label>
-                  <div className="bg-white rounded-md border border-indigo-200 overflow-hidden focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all shadow-sm">
-                    <ReactQuill 
-                      theme="snow"
-                      value={formData.content || ''}
-                      onChange={(val) => handleInputChange({ target: { name: 'content', value: val } } as any)}
-                      style={{ minHeight: '350px' }}
-                      modules={{
-                        toolbar: [
-                          [{ 'header': [1, 2, 3, false] }],
-                          ['bold', 'italic', 'underline', 'strike'],
-                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                          ['link'],
-                          ['clean']
-                        ]
-                      }}
-                    />
-                  </div>
-                  
-                  <div className="mt-3 bg-indigo-50 border border-indigo-100 rounded-lg p-3 flex gap-3 items-start">
-                    <div className="mt-0.5 text-indigo-500">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-indigo-900 mb-1">Panduan Variabel Dinamis</p>
-                      <p className="text-xs text-indigo-700 mb-2">Ketik variabel dengan format kurung kurawal ganda untuk menyisipkan data otomatis saat dokumen di-generate.</p>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="text-[11px] bg-white px-2 py-1 rounded-md border border-indigo-100 text-indigo-700 font-mono shadow-sm">{"{{nama_siswa}}"}</span>
-                        <span className="text-[11px] bg-white px-2 py-1 rounded-md border border-indigo-100 text-indigo-700 font-mono shadow-sm">{"{{nisn}}"}</span>
-                        <span className="text-[11px] bg-white px-2 py-1 rounded-md border border-indigo-100 text-indigo-700 font-mono shadow-sm">{"{{kelas}}"}</span>
-                        <span className="text-[11px] bg-white px-2 py-1 rounded-md border border-indigo-100 text-indigo-700 font-mono shadow-sm">{"{{tanggal_surat}}"}</span>
-                      </div>
-                    </div>
-                  </div>
+                  <label className="text-sm font-medium text-gray-700">File Master (.docx / .pdf)</label>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    className="input-field mt-1 w-full"
+                    required={!editingId}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload file surat master yang sudah terdapat layout kop/isi standar.
+                  </p>
                 </div>
 
                 <div className="form-group">

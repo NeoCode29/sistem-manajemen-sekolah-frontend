@@ -159,8 +159,6 @@ export const StudentAttendancePage: React.FC = () => {
         return {
           studentId: r.studentId,
           status: r.status,
-          checkinTime: null,
-          checkoutTime: null,
           notes: r.notes || undefined
         };
       });

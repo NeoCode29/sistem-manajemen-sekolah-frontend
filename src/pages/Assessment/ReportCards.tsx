@@ -4,24 +4,28 @@ import { useReportCards, type ReportCard } from '../../hooks/useReportCards';
 import { useAcademicYears } from '../../hooks/useAcademicYears';
 import { useSemesters } from '../../hooks/useSemesters';
 import { useClassrooms } from '../../hooks/useClassrooms';
-import { FileText, Edit2, Printer, Loader2, AlertCircle, Settings, User } from 'lucide-react';
+import { FileText, Edit2, Printer, Loader2, AlertCircle, Settings, User, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import '../Academic/Academic.css';
 
 export const ReportCards: React.FC = () => {
-  const { user } = useAuth();
   const { years: academicYears, refresh: fetchAcademicYears } = useAcademicYears();
   const { semesters, refresh: fetchSemesters } = useSemesters();
   const { classrooms, refresh: fetchClassrooms } = useClassrooms();
-  const { reportCards, loading, error, fetchReportCards, generateReportCards, updateHomeroomNotes, exportPdf } = useReportCards();
+  const { reportCards, loading, error, fetchReportCards, generateReportCards, updateHomeroomNotes, validateReportCard, exportPdf, approveClassroom, getApprovals } = useReportCards();
+  const { user } = useAuth();
 
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
   const [selectedClassroom, setSelectedClassroom] = useState('');
   
+  const [isClassroomApproved, setIsClassroomApproved] = useState(false);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<ReportCard | null>(null);
   const [formData, setFormData] = useState({ sickDays: 0, excusedDays: 0, unexcusedDays: 0, homeroomNotes: '' });
+
+  const isPrincipal = user?.roles?.some(r => r.name === 'Kepala Sekolah');
 
   useEffect(() => {
     fetchAcademicYears();
@@ -52,8 +56,11 @@ export const ReportCards: React.FC = () => {
   useEffect(() => {
     if (selectedYear && selectedSemester && selectedClassroom) {
       fetchReportCards({ academicYearId: selectedYear, semesterId: selectedSemester, classroomId: selectedClassroom });
+      getApprovals({ academicYearId: selectedYear, semesterId: selectedSemester, classroomId: selectedClassroom })
+        .then(res => setIsClassroomApproved(res.length > 0 && res[0].status === 'APPROVED'))
+        .catch(err => console.error(err));
     }
-  }, [selectedYear, selectedSemester, selectedClassroom, fetchReportCards]);
+  }, [selectedYear, selectedSemester, selectedClassroom, fetchReportCards, getApprovals]);
 
   const handleGenerate = async () => {
     if (!selectedYear || !selectedSemester || !selectedClassroom) return;
@@ -91,12 +98,12 @@ export const ReportCards: React.FC = () => {
 
   return (
     <div className="academic-container">
-      <div className="page-header" style={{ marginBottom: '2.5rem' }}>
+      <div className="page-header" style={{ marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="page-title" style={{ fontSize: '2rem' }}>Cetak Rapor</h1>
-          <p className="page-description" style={{ fontSize: '1rem', marginTop: '0.25rem' }}>Kelola dan cetak dokumen rapor hasil belajar siswa per kelas.</p>
+          <h1 className="page-title" style={{ fontSize: '2rem' }}>Cetak Rapor & Pengesahan</h1>
+          <p className="page-description" style={{ fontSize: '1rem', marginTop: '0.25rem' }}>Kelola dan sahkan dokumen rapor hasil belajar siswa per kelas.</p>
         </div>
-        <div className="header-actions">
+        <div className="header-actions" style={{ display: 'flex', gap: '1rem' }}>
           <button 
             className="btn-primary" 
             onClick={handleGenerate}
@@ -106,8 +113,38 @@ export const ReportCards: React.FC = () => {
             {loading ? <Loader2 size={20} className="animate-spin" /> : <FileText size={20} />}
             Generate Rapor Kelas
           </button>
+          
+          {isPrincipal && (
+            <button 
+              className="btn-primary" 
+              onClick={async () => {
+                if (window.confirm('Sahkah rapor untuk kelas ini? Tanda tangan Anda akan dibubuhkan secara otomatis pada seluruh dokumen rapor di kelas ini.')) {
+                  try {
+                    await approveClassroom({
+                      classroomId: selectedClassroom,
+                      academicYearId: selectedYear,
+                      semesterId: selectedSemester,
+                      action: 'APPROVE',
+                      notes: ''
+                    });
+                    setIsClassroomApproved(true);
+                    alert('Berhasil Disahkan!');
+                  } catch (e: any) {
+                    alert(e.response?.data?.message || e.message || 'Gagal mengesahkan rapor');
+                  }
+                }
+              }}
+              disabled={loading || !selectedClassroom || isClassroomApproved}
+              style={{ padding: '0.875rem 1.75rem', borderRadius: '12px', fontSize: '0.95rem', opacity: (loading || !selectedClassroom || isClassroomApproved) ? 0.7 : 1, background: isClassroomApproved ? '#059669' : undefined }}
+            >
+              <CheckCircle size={20} style={{ marginRight: '8px', display: 'inline' }} />
+              {isClassroomApproved ? 'Telah Disahkan' : 'Sahkah Rapor Kelas'}
+            </button>
+          )}
         </div>
       </div>
+
+
 
       {error && (
         <div className="alert flex items-center gap-3" style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '1.5rem', fontWeight: 500 }}>
@@ -176,6 +213,7 @@ export const ReportCards: React.FC = () => {
                   <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', width: '80px' }}>No</th>
                   <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Identitas Siswa</th>
                   <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kehadiran (S / I / A)</th>
+                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
                   <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Aksi</th>
                 </tr>
               </thead>
@@ -218,8 +256,51 @@ export const ReportCards: React.FC = () => {
                         </span>
                       </td>
 
+                      <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {card.validatedAt ? (
+                            <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #10b981', display: 'inline-flex', alignItems: 'center', width: 'fit-content' }}>
+                              Wali: Valid
+                            </span>
+                          ) : (
+                            <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', backgroundColor: '#fffbeb', color: '#d97706', border: '1px solid #fbbf24', display: 'inline-flex', alignItems: 'center', width: 'fit-content' }}>
+                              Wali: Menunggu
+                            </span>
+                          )}
+                          
+                          {isClassroomApproved ? (
+                            <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #3b82f6', display: 'inline-flex', alignItems: 'center', width: 'fit-content' }}>
+                              Kepsek: Sah
+                            </span>
+                          ) : (
+                            <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', display: 'inline-flex', alignItems: 'center', width: 'fit-content' }}>
+                              Kepsek: Menunggu
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
                       <td style={{ padding: '1.25rem 2rem', textAlign: 'right', verticalAlign: 'middle' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', alignItems: 'center' }}>
+                          {!card.validatedAt && (
+                            <button 
+                              onClick={async () => {
+                                if (window.confirm('Validasi rapor ini? Tindakan ini akan membubuhkan tanda tangan digital Anda.')) {
+                                  try {
+                                    await validateReportCard(card.id);
+                                  } catch (e: any) {
+                                    alert(e.message || 'Gagal memvalidasi rapor');
+                                  }
+                                }
+                              }}
+                              style={{ padding: '0.5rem', color: '#64748b', backgroundColor: 'transparent', borderRadius: '8px', border: '1px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }} 
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ecfdf5'; e.currentTarget.style.color = '#059669'; }} 
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
+                              title="Validasi & Tanda Tangani"
+                            >
+                              <CheckCircle size={16} />
+                            </button>
+                          )}
                           <button 
                             onClick={() => openEditModal(card)}
                             style={{ padding: '0.5rem', color: '#64748b', backgroundColor: 'transparent', borderRadius: '8px', border: '1px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }} 

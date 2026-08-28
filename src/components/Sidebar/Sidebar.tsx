@@ -14,13 +14,14 @@ export const Sidebar: React.FC = () => {
   const isSuperAdminOrAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah');
   const isTeacher = user?.roles?.some(r => r.name === 'Guru / Wali Kelas');
   const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin');
+  const isPrincipal = user?.roles?.some(r => r.name === 'Kepala Sekolah');
 
-  const canManageMaster = isSuperAdminOrAdmin;
-  const canManageSivitas = isSuperAdminOrAdmin;
-  const canManageAssessment = isSuperAdminOrAdmin || isTeacher;
-  const canManageStudentAffairs = isSuperAdminOrAdmin || isTeacher;
+  const canManageMaster = isSuperAdminOrAdmin || isPrincipal;
+  const canManageSivitas = isSuperAdminOrAdmin || isPrincipal;
+  const canManageAssessment = isSuperAdminOrAdmin || isTeacher || isPrincipal;
+  const canManageStudentAffairs = isSuperAdminOrAdmin || isTeacher || isPrincipal;
   const canManageRBAC = isSuperAdmin;
-  const canManageCommunication = isSuperAdminOrAdmin;
+  const canManageCommunication = isSuperAdminOrAdmin || isPrincipal;
   const canManageHardware = isSuperAdminOrAdmin;
 
   return (
@@ -162,15 +163,17 @@ export const Sidebar: React.FC = () => {
           </>
         )}
 
-        {canManageMaster && (
+        {canManageAssessment && (
           <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Penilaian & Ujian
             </div>
-            <NavLink to="/assessment/components" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-              <Settings size={20} />
-              <span>Komponen Penilaian</span>
-            </NavLink>
+            {canManageMaster && (
+              <NavLink to="/assessment/components" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+                <Settings size={20} />
+                <span>Komponen Penilaian</span>
+              </NavLink>
+            )}
             <NavLink to="/assessment/exams" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
               <FileEdit size={20} />
               <span>Agenda Penilaian</span>
@@ -182,7 +185,7 @@ export const Sidebar: React.FC = () => {
           </>
         )}
 
-        {canManageSivitas && (
+        {canManageStudentAffairs && (
           <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Kesiswaan

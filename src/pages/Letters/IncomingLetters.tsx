@@ -17,12 +17,12 @@ export const IncomingLetters: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<Partial<IncomingLetter>>({
-    referenceNumber: '',
+    letterNumber: '',
     sender: '',
     subject: '',
     receivedDate: new Date().toISOString().split('T')[0],
     letterDate: new Date().toISOString().split('T')[0],
-    description: '',
+    notes: '',
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -46,22 +46,22 @@ export const IncomingLetters: React.FC = () => {
   const openModal = (letter?: IncomingLetter) => {
     if (letter) {
       setFormData({
-        referenceNumber: letter.referenceNumber,
+        letterNumber: letter.letterNumber,
         sender: letter.sender,
         subject: letter.subject,
         receivedDate: new Date(letter.receivedDate).toISOString().split('T')[0],
         letterDate: new Date(letter.letterDate).toISOString().split('T')[0],
-        description: letter.description || '',
+        notes: letter.notes || '',
       });
       setEditingId(letter.id);
     } else {
       setFormData({
-        referenceNumber: '',
+        letterNumber: '',
         sender: '',
         subject: '',
         receivedDate: new Date().toISOString().split('T')[0],
         letterDate: new Date().toISOString().split('T')[0],
-        description: '',
+        notes: '',
       });
       setEditingId(null);
     }
@@ -102,7 +102,7 @@ export const IncomingLetters: React.FC = () => {
       if (editingId) {
         await updateIncomingLetter(editingId, payload);
       } else {
-        const newLetter = await createIncomingLetter({ ...payload, createdById: user?.id?.toString() || '1' });
+        const newLetter = await createIncomingLetter({ ...payload, recordedById: user?.id?.toString() || '1' });
         letterId = newLetter.id;
       }
 
@@ -171,7 +171,7 @@ export const IncomingLetters: React.FC = () => {
                       <td>
                         <div>
                           <p className="font-semibold text-gray-900">{item.subject}</p>
-                          <p className="text-sm font-mono text-gray-500">{item.referenceNumber}</p>
+                          <p className="text-sm font-mono text-gray-500">{item.letterNumber}</p>
                         </div>
                       </td>
                       <td>{item.sender}</td>
@@ -182,8 +182,8 @@ export const IncomingLetters: React.FC = () => {
                         </div>
                       </td>
                       <td>
-                        {item.fileUrl ? (
-                          <a href={`http://localhost:3000${item.fileUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-blue-600 hover:underline">
+                        {item.attachmentUrl ? (
+                          <a href={`http://localhost:3000${item.attachmentUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-blue-600 hover:underline">
                             <Download size={14} /> Unduh
                           </a>
                         ) : (
@@ -237,9 +237,9 @@ export const IncomingLetters: React.FC = () => {
                     <label className="text-sm font-medium text-gray-700">Nomor Surat *</label>
                     <input
                       type="text"
-                      name="referenceNumber"
+                      name="letterNumber"
                       className="input-field mt-1 w-full"
-                      value={formData.referenceNumber}
+                      value={formData.letterNumber}
                       onChange={handleInputChange}
                       required
                     />
@@ -297,10 +297,10 @@ export const IncomingLetters: React.FC = () => {
                 <div className="form-group">
                   <label className="text-sm font-medium text-gray-700">Keterangan Tambahan / Disposisi</label>
                   <textarea
-                    name="description"
+                    name="notes"
                     className="input-field mt-1 w-full"
                     rows={3}
-                    value={formData.description}
+                    value={formData.notes}
                     onChange={handleInputChange}
                   />
                 </div>

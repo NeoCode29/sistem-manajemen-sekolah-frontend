@@ -99,8 +99,8 @@ export const EmployeeAttendancePage: React.FC = () => {
         return {
           employeeId: r.employeeId,
           status: r.status,
-          checkinTime: isPresent ? (r.checkinTime || null) : null,
-          checkoutTime: isPresent ? (r.checkoutTime || null) : null,
+          checkinTime: isPresent ? (r.checkinTime || undefined) : undefined,
+          checkoutTime: isPresent ? (r.checkoutTime || undefined) : undefined,
           notes: r.notes || undefined
         };
       });

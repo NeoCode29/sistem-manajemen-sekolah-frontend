@@ -204,6 +204,8 @@ export const SchoolProfilePage: React.FC = () => {
                   </div>
                 </div>
 
+
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Kontak & Digital */}
                   <div className="premium-glass-card p-6 relative overflow-hidden">

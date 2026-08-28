@@ -93,3 +93,15 @@ export const updateEmployee = async (id: string, data: Partial<Employee>): Promi
 export const deleteEmployee = async (id: string): Promise<void> => {
   await api.delete(`/employees/${id}`);
 };
+
+export const uploadSignature = async (id: string, file: File): Promise<Employee> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await api.post(`/employees/${id}/signature`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};

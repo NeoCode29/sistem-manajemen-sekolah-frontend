@@ -13,6 +13,7 @@ export interface ReportCard {
   homeroomNotes: string | null;
   isPromoted: boolean | null;
   promotedToGrade: string | null;
+  validatedAt: string | null;
   student: { id: string; fullName: string; nis: string };
 }
 
@@ -58,6 +59,17 @@ export const useReportCards = () => {
     }
   };
 
+  const validateReportCard = async (id: string) => {
+    try {
+      const response = await api.patch(`/assessment/report-cards/${id}/validate`);
+      setReportCards(prev => prev.map(rc => rc.id === id ? { ...rc, validatedAt: response.data.validatedAt } : rc));
+      return response.data;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to validate report card');
+      throw err;
+    }
+  };
+
   const exportPdf = async (id: string, studentName: string) => {
     try {
       const response = await api.get(`/assessment/report-cards/${id}/pdf`, {
@@ -76,5 +88,24 @@ export const useReportCards = () => {
     }
   };
 
-  return { reportCards, loading, error, fetchReportCards, generateReportCards, updateHomeroomNotes, exportPdf };
+  const approveClassroom = async (data: { classroomId: string; academicYearId: string; semesterId: string; action: 'APPROVE'|'REJECT'; notes: string }) => {
+    try {
+      const response = await api.post('/assessment/validations/approvals', data);
+      return response.data;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to approve classroom');
+      throw err;
+    }
+  };
+
+  const getApprovals = useCallback(async (params: { classroomId?: string; academicYearId?: string; semesterId?: string }) => {
+    try {
+      const response = await api.get('/assessment/validations/approvals/list', { params });
+      return response.data;
+    } catch (err: any) {
+      throw err;
+    }
+  }, []);
+
+  return { reportCards, loading, error, fetchReportCards, generateReportCards, updateHomeroomNotes, validateReportCard, exportPdf, approveClassroom, getApprovals };
 };
