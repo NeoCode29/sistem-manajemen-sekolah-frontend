@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, Settings, LogOut, BookOpen, Clock, Calendar, GraduationCap, Library, UserCog, ShieldCheck, UserCheck, Briefcase, User, BadgeCheck, Wallet, CalendarDays, FileText, ShoppingCart, Receipt, FileEdit, Award, AlertOctagon, Building2, Megaphone, Mail, Send, FileCode, TrendingUp, UserPlus, Monitor } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, LogOut, BookOpen, Clock, Calendar, GraduationCap, Library, UserCog, ShieldCheck, UserCheck, Briefcase, User, BadgeCheck, CalendarDays, FileText, FileEdit, Award, AlertOctagon, Building2, Megaphone, Mail, Send, FileCode, TrendingUp, UserPlus, Monitor } from 'lucide-react';
 import './Sidebar.css';
 
 export const Sidebar: React.FC = () => {
@@ -249,7 +249,7 @@ export const Sidebar: React.FC = () => {
           </>
         )}
         
-        {canManageMaster && (
+        {canManageHardware && (
           <>
             <div className="nav-section-title" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Perangkat
