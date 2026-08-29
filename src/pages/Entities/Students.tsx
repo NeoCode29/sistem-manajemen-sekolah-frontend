@@ -122,8 +122,7 @@ export const Students: React.FC = () => {
   }, [currentPage, itemsPerPage, searchTerm, filterStatus, activeTab]);
 
   const handleRestore = async (id: string) => {
-    const confirm = await showConfirm('Apakah Anda yakin ingin me-restore siswa ini?', 'Konfirmasi Restore', 'warning');
-    if (confirm) {
+    showConfirm('Apakah Anda yakin ingin me-restore siswa ini?', async () => {
       try {
         await restoreStudent(id);
         setSuccess('Siswa berhasil di-restore');
@@ -132,7 +131,7 @@ export const Students: React.FC = () => {
       } catch (err: any) {
         setError(err.response?.data?.message || 'Gagal merestore siswa');
       }
-    }
+    });
   };
 
 
