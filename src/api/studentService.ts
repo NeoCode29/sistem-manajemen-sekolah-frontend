@@ -155,3 +155,13 @@ export const importStudents = async (file: File) => {
   });
   return response.data;
 };
+
+export const getDeletedStudents = async (params?: any): Promise<any> => {
+  const response = await api.get('/students/trash', { params });
+  return response.data;
+};
+
+export const restoreStudent = async (id: string): Promise<any> => {
+  const response = await api.post(`/students/${id}/restore`);
+  return response.data;
+};
