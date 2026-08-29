@@ -102,6 +102,10 @@ export const Sidebar: React.FC = () => {
               <GraduationCap size={20} />
               <span>Tingkat Kelas</span>
             </NavLink>
+            <NavLink to="/academic/majors" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+              <Award size={20} />
+              <span>Jurusan</span>
+            </NavLink>
             <NavLink to="/academic/years" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
               <Calendar size={20} />
               <span>Tahun Ajaran</span>

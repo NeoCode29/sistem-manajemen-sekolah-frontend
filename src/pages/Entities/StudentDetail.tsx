@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getStudentById, updateStudent, createGuardian, updateGuardian, deleteGuardian, createEnrollment, updateEnrollment, deleteEnrollment, type Student, type StudentGuardian, type StudentEnrollment } from '../../api/studentService';
-import { getAcademicYears, getSemesters, getClassrooms, type AcademicYear, type Semester, type Classroom } from '../../api/academicService';
+import { getAcademicYears, getSemesters, getClassrooms, getMajors, type AcademicYear, type Semester, type Classroom, type Major } from '../../api/academicService';
 import { ArrowLeft, User, BookOpen, CreditCard, Award, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
@@ -25,6 +25,7 @@ export const StudentDetail: React.FC = () => {
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const [majors, setMajors] = useState<Major[]>([]);
 
   // Modal States
   const [showEditProfil, setShowEditProfil] = useState(false);
@@ -56,12 +57,13 @@ export const StudentDetail: React.FC = () => {
 
   const fetchMasterData = async () => {
     try {
-      const [ay, sm, cr] = await Promise.all([
-        getAcademicYears(), getSemesters(), getClassrooms()
+      const [ay, sm, cr, mj] = await Promise.all([
+        getAcademicYears(), getSemesters(), getClassrooms(), getMajors()
       ]);
       setAcademicYears(ay);
       setSemesters(sm);
       setClassrooms(cr);
+      setMajors(mj);
     } catch (err) {
       console.error("Gagal memuat data master akademik", err);
     }
@@ -89,7 +91,8 @@ export const StudentDetail: React.FC = () => {
       birthPlace: student.birthPlace || '',
       birthDate: student.birthDate ? new Date(student.birthDate).toISOString().split('T')[0] : '',
       address: student.address || '',
-      status: student.status
+      status: student.status,
+      majorId: student.majorId || ''
     });
     setShowEditProfil(true);
   };
@@ -99,11 +102,16 @@ export const StudentDetail: React.FC = () => {
     if (!student) return;
     try {
       setProfilSaving(true);
-      const payload = { ...editProfilData };
+      const payload: any = { ...editProfilData };
       if (!payload.religion) delete payload.religion;
       if (!payload.birthPlace) delete payload.birthPlace;
       if (!payload.birthDate) delete payload.birthDate;
       if (!payload.address) delete payload.address;
+      if (!payload.majorId) {
+        payload.majorId = null;
+      } else {
+        payload.majorId = Number(payload.majorId);
+      }
 
       await updateStudent(student.id, payload);
       showSuccess('Profil berhasil diperbarui!');
@@ -263,6 +271,7 @@ export const StudentDetail: React.FC = () => {
         <div className="student-detail-info">
           <h2>{student.fullName}</h2>
           <p>NIS: {student.nis} &bull; NISN: {student.nisn}</p>
+          {student.major?.name && <p style={{ fontSize: '0.875rem', color: '#0ea5e9', fontWeight: 600, marginTop: '2px', marginBottom: '8px' }}>{student.major.name}</p>}
           <div>
             <span className={`status-badge ${student.status === 'Aktif' || student.status === 'ACTIVE' ? 'active' : 'inactive'}`}>
               {student.status === 'ACTIVE' ? 'Aktif' : student.status}
@@ -294,6 +303,7 @@ export const StudentDetail: React.FC = () => {
             <div className="student-detail-card">
               <h3>Informasi Biodata</h3>
               <div className="student-detail-row"><div className="student-detail-label">Jenis Kelamin</div><div className="student-detail-value">{student.gender}</div></div>
+              <div className="student-detail-row"><div className="student-detail-label">Jurusan</div><div className="student-detail-value">{student.major?.name || '-'}</div></div>
               <div className="student-detail-row"><div className="student-detail-label">Agama</div><div className="student-detail-value">{student.religion || '-'}</div></div>
               <div className="student-detail-row"><div className="student-detail-label">Tempat Lahir</div><div className="student-detail-value">{student.birthPlace || '-'}</div></div>
               <div className="student-detail-row"><div className="student-detail-label">Tanggal Lahir</div><div className="student-detail-value">{student.birthDate ? new Date(student.birthDate).toLocaleDateString('id-ID') : '-'}</div></div>
@@ -406,6 +416,7 @@ export const StudentDetail: React.FC = () => {
                 <div className="form-group"><label>NISN</label><input type="text" className="input-field" value={editProfilData.nisn || ''} onChange={(e)=>setEditProfilData({...editProfilData, nisn: e.target.value})}/></div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Nama Lengkap</label><input type="text" className="input-field" value={editProfilData.fullName || ''} onChange={(e)=>setEditProfilData({...editProfilData, fullName: e.target.value})} required/></div>
                 <div className="form-group"><label>Jenis Kelamin</label><select className="input-field" value={editProfilData.gender || ''} onChange={(e)=>setEditProfilData({...editProfilData, gender: e.target.value})}><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
+                <div className="form-group"><label>Jurusan <span className="text-gray-400 text-xs">(Opsional)</span></label><select className="input-field" value={editProfilData.majorId || ''} onChange={(e)=>setEditProfilData({...editProfilData, majorId: e.target.value})}><option value="">-- Tidak Ada Jurusan --</option>{majors.filter(m => m.isActive).map(m => (<option key={m.id} value={m.id}>{m.name}</option>))}</select></div>
                 <div className="form-group"><label>Agama</label><input type="text" className="input-field" value={editProfilData.religion || ''} onChange={(e)=>setEditProfilData({...editProfilData, religion: e.target.value})}/></div>
                 <div className="form-group"><label>Tempat Lahir</label><input type="text" className="input-field" value={editProfilData.birthPlace || ''} onChange={(e)=>setEditProfilData({...editProfilData, birthPlace: e.target.value})}/></div>
                 <div className="form-group"><label>Tanggal Lahir</label><input type="date" className="input-field" value={editProfilData.birthDate || ''} onChange={(e)=>setEditProfilData({...editProfilData, birthDate: e.target.value})}/></div>
@@ -418,7 +429,8 @@ export const StudentDetail: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {showGuardianModal && createPortal(
@@ -445,7 +457,8 @@ export const StudentDetail: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {showEnrollmentModal && createPortal(

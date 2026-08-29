@@ -21,6 +21,9 @@ export interface StudentEnrollment {
   classroomId?: string;
   enrollmentDate?: string;
   status?: string;
+  classroom?: any;
+  academicYear?: any;
+  semester?: any;
 }
 
 export interface Student {
@@ -29,6 +32,7 @@ export interface Student {
   nisn?: string;
   fingerId?: string;
   cardId?: string;
+  majorId?: string;
   fullName: string;
   gender: string;
   birthPlace?: string;
@@ -40,6 +44,7 @@ export interface Student {
   admissionDate?: string;
   photo?: string;
   isActive?: boolean;
+  major?: any;
   users?: { id: string; isActive: boolean }[];
   guardians?: StudentGuardian[];
   enrollments?: StudentEnrollment[];
@@ -51,6 +56,7 @@ export interface CreateStudentWizardPayload {
   fullName: string;
   gender: string;
   status: string;
+  majorId?: string;
   guardians: StudentGuardian[];
   enrollment: StudentEnrollment;
   createUserAccount?: boolean;

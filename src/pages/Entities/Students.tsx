@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { getStudents, getStudentsPaginated, createStudentWizard, updateStudent, deleteStudent, getGuardians, updateGuardian, type Student, type CreateStudentWizardPayload } from '../../api/studentService';
-import { getAcademicYears, getSemesters, getClassrooms, type AcademicYear, type Semester, type Classroom } from '../../api/academicService';
-import { updateUser } from '../../api/rbacService';
-import { Plus, CheckCircle, XCircle, Trash2, Pencil, Users as UsersIcon, ChevronRight, ChevronLeft, Search, Filter } from 'lucide-react';
+import { getStudentsPaginated, createStudentWizard, deleteStudent, type Student, type CreateStudentWizardPayload } from '../../api/studentService';
+import { getAcademicYears, getSemesters, getClassrooms, getMajors, type AcademicYear, type Semester, type Classroom, type Major } from '../../api/academicService';
+import { Plus, Trash2, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css'; 
@@ -36,6 +35,7 @@ export const Students: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState('Laki-laki');
   const [status, setStatus] = useState('ACTIVE');
+  const [majorId, setMajorId] = useState('');
   
   // Wizard Step 2: Primary Guardian Data
   const [guardianRel, setGuardianRel] = useState('Ayah');
@@ -46,6 +46,7 @@ export const Students: React.FC = () => {
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const [majors, setMajors] = useState<Major[]>([]);
   
   const [selectedAy, setSelectedAy] = useState('');
   const [selectedSem, setSelectedSem] = useState('');
@@ -75,14 +76,16 @@ export const Students: React.FC = () => {
 
   const fetchWizardMasterData = async () => {
     try {
-      const [ayData, semData, classData] = await Promise.all([
+      const [ayData, semData, classData, majorsData] = await Promise.all([
         getAcademicYears(),
         getSemesters(),
-        getClassrooms()
+        getClassrooms(),
+        getMajors()
       ]);
       setAcademicYears(ayData);
       setSemesters(semData);
       setClassrooms(classData);
+      setMajors(majorsData);
       
       const activeAy = ayData.find(ay => ay.isActive);
       if (activeAy) {
@@ -133,7 +136,7 @@ export const Students: React.FC = () => {
     setShowWizardModal(false);
     setWizardStep(1);
     // Reset forms
-    setNis(''); setNisn(''); setFullName(''); setGender('Laki-laki'); setStatus('ACTIVE');
+    setNis(''); setNisn(''); setFullName(''); setGender('Laki-laki'); setStatus('ACTIVE'); setMajorId('');
     setGuardianRel('Ayah'); setGuardianName(''); setGuardianPhone('');
     setSelectedClass(''); setCreateUserAccount(true);
     setError('');
@@ -148,6 +151,7 @@ export const Students: React.FC = () => {
         fullName,
         gender,
         status,
+        majorId: majorId || undefined,
         guardians: [{
           relationship: guardianRel,
           fullName: guardianName,
@@ -221,6 +225,7 @@ export const Students: React.FC = () => {
               <tr>
                 <th>NIS / NISN</th>
                 <th>Nama Lengkap</th>
+                <th>Jurusan</th>
                 <th>Status</th>
                 <th>Kelas Saat Ini</th>
                 <th>Aksi</th>
@@ -243,6 +248,7 @@ export const Students: React.FC = () => {
                       <div className="text-xs text-gray-500">{student.nisn || '-'}</div>
                     </td>
                     <td className="font-semibold">{student.fullName}</td>
+                    <td>{student.major?.name || '-'}</td>
                     <td>
                       <span className="status-badge" style={{ backgroundColor: 'var(--primary-color)', color: 'white' }}>
                         {student.status === 'ACTIVE' ? 'Aktif' : 
@@ -359,6 +365,15 @@ export const Students: React.FC = () => {
                       <select className="input-field" value={gender} onChange={(e) => setGender(e.target.value)}>
                         <option value="Laki-laki">Laki-laki</option>
                         <option value="Perempuan">Perempuan</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Jurusan <span className="text-gray-400 text-xs">(Opsional)</span></label>
+                      <select className="input-field" value={majorId} onChange={(e) => setMajorId(e.target.value)}>
+                        <option value="">-- Tidak Ada Jurusan --</option>
+                        {majors.filter(m => m.isActive).map(m => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="form-group">

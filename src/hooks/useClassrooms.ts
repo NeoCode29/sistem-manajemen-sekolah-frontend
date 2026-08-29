@@ -4,14 +4,17 @@ import {
   createClassroom as apiCreateClassroom, 
   updateClassroom as apiUpdateClassroom, 
   deleteClassroom as apiDeleteClassroom, 
-  getGrades, 
-  type Classroom, 
-  type Grade 
+  getGrades,
+  getMajors,
+  type Classroom,
+  type Grade,
+  type Major
 } from '../api/academicService';
 
 export function useClassrooms(filterGradeId?: string) {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
+  const [majors, setMajors] = useState<Major[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,12 +22,14 @@ export function useClassrooms(filterGradeId?: string) {
     try {
       setLoading(true);
       setError(null);
-      const [classroomsData, gradesData] = await Promise.all([
+      const [classroomsData, gradesData, majorsData] = await Promise.all([
         getClassrooms(filterGradeId || undefined),
-        getGrades()
+        getGrades(),
+        getMajors()
       ]);
       setClassrooms(classroomsData);
       setGrades(gradesData);
+      setMajors(majorsData);
     } catch (err: any) {
       console.error('Failed to fetch data:', err);
       setError(err.message || 'Failed to fetch classrooms data');
@@ -67,6 +72,7 @@ export function useClassrooms(filterGradeId?: string) {
   return {
     classrooms,
     grades,
+    majors,
     loading,
     error,
     refresh: fetchData,

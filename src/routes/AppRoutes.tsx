@@ -8,6 +8,7 @@ import { Layout } from '../components/Layout/Layout';
 import { AcademicYears } from '../pages/Academic/AcademicYears';
 import { Semesters } from '../pages/Academic/Semesters';
 import { Grades } from '../pages/Academic/Grades';
+import { Majors } from '../pages/Academic/Majors';
 import { Classrooms } from '../pages/Academic/Classrooms';
 import { ClassroomDetail } from '../pages/Academic/ClassroomDetail';
 import { Subjects } from '../pages/Academic/Subjects';
@@ -56,6 +57,7 @@ export const AppRoutes: React.FC = () => {
               <Route path="/academic/years" element={<AcademicYears />} />
               <Route path="/academic/semesters" element={<Semesters />} />
               <Route path="/academic/grades" element={<Grades />} />
+              <Route path="/academic/majors" element={<Majors />} />
               <Route path="/academic/classrooms" element={<Classrooms />} />
               <Route path="/academic/classrooms/:id" element={<ClassroomDetail />} />
               <Route path="/academic/subjects" element={<Subjects />} />

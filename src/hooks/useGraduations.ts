@@ -63,7 +63,7 @@ export function useGraduations() {
         payload.academicYearId = academicYearId;
       }
       const res = await getStudents(payload);
-      const students = Array.isArray(res) ? res : (res.data || []);
+      const students = Array.isArray(res) ? res : ((res as any).data || []);
       setSourceStudents(students as Student[]);
       return students as Student[];
     } catch (err) {

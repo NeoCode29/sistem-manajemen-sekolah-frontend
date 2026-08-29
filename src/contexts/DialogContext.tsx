@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, HelpCircle, X, Info } from 'lucide-react';
 
@@ -9,7 +10,7 @@ interface DialogOptions {
   title?: string;
   message: string;
   defaultValue?: string;
-  onConfirm?: (value?: string) => void;
+  onConfirm?: (value?: any) => void;
   onCancel?: () => void;
 }
 

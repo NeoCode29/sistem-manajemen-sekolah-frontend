@@ -356,7 +356,8 @@ export const Promotions: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Graduate Modal */}

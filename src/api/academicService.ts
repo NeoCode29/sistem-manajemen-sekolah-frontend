@@ -90,10 +90,12 @@ export const updateGrade = async (id: string, data: Partial<Grade>) => {
 export interface Classroom {
   id: string;
   gradeId: string;
+  majorId?: string;
   code: string;
   name: string;
   capacity?: number;
   grade?: Grade;
+  major?: Major;
 }
 export const getClassrooms = async (gradeId?: string): Promise<Classroom[]> => {
   const url = gradeId ? `/classrooms?gradeId=${gradeId}` : '/classrooms';
@@ -196,5 +198,39 @@ export const deleteClassPeriod = async (id: string) => {
 };
 export const updateClassPeriod = async (id: string, data: Partial<ClassPeriod>) => {
   const response = await api.patch(`/class-periods/${id}`, data);
+  return response.data;
+};
+
+// 7. Majors
+export interface Major {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export const getMajors = async (): Promise<Major[]> => {
+  const response = await api.get('/majors');
+  return response.data.data ? response.data.data : response.data;
+};
+
+export const createMajor = async (data: Partial<Major>) => {
+  const response = await api.post('/majors', data);
+  return response.data;
+};
+
+export const updateMajor = async (id: string, data: Partial<Major>) => {
+  const response = await api.patch(`/majors/${id}`, data);
+  return response.data;
+};
+
+export const toggleMajorActive = async (id: string) => {
+  const response = await api.patch(`/majors/${id}/toggle-active`);
+  return response.data;
+};
+
+export const deleteMajor = async (id: string) => {
+  const response = await api.delete(`/majors/${id}`);
   return response.data;
 };

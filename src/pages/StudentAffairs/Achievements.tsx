@@ -270,7 +270,7 @@ export const Achievements: React.FC = () => {
                     
                     <td style={{ padding: '1.25rem 2rem', textAlign: 'center', verticalAlign: 'middle' }}>
                       <div style={{ fontSize: '0.9rem', color: '#475569', fontWeight: 500 }}>
-                        {new Date(item.eventDate || item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {new Date(item.eventDate || new Date()).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </div>
                     </td>
 

@@ -18,6 +18,7 @@ export const Classrooms: React.FC = () => {
   const {
     classrooms,
     grades,
+    majors,
     loading,
     createClassroom,
     updateClassroom,
@@ -30,6 +31,7 @@ export const Classrooms: React.FC = () => {
   const [editId, setEditId] = useState('');
   
   const [gradeId, setGradeId] = useState('');
+  const [majorId, setMajorId] = useState('');
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [capacity, setCapacity] = useState(30);
@@ -43,6 +45,8 @@ export const Classrooms: React.FC = () => {
     setShowModal(false);
     setIsEditing(false);
     setEditId('');
+    setGradeId('');
+    setMajorId('');
     setCode('');
     setName('');
     setCapacity(30);
@@ -52,6 +56,7 @@ export const Classrooms: React.FC = () => {
     setIsEditing(true);
     setEditId(classroom.id);
     setGradeId(classroom.gradeId);
+    setMajorId(classroom.majorId || '');
     setCode(classroom.code);
     setName(classroom.name);
     setCapacity(classroom.capacity || 30);
@@ -73,6 +78,7 @@ export const Classrooms: React.FC = () => {
     try {
       const payload: any = {
         gradeId: Number(gradeId),
+        majorId: majorId ? Number(majorId) : null,
         code,
         name,
         capacity: Number(capacity)
@@ -104,6 +110,7 @@ export const Classrooms: React.FC = () => {
   const classroomColumns: Column<Classroom>[] = [
     { key: 'code', header: 'Kode', render: (row) => <span className="font-semibold">{row.code}</span> },
     { key: 'name', header: 'Nama Rombel' },
+    { key: 'major', header: 'Jurusan', render: (row) => row.major?.name || '-' },
     { key: 'grade', header: 'Tingkat', render: (row) => <span className="grade-badge">{row.grade?.name || '-'}</span> },
     { key: 'capacity', header: 'Kapasitas', render: (row) => (
         <div className="capacity-info">
@@ -187,6 +194,15 @@ export const Classrooms: React.FC = () => {
                 <select className="input-field" value={gradeId} onChange={(e) => setGradeId(e.target.value)} required>
                   {grades.map(g => (
                     <option key={g.id} value={g.id}>{g.name} ({g.educationLevel})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Jurusan <span className="text-gray-400 text-xs">(Opsional)</span></label>
+                <select className="input-field" value={majorId} onChange={(e) => setMajorId(e.target.value)}>
+                  <option value="">-- Tidak Ada Jurusan --</option>
+                  {majors.filter(m => m.isActive).map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
                   ))}
                 </select>
               </div>
