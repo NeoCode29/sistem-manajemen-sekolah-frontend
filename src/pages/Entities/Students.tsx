@@ -3,9 +3,10 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { getStudentsPaginated, createStudentWizard, deleteStudent, type Student, type CreateStudentWizardPayload } from '../../api/studentService';
 import { getAcademicYears, getSemesters, getClassrooms, getMajors, type AcademicYear, type Semester, type Classroom, type Major } from '../../api/academicService';
-import { Plus, Trash2, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Search, Filter, ChevronLeft, ChevronRight, FileUp } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { useDialog } from '../../contexts/DialogContext';
+import { ImportStudentModal } from './ImportStudentModal';
 import '../Academic/Academic.css'; 
 
 export const Students: React.FC = () => {
@@ -24,6 +25,9 @@ export const Students: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('');
 
   // Edit modal states moved to StudentDetail.tsx
+
+  // Import Modal State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Wizard Modal State
   const [showWizardModal, setShowWizardModal] = useState(false);
@@ -183,9 +187,14 @@ export const Students: React.FC = () => {
           <h1 className="page-title">Siswa & Wali Murid</h1>
           <p className="page-subtitle">Pendaftaran dan manajemen riwayat siswa terpadu</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowWizardModal(true)}>
-          <Plus size={18} /> Pendaftaran Siswa Baru
-        </button>
+        <div className="flex gap-2">
+          <button className="btn-secondary flex items-center gap-2" onClick={() => setIsImportModalOpen(true)}>
+            <FileUp size={18} /> Import Excel
+          </button>
+          <button className="btn-primary flex items-center gap-2" onClick={() => setShowWizardModal(true)}>
+            <Plus size={18} /> Pendaftaran Siswa Baru
+          </button>
+        </div>
       </div>
 
       {error && !showWizardModal && <div className="alert alert-error">{error}</div>}
@@ -460,6 +469,12 @@ export const Students: React.FC = () => {
       ,
         document.body
       )}
+    {/* Import Modal */}
+      <ImportStudentModal 
+        isOpen={isImportModalOpen} 
+        onClose={() => setIsImportModalOpen(false)} 
+        onSuccess={() => { setIsImportModalOpen(false); fetchStudents(); }} 
+      />
     </div>
   );
 };
