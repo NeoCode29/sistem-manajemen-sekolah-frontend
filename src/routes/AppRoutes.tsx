@@ -44,6 +44,12 @@ import { IdentityRegistration } from '../pages/Hardware/IdentityRegistration';
 import { AccountSettings } from '../pages/Settings/AccountSettings';
 import { HomeroomDashboard } from '../pages/Homeroom/HomeroomDashboard';
 
+import { StudentLayout } from '../components/Layout/StudentLayout';
+import { StudentDashboard } from '../pages/Student/StudentDashboard';
+import { StudentProfile } from '../pages/Student/StudentProfile';
+import { StudentGrades } from '../pages/Student/StudentGrades';
+import { StudentDiscipline } from '../pages/Student/StudentDiscipline';
+
 export const AppRoutes: React.FC = () => {
   return (
     <BrowserRouter>
@@ -94,9 +100,18 @@ export const AppRoutes: React.FC = () => {
               <Route path="/settings" element={<AccountSettings />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>
+
+            <Route path="/student" element={<StudentLayout />}>
+              <Route path="dashboard" element={<StudentDashboard />} />
+              <Route path="profile" element={<StudentProfile />} />
+              <Route path="grades" element={<StudentGrades />} />
+              <Route path="discipline" element={<StudentDiscipline />} />
+            </Route>
+
           </Route>
         </Routes>
       </AuthProvider>
     </BrowserRouter>
   );
 };
+
