@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { getStudentsPaginated, createStudentWizard, deleteStudent, type Student, type CreateStudentWizardPayload } from '../../api/studentService';
+import { getStudentsPaginated, createStudentWizard, deleteStudent, getDeletedStudents, restoreStudent, type Student, type CreateStudentWizardPayload } from '../../api/studentService';
 import { getAcademicYears, getSemesters, getClassrooms, getMajors, type AcademicYear, type Semester, type Classroom, type Major } from '../../api/academicService';
-import { Plus, Trash2, Search, Filter, ChevronLeft, ChevronRight, FileUp } from 'lucide-react';
+import { Plus, Trash2, Search, Filter, ChevronLeft, ChevronRight, FileUp, RefreshCw } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { useDialog } from '../../contexts/DialogContext';
 import { ImportStudentModal } from './ImportStudentModal';
@@ -23,6 +23,7 @@ export const Students: React.FC = () => {
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
 
   // Edit modal states moved to StudentDetail.tsx
 
@@ -64,12 +65,16 @@ export const Students: React.FC = () => {
       setLoading(true);
       const params: any = { page: currentPage, limit: itemsPerPage };
       if (searchTerm) params.search = searchTerm;
-      if (filterStatus) params.status = filterStatus;
       
-      const response = await getStudentsPaginated(params);
-      setStudents(response.data);
-      if (response.meta?.totalPages) {
-        setTotalPages(response.meta.totalPages);
+      if (activeTab === 'active') {
+        if (filterStatus) params.status = filterStatus;
+        const response = await getStudentsPaginated(params);
+        setStudents(response.data);
+        if (response.meta?.totalPages) setTotalPages(response.meta.totalPages);
+      } else {
+        const response = await getDeletedStudents(params);
+        setStudents(response.data);
+        if (response.meta?.totalPages) setTotalPages(response.meta.totalPages);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Gagal memuat data siswa');
@@ -114,7 +119,21 @@ export const Students: React.FC = () => {
 
   useEffect(() => {
     fetchStudents();
-  }, [currentPage, itemsPerPage, searchTerm, filterStatus]);
+  }, [currentPage, itemsPerPage, searchTerm, filterStatus, activeTab]);
+
+  const handleRestore = async (id: string) => {
+    const confirm = await showConfirm('Apakah Anda yakin ingin me-restore siswa ini?', 'Konfirmasi Restore', 'warning');
+    if (confirm) {
+      try {
+        await restoreStudent(id);
+        setSuccess('Siswa berhasil di-restore');
+        fetchStudents();
+        setTimeout(() => setSuccess(''), 3000);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Gagal merestore siswa');
+      }
+    }
+  };
 
 
 
@@ -200,6 +219,21 @@ export const Students: React.FC = () => {
       {error && !showWizardModal && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
+      <div className="flex gap-4 mb-4 border-b border-gray-200">
+        <button 
+          className={`font-medium pb-2 px-1 ${activeTab === 'active' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => { setActiveTab('active'); setCurrentPage(1); }}
+        >
+          Siswa Terdaftar
+        </button>
+        <button 
+          className={`font-medium pb-2 px-1 ${activeTab === 'deleted' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => { setActiveTab('deleted'); setCurrentPage(1); }}
+        >
+          Tempat Sampah
+        </button>
+      </div>
+
       <div className="glass-panel mb-6 p-4 flex flex-col md:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -211,20 +245,22 @@ export const Students: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="w-full md:w-64 relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <select 
-            className="input-field pl-10 w-full"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="">Semua Status</option>
-            <option value="ACTIVE">Aktif</option>
-            <option value="GRADUATED">Lulus</option>
-            <option value="TRANSFER">Pindahan</option>
-            <option value="DROPOUT">Keluar</option>
-          </select>
-        </div>
+        {activeTab === 'active' && (
+          <div className="w-full md:w-64 relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <select 
+              className="input-field pl-10 w-full"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="">Semua Status</option>
+              <option value="ACTIVE">Aktif</option>
+              <option value="GRADUATED">Lulus</option>
+              <option value="TRANSFER">Pindahan</option>
+              <option value="DROPOUT">Keluar</option>
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="glass-panel">
@@ -281,22 +317,32 @@ export const Students: React.FC = () => {
                     </td>
                     <td>
                       <div className="action-buttons">
-                        <button 
-                          className="btn-icon text-indigo-500 hover:bg-indigo-500/10"
-                          onClick={() => navigate(`/entities/students/${student.id}`)}
-                          title="Lihat Detail Siswa"
-                        >
-                          <ChevronRight size={18} />
-                        </button>
-                        
-
-                        <button 
-                          className="btn-icon text-red-400 hover:bg-red-400/10"
-                          onClick={() => handleDelete(student.id)}
-                          title="Hapus"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {activeTab === 'active' ? (
+                          <>
+                            <button 
+                              className="btn-icon text-indigo-500 hover:bg-indigo-500/10"
+                              onClick={() => navigate(`/entities/students/${student.id}`)}
+                              title="Lihat Detail Siswa"
+                            >
+                              <ChevronRight size={18} />
+                            </button>
+                            <button 
+                              className="btn-icon text-red-400 hover:bg-red-400/10"
+                              onClick={() => handleDelete(student.id)}
+                              title="Hapus"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </>
+                        ) : (
+                          <button 
+                            className="btn-icon text-green-500 hover:bg-green-500/10"
+                            onClick={() => handleRestore(student.id)}
+                            title="Restore Siswa"
+                          >
+                            <RefreshCw size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
