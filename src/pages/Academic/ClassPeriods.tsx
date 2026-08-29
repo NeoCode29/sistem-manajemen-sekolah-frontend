@@ -24,8 +24,8 @@ export const ClassPeriods: React.FC = () => {
   
   const [code, setCode] = useState('');
   const [periodNumber, setPeriodNumber] = useState(1);
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const [startTime, setStartTime] = useState('07:00');
+  const [endTime, setEndTime] = useState('07:45');
   const [isBreak, setIsBreak] = useState(false);
   const [formError, setFormError] = useState('');
   const { showConfirm, showAlert } = useDialog();
@@ -38,8 +38,8 @@ export const ClassPeriods: React.FC = () => {
     setEditId('');
     setCode('');
     setPeriodNumber(periods.length + 1);
-    setStartTime('');
-    setEndTime('');
+    setStartTime('07:00');
+    setEndTime('07:45');
     setIsBreak(false);
     setFormError('');
   };
@@ -172,11 +172,55 @@ export const ClassPeriods: React.FC = () => {
               <div className="form-grid" style={{ flexDirection: 'row', gap: '1rem' }}>
                 <div className="form-group" style={{ flex: 1 }}>
                   <label>Waktu Mulai <span className="text-red-500">*</span></label>
-                  <input type="time" className="input-field" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <select 
+                      className="input-field" 
+                      value={startTime ? startTime.split(':')[0] : '07'}
+                      onChange={(e) => setStartTime(`${e.target.value}:${startTime ? startTime.split(':')[1] : '00'}`)}
+                      style={{ padding: '0.5rem' }}
+                    >
+                      {Array.from({ length: 24 }).map((_, i) => (
+                        <option key={i} value={i.toString().padStart(2, '0')}>{i.toString().padStart(2, '0')}</option>
+                      ))}
+                    </select>
+                    <span style={{ fontWeight: 'bold' }}>:</span>
+                    <select 
+                      className="input-field"
+                      value={startTime ? startTime.split(':')[1] : '00'}
+                      onChange={(e) => setStartTime(`${startTime ? startTime.split(':')[0] : '07'}:${e.target.value}`)}
+                      style={{ padding: '0.5rem' }}
+                    >
+                      {Array.from({ length: 60 }).map((_, i) => (
+                        <option key={i} value={i.toString().padStart(2, '0')}>{i.toString().padStart(2, '0')}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div className="form-group" style={{ flex: 1 }}>
                   <label>Waktu Selesai <span className="text-red-500">*</span></label>
-                  <input type="time" className="input-field" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <select 
+                      className="input-field" 
+                      value={endTime ? endTime.split(':')[0] : '07'}
+                      onChange={(e) => setEndTime(`${e.target.value}:${endTime ? endTime.split(':')[1] : '45'}`)}
+                      style={{ padding: '0.5rem' }}
+                    >
+                      {Array.from({ length: 24 }).map((_, i) => (
+                        <option key={i} value={i.toString().padStart(2, '0')}>{i.toString().padStart(2, '0')}</option>
+                      ))}
+                    </select>
+                    <span style={{ fontWeight: 'bold' }}>:</span>
+                    <select 
+                      className="input-field"
+                      value={endTime ? endTime.split(':')[1] : '45'}
+                      onChange={(e) => setEndTime(`${endTime ? endTime.split(':')[0] : '07'}:${e.target.value}`)}
+                      style={{ padding: '0.5rem' }}
+                    >
+                      {Array.from({ length: 60 }).map((_, i) => (
+                        <option key={i} value={i.toString().padStart(2, '0')}>{i.toString().padStart(2, '0')}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
               <div className="form-group checkbox-group">

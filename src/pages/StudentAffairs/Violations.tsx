@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getViolations, createViolation, updateViolation, deleteViolation, type Violation } from '../../api/studentAffairsService';
 import { getStudents, type Student } from '../../api/studentService';
-import { AlertOctagon, Plus, Edit2, Trash2, Search, User, ShieldAlert, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, User, ShieldAlert, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
 import '../Academic/Academic.css';
 
@@ -33,9 +33,24 @@ export const Violations: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [violationDate, setViolationDate] = useState('');
 
+  const fetchViolations = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const params: any = {};
+      if (search) params.search = search;
+      
+      const data = await getViolations(params);
+      setViolations(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Gagal memuat data pelanggaran');
+    } finally {
+      setLoading(false);
+    }
+  }, [search]);
+
   useEffect(() => {
     fetchViolations();
-  }, [search]);
+  }, [fetchViolations]);
 
   // Debounced student search for form
   useEffect(() => {
@@ -51,24 +66,10 @@ export const Violations: React.FC = () => {
       const timer = setTimeout(fetchS, 500);
       return () => clearTimeout(timer);
     } else {
+
       setStudents([]);
     }
   }, [searchStudent]);
-
-  const fetchViolations = async () => {
-    try {
-      setLoading(true);
-      const params: any = {};
-      if (search) params.search = search;
-      
-      const data = await getViolations(params);
-      setViolations(data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat data pelanggaran');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openAddModal = () => {
     setEditingItem(null);
