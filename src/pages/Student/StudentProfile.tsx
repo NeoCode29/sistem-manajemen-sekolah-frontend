@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { getStudentById, Student } from '../../api/studentService';
+import { getStudentById, type Student } from '../../api/studentService';
 import { User, Phone, MapPin, Calendar, CreditCard } from 'lucide-react';
 
 export const StudentProfile: React.FC = () => {
