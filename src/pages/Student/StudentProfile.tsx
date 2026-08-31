@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { getStudentById, type Student } from '../../api/studentService';
-import { User, Phone, MapPin, Calendar, CreditCard } from 'lucide-react';
+import { getMyStudent, type StudentProfileData } from '../../api/studentPortalService';
+import { User, Phone, MapPin, Calendar, CreditCard, Users, GraduationCap } from 'lucide-react';
 
 export const StudentProfile: React.FC = () => {
   const { user } = useAuth();
-  const [student, setStudent] = useState<Student | null>(null);
+  const [student, setStudent] = useState<StudentProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        if (user?.studentId) {
-          const data = await getStudentById(user.studentId);
-          setStudent(data);
-        }
+        const data = await getMyStudent();
+        setStudent(data);
       } catch (error) {
         console.error("Failed to fetch student profile", error);
       } finally {
@@ -22,7 +20,7 @@ export const StudentProfile: React.FC = () => {
       }
     };
     fetchProfile();
-  }, [user]);
+  }, []);
 
   if (loading) return <div style={{ padding: '2rem' }}>Loading profile...</div>;
 
@@ -81,6 +79,96 @@ export const StudentProfile: React.FC = () => {
             
           </div>
         </div>
+
+        {/* Wali Murid Info */}
+        {student.guardians && student.guardians.length > 0 && (
+          <div style={{ borderTop: '1px solid #e5e7eb', padding: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Users size={20} color="#3b82f6" /> Data Wali Murid
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+              {student.guardians.map((guardian, i) => (
+                <div key={i} style={{ padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
+                  <div style={{ fontWeight: 600, color: '#111827' }}>{guardian.fullName}</div>
+                  <div style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '0.5rem' }}>{guardian.relationship} {guardian.isPrimary ? '(Utama)' : ''}</div>
+                  <div style={{ color: '#4b5563', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Phone size={14} /> {guardian.phone || '-'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Riwayat Kelas */}
+        {student.enrollments && student.enrollments.length > 0 && (
+          <div style={{ borderTop: '1px solid #e5e7eb', padding: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <GraduationCap size={20} color="#10b981" /> Riwayat Kelas
+            </h3>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                    <th style={{ padding: '0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.875rem' }}>Tahun Ajaran</th>
+                    <th style={{ padding: '0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.875rem' }}>Semester</th>
+                    <th style={{ padding: '0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.875rem' }}>Kelas</th>
+                    <th style={{ padding: '0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.875rem' }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {student.enrollments.map((e, i) => {
+                    let statusLabel = e.status;
+                    let bgColor = '#f3f4f6';
+                    let textColor = '#374151';
+
+                    switch (e.status) {
+                      case 'ENROLLED':
+                        statusLabel = 'Aktif';
+                        bgColor = '#d1fae5'; // green-100
+                        textColor = '#065f46'; // green-800
+                        break;
+                      case 'PROMOTED':
+                        statusLabel = 'Selesai / Naik Kelas';
+                        bgColor = '#dbeafe'; // blue-100
+                        textColor = '#1e3a8a'; // blue-900
+                        break;
+                      case 'GRADUATED':
+                        statusLabel = 'Lulus';
+                        bgColor = '#fef3c7'; // amber-100
+                        textColor = '#92400e'; // amber-800
+                        break;
+                      case 'RETAINED':
+                        statusLabel = 'Tinggal Kelas';
+                        bgColor = '#fee2e2'; // red-100
+                        textColor = '#991b1b'; // red-800
+                        break;
+                      case 'DROPOUT':
+                      case 'EXPELLED':
+                        statusLabel = 'Keluar / Dikeluarkan';
+                        bgColor = '#fef2f2'; // red-50
+                        textColor = '#b91c1c'; // red-700
+                        break;
+                    }
+
+                    return (
+                      <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        <td style={{ padding: '0.75rem', color: '#111827' }}>{e.academicYear?.name || '-'}</td>
+                        <td style={{ padding: '0.75rem', color: '#111827' }}>{e.semester?.name || '-'}</td>
+                        <td style={{ padding: '0.75rem', color: '#111827' }}>{e.classroom?.name || '-'}</td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <span style={{ padding: '0.25rem 0.6rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600, backgroundColor: bgColor, color: textColor }}>
+                            {statusLabel}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

@@ -6,6 +6,7 @@ import { getMyAnnouncements } from '../../api/announcementService';
 import type { Announcement } from '../../api/announcementService';
 import { getDashboardSummary } from '../../api/dashboardService';
 import type { DashboardSummary } from '../../api/dashboardService';
+import { GeolocationCheckin } from '../../components/widgets/GeolocationCheckin';
 import './Dashboard.css';
 
 export const Dashboard: React.FC = () => {
@@ -51,6 +52,9 @@ export const Dashboard: React.FC = () => {
   const presentPct = totalAttendance > 0 ? Math.round((summary.attendance.present / totalAttendance) * 100) : 0;
   const sickPct = totalAttendance > 0 ? Math.round((summary.attendance.sickLeave / totalAttendance) * 100) : 0;
   const absentPct = totalAttendance > 0 ? Math.round((summary.attendance.absent / totalAttendance) * 100) : 0;
+
+  // Cek apakah user adalah Guru, Staf, Kepala Sekolah (yang bisa absen)
+  const isEmployee = user?.roles?.some(r => ['Guru / Wali Kelas', 'Staf', 'Kepala Sekolah'].includes(r.name));
 
   return (
     <div className="dashboard-container">
@@ -184,9 +188,15 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Aktivitas Terbaru */}
-        <div className="dashboard-card" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
+        {/* Kolom Kanan: Absensi Geo & Aktivitas Terbaru */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {isEmployee && (
+            <GeolocationCheckin />
+          )}
+
+          <div className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
             <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', margin: 0 }}>Aktivitas Terbaru</h3>
             <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Log sistem dan log administratif</p>
           </div>
@@ -216,6 +226,7 @@ export const Dashboard: React.FC = () => {
           <div style={{ background: '#f9fafb', padding: '1rem', textAlign: 'center', borderTop: '1px solid #e5e7eb' }}>
             <a href="#" style={{ fontSize: '0.875rem', color: '#1d4ed8', fontWeight: 500, textDecoration: 'none' }}>Lihat Semua Aktivitas</a>
           </div>
+        </div>
         </div>
 
       </div>

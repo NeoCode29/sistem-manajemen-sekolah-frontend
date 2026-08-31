@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, Navigate } from 'react-router-dom';
 import { Sidebar } from '../Sidebar/Sidebar';
 import { Search, Bell, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -10,6 +10,12 @@ export const Layout: React.FC = () => {
   const [activeAy, setActiveAy] = useState<AcademicYear | null>(null);
   const [activeSem, setActiveSem] = useState<Semester | null>(null);
   const location = useLocation();
+
+  // If user is Student or Guardian, they shouldn't be in this Layout
+  const isStudentOrGuardian = user?.roles?.some(r => r.name === 'Siswa' || r.name === 'Orang Tua / Wali');
+  if (isStudentOrGuardian) {
+    return <Navigate to="/student/dashboard" replace />;
+  }
 
   React.useEffect(() => {
     const fetchMaster = async () => {

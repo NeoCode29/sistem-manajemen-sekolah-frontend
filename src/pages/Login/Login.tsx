@@ -22,7 +22,13 @@ export const Login: React.FC = () => {
 
       const { accessToken, refreshToken, user } = response.data;
       login({ accessToken, refreshToken, user });
-      navigate('/dashboard');
+      
+      const isStudentOrGuardian = user.roles.some((r: any) => r.name === 'Siswa' || r.name === 'Orang Tua / Wali');
+      if (isStudentOrGuardian) {
+        navigate('/student/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
