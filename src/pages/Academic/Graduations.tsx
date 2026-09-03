@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
+import { Modal } from '../../components/ui/Modal';
+import { FormField } from '../../components/ui/FormField';
 import { GraduationCap, X, AlertTriangle, Undo2, Award, AlertCircle } from 'lucide-react';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { useGraduations } from '../../hooks/useGraduations';
 import { useDialog } from '../../contexts/DialogContext';
-import './Academic.css';
+import { Badge } from '../../components/ui/Badge';
 
 export const Graduations: React.FC = () => {
   const {
@@ -129,20 +130,20 @@ export const Graduations: React.FC = () => {
         style={{ color: '#ea580c' }}
         title="Batalkan Kelulusan"
       >
-        <Undo2 size={16} style={{ marginRight: '0.25rem' }} /> Batal Lulus
+        <Undo2 size={16} /> Batal Lulus
       </button>
     )}
   ];
 
   return (
-    <div className="academic-container">
-      <div className="page-header">
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="page-title">Kelulusan & Alumni</h1>
-          <p className="page-subtitle">Daftar alumni dan proses pelepasan siswa (Lulus)</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Kelulusan & Alumni</h1>
+          <p className="text-gray-500 mt-1">Daftar alumni dan proses pelepasan siswa (Lulus)</p>
         </div>
         <div className="header-actions">
-          <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
+          <button className="btn-std-primary" onClick={() => setIsModalOpen(true)}>
             <Award size={18} />
             <span>Proses Kelulusan Baru</span>
           </button>
@@ -150,13 +151,13 @@ export const Graduations: React.FC = () => {
       </div>
 
       {error && (
-        <div className="alert alert-error mb-4 flex items-center gap-2">
+        <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
         </div>
       )}
 
-      <div className="glass-panel">
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6">
         <DataTable 
           columns={columns} 
           data={graduationsHistory} 
@@ -166,169 +167,162 @@ export const Graduations: React.FC = () => {
       </div>
 
       {/* Batch Processing Modal */}
-      {isModalOpen && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4" style={{ maxWidth: '900px' }}>
-            <div className="modal-header-v4">
-              <h2 className="flex items-center gap-2">
-                <Award size={20} className="text-blue-600" />
-                Proses Kelulusan Siswa (Batch)
-              </h2>
-              <button onClick={() => setIsModalOpen(false)} className="btn-close">
-                <X size={20} />
+      <Modal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={
+          <div className="flex items-center gap-2 text-gray-900">
+            <Award size={20} className="text-blue-600" />
+            Proses Kelulusan Siswa (Batch)
+          </div>
+        }
+        size="lg"
+        footer={
+          <div className="px-6 py-4 bg-gray-50 flex justify-between items-center rounded-b-2xl border-t border-gray-100 w-full">
+            <span className="text-sm font-medium text-blue-700">
+              {selectedStudentIds.size} dari {sourceStudents.length} siswa dipilih untuk diluluskan.
+            </span>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="btn-std-secondary"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleBatchGraduateSubmit}
+                disabled={selectedStudentIds.size === 0}
+                className="btn-std-primary disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-600 hover:bg-yellow-700 text-white border-transparent hover:border-transparent"
+              >
+                Proses Kelulusan
               </button>
             </div>
-            
-            <div className="modal-body-v4">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 flex gap-3 text-yellow-800 text-sm">
-                <AlertTriangle size={20} className="text-yellow-600 flex-shrink-0" />
-                <p>
-                  Siswa yang diluluskan akan diubah statusnya menjadi <strong>Alumni</strong> (tidak lagi aktif). Pastikan Anda telah menyelesaikan semua administrasi nilai sebelum melakukan proses ini.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Tahun Ajaran *</label>
-                  <select
-                    className="input-field mt-1 w-full"
-                    value={selectedAcademicYear}
-                    onChange={(e) => {
-                      setSelectedAcademicYear(e.target.value);
-                      if (selectedClass) {
-                        loadStudents(selectedClass, e.target.value).then(students => {
-                          setSelectedStudentIds(new Set(students.map((s: any) => s.id.toString())));
-                        });
-                      }
-                    }}
-                  >
-                    <option value="">-- Pilih --</option>
-                    {academicYears.map((ay: any) => (
-                      <option key={ay.id} value={ay.id}>{ay.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Pilih Kelas (Akhir) *</label>
-                  <select
-                    className="input-field mt-1 w-full"
-                    value={selectedClass}
-                    onChange={(e) => {
-                      setSelectedClass(e.target.value);
-                      if (!e.target.value) {
-                        setSelectedStudentIds(new Set());
-                        return;
-                      }
-                      loadStudents(e.target.value, selectedAcademicYear).then(students => {
-                        setSelectedStudentIds(new Set(students.map((s: any) => s.id.toString())));
-                      }).catch(err => setActionError(err.message || 'Gagal memuat daftar siswa'));
-                    }}
-                  >
-                    <option value="">-- Pilih Kelas --</option>
-                    {classes.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Tanggal Kelulusan *</label>
-                  <input
-                    type="date"
-                    className="input-field mt-1 w-full"
-                    value={graduationDate}
-                    onChange={(e) => setGraduationDate(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">No. SK Kelulusan (Opsional)</label>
-                  <input
-                    type="text"
-                    className="input-field mt-1 w-full"
-                    value={documentNumber}
-                    onChange={(e) => setDocumentNumber(e.target.value)}
-                    placeholder="Misal: 421/001/SK-LULUS/2024"
-                  />
-                </div>
-              </div>
-
-              {sourceStudents.length > 0 && (
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-gray-50 text-gray-600 font-medium border-b">
-                      <tr>
-                        <th className="px-4 py-3 w-10 text-center">
-                          <input 
-                            type="checkbox" 
-                            className="rounded text-blue-600 focus:ring-blue-500"
-                            checked={selectedStudentIds.size === sourceStudents.length}
-                            onChange={(e) => handleSelectAll(e.target.checked)}
-                          />
-                        </th>
-                        <th className="px-4 py-3">Nama Siswa</th>
-                        <th className="px-4 py-3">NIS/NISN</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {sourceStudents.map(student => (
-                        <tr 
-                          key={student.id} 
-                          className={`hover:bg-gray-50/50 cursor-pointer ${selectedStudentIds.has(student.id.toString()) ? 'bg-blue-50/30' : ''}`}
-                          onClick={() => handleStudentToggle(student.id.toString())}
-                        >
-                          <td className="px-4 py-3 text-center">
-                            <input 
-                              type="checkbox" 
-                              className="rounded text-blue-600 focus:ring-blue-500"
-                              checked={selectedStudentIds.has(student.id.toString())}
-                              onChange={() => handleStudentToggle(student.id.toString())}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </td>
-                          <td className="px-4 py-3 font-medium text-gray-900">{student.fullName}</td>
-                          <td className="px-4 py-3 text-gray-500">{student.nis || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              
-              {selectedClass && sourceStudents.length === 0 && (
-                <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
-                  Tidak ada siswa di kelas ini.
-                </div>
-              )}
-            </div>
-            
-            <div className="modal-footer-v4">
-              <div className="flex justify-between items-center w-full">
-                <span className="text-sm font-medium text-blue-700">
-                  {selectedStudentIds.size} dari {sourceStudents.length} siswa dipilih untuk diluluskan.
-                </span>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="btn-secondary"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleBatchGraduateSubmit}
-                    disabled={selectedStudentIds.size === 0}
-                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-600 hover:bg-yellow-700"
-                  >
-                    Proses Kelulusan Sekarang
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
-        </div>,
-        document.body
-      )}
+        }
+      >
+        <div className="p-6">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6 flex gap-3 text-yellow-800 text-sm">
+            <AlertTriangle size={20} className="text-yellow-600 flex-shrink-0" />
+            <p>
+              Siswa yang diluluskan akan diubah statusnya menjadi <strong>Alumni</strong> (tidak lagi aktif). Pastikan Anda telah menyelesaikan semua administrasi nilai sebelum melakukan proses ini.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+            <FormField label="Tahun Ajaran" required>
+              <select
+                className="input-std w-full"
+                value={selectedAcademicYear}
+                onChange={(e) => {
+                  setSelectedAcademicYear(e.target.value);
+                  if (selectedClass) {
+                    loadStudents(selectedClass, e.target.value).then(students => {
+                      setSelectedStudentIds(new Set(students.map((s: any) => s.id.toString())));
+                    });
+                  }
+                }}
+              >
+                <option value="">-- Pilih --</option>
+                {academicYears.map((ay: any) => (
+                  <option key={ay.id} value={ay.id}>{ay.name}</option>
+                ))}
+              </select>
+            </FormField>
+            
+            <FormField label="Pilih Kelas (Akhir)" required>
+              <select
+                className="input-std w-full"
+                value={selectedClass}
+                onChange={(e) => {
+                  setSelectedClass(e.target.value);
+                  if (!e.target.value) {
+                    setSelectedStudentIds(new Set());
+                    return;
+                  }
+                  loadStudents(e.target.value, selectedAcademicYear).then(students => {
+                    setSelectedStudentIds(new Set(students.map((s: any) => s.id.toString())));
+                  }).catch(err => setActionError(err.message || 'Gagal memuat daftar siswa'));
+                }}
+              >
+                <option value="">-- Pilih --</option>
+                {classes.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField label="Tanggal Kelulusan" required>
+              <input
+                type="date"
+                className="input-std w-full"
+                value={graduationDate}
+                onChange={(e) => setGraduationDate(e.target.value)}
+                required
+              />
+            </FormField>
+
+            <FormField label="No. SK Kelulusan (Opsional)">
+              <input
+                type="text"
+                className="input-std w-full"
+                value={documentNumber}
+                onChange={(e) => setDocumentNumber(e.target.value)}
+                placeholder="Misal: 421/SK-LULUS/2024"
+              />
+            </FormField>
+          </div>
+
+          {sourceStudents.length > 0 && (
+            <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 w-10 text-center">
+                      <input 
+                        type="checkbox" 
+                        className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                        checked={selectedStudentIds.size === sourceStudents.length}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                      />
+                    </th>
+                    <th className="px-4 py-3">Nama Siswa</th>
+                    <th className="px-4 py-3">NIS/NISN</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {sourceStudents.map(student => (
+                    <tr 
+                      key={student.id} 
+                      className={`hover:bg-gray-50/50 cursor-pointer ${selectedStudentIds.has(student.id.toString()) ? 'bg-blue-50/30' : ''}`}
+                      onClick={() => handleStudentToggle(student.id.toString())}
+                    >
+                      <td className="px-4 py-3 text-center">
+                        <input 
+                          type="checkbox" 
+                          className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                          checked={selectedStudentIds.has(student.id.toString())}
+                          onChange={() => handleStudentToggle(student.id.toString())}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </td>
+                      <td className="px-4 py-3 font-medium text-gray-900">{student.fullName}</td>
+                      <td className="px-4 py-3 text-gray-500">{student.nis || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          
+          {selectedClass && sourceStudents.length === 0 && (
+            <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              Tidak ada siswa di kelas ini.
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };

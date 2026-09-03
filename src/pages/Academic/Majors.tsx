@@ -6,7 +6,7 @@ import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useMajors } from '../../hooks/useMajors';
 import type { Major } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
-import './Academic.css';
+import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 
 export const Majors: React.FC = () => {
   const {
@@ -92,23 +92,22 @@ export const Majors: React.FC = () => {
   const columns: Column<Major>[] = [
     { key: 'code', header: 'Kode', render: (row) => <span className="font-semibold">{row.code}</span> },
     { key: 'name', header: 'Nama Jurusan', render: (row) => (
-      <div className="capacity-info" style={{ color: '#0ea5e9' }}>
-        <GraduationCap size={16} />
+      <span className="text-gray-700">
         {row.name}
-      </div>
+      </span>
     )},
     { key: 'description', header: 'Deskripsi', render: (row) => row.description || '-' },
     { 
       key: 'isActive', 
       header: 'Status', 
       render: (row) => (
-        <button 
-          onClick={() => handleToggleStatus(row.id)}
-          className={`status-badge ${row.isActive ? 'active' : 'inactive'} cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-1`}
-          title="Klik untuk mengubah status"
-        >
-          {row.isActive ? <CheckCircle size={14} /> : <XCircle size={14} />}
-          {row.isActive ? 'Aktif' : 'Non-Aktif'}
+        <button onClick={() => handleToggleStatus(row.id)}>
+          <Badge variant={row.isActive ? 'success' : 'danger'}>
+            <span className="flex items-center gap-1">
+              {row.isActive ? <CheckCircle size={14} /> : <XCircle size={14} />}
+              {row.isActive ? 'Aktif' : 'Non-Aktif'}
+            </span>
+          </Badge>
         </button>
       )
     },
@@ -121,25 +120,21 @@ export const Majors: React.FC = () => {
   ];
 
   return (
-    <div className="academic-container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Jurusan</h1>
-          <p className="page-subtitle">Kelola master data Jurusan (Program Keahlian)</p>
-        </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={18} /> Tambah Data
-        </button>
-      </div>
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <PageHeader
+        title="Jurusan"
+        subtitle="Kelola master data Jurusan (Program Keahlian)"
+        action={<button onClick={() => setShowModal(true)} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+      />
 
       {error && (
-        <div className="alert alert-error mb-4 flex items-center gap-2">
+        <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-3 mb-4 flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
         </div>
       )}
 
-      <div className="glass-panel">
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6">
         <DataTable 
           columns={columns} 
           data={majors} 
@@ -148,44 +143,35 @@ export const Majors: React.FC = () => {
         />
       </div>
 
-      {showModal && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4">
-            <div className="modal-header-v4">
-              <h2>{isEditing ? 'Edit Jurusan' : 'Tambah Jurusan'}</h2>
-              <button type="button" className="btn-close" onClick={handleCloseModal}>&times;</button>
-            </div>
-            <form onSubmit={handleSubmit} className="modal-form-v4">
-              <div className="modal-body-v4 form-grid">
-              <div className="form-group">
-                <label>Kode <span className="text-red-500">*</span></label>
-                <input type="text" className="input-field" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: IPA" required />
-              </div>
-              <div className="form-group">
-                <label>Nama Jurusan <span className="text-red-500">*</span></label>
-                <input type="text" className="input-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Ilmu Pengetahuan Alam" required />
-              </div>
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label>Deskripsi</label>
-                <textarea 
-                  className="input-field" 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)} 
-                  placeholder="Keterangan opsional mengenai jurusan ini"
-                  rows={3}
-                />
-              </div>
-              </div>
-              <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Batal</button>
-                <button type="submit" className="btn-primary">Simpan</button>
-              </div>
-            </form>
+      <Modal 
+        open={showModal} 
+        onClose={handleCloseModal} 
+        title={isEditing ? 'Edit Jurusan' : 'Tambah Jurusan'}
+        footer={
+          <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+            <button type="button" className="btn-std-secondary" onClick={handleCloseModal}>Batal</button>
+            <button type="button" className="btn-std-primary" onClick={handleSubmit}>Simpan</button>
           </div>
-        </div>
-      ,
-        document.body
-      )}
+        }
+      >
+        <form id="major-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+          <FormField label="Kode" required>
+            <input type="text" className="input-std" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: IPA" required />
+          </FormField>
+          <FormField label="Nama Jurusan" required>
+            <input type="text" className="input-std" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Ilmu Pengetahuan Alam" required />
+          </FormField>
+          <FormField label="Deskripsi">
+            <textarea 
+              className="input-std" 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              placeholder="Keterangan opsional mengenai jurusan ini"
+              rows={3}
+            />
+          </FormField>
+        </form>
+      </Modal>
     </div>
   );
 };

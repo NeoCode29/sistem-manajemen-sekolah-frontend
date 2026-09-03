@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getExamById, getExamScores, upsertExamScoresBatch, type Exam, type ExamScore } from '../../api/assessmentService';
 import { getStudents } from '../../api/studentService';
 import { Save, ArrowLeft, Award, FileEdit, Users, BookOpen, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
-import '../Academic/Academic.css';
 
 interface ScoreRow {
   studentId: string;
@@ -135,7 +134,7 @@ export const ExamScores: React.FC = () => {
     return (
       <div className="p-8 text-center" style={{ padding: '6rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div className="text-red-500 mb-4 font-bold text-xl">Agenda Penilaian tidak ditemukan.</div>
-        <button className="btn-secondary" onClick={() => navigate('/assessment/exams')} style={{ padding: '0.75rem 2rem' }}>Kembali ke Daftar Agenda</button>
+        <button className="btn-std-secondary" onClick={() => navigate('/assessment/exams')} style={{ padding: '0.75rem 2rem' }}>Kembali ke Daftar Agenda</button>
       </div>
     );
   }
@@ -143,8 +142,8 @@ export const ExamScores: React.FC = () => {
   const completedCount = rows.filter(r => r.score !== '').length;
 
   return (
-    <div className="academic-container">
-      <div className="page-header" style={{ marginBottom: '2.5rem' }}>
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8" style={{ marginBottom: '2.5rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <button 
@@ -158,12 +157,12 @@ export const ExamScores: React.FC = () => {
             <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>/</span>
             <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>Input Nilai</span>
           </div>
-          <h1 className="page-title" style={{ fontSize: '2rem' }}>{exam.title}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight" style={{ fontSize: '2rem' }}>{exam.title}</h1>
           <p className="page-description" style={{ fontSize: '1rem', marginTop: '0.25rem' }}>Masukkan skor pencapaian siswa untuk agenda ini.</p>
         </div>
         <div className="header-actions">
           <button 
-            className="btn-primary" 
+            className="btn-std-primary" 
             onClick={handleSave}
             disabled={saving || rows.length === 0}
             style={{ padding: '0.875rem 1.75rem', borderRadius: '12px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: (saving || rows.length === 0) ? 0.7 : 1 }}
@@ -189,7 +188,7 @@ export const ExamScores: React.FC = () => {
       )}
 
       {/* Modern Info Section */}
-      <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', borderRadius: '16px' }}>
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6" style={{ padding: '1.5rem', marginBottom: '2rem', borderRadius: '16px' }}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -234,7 +233,7 @@ export const ExamScores: React.FC = () => {
       </div>
 
       {/* Table Section */}
-      <div className="glass-panel" style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.8)' }}>
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6" style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.8)' }}>
         <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.4)' }}>
           <div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Daftar Siswa</h3>
@@ -280,7 +279,7 @@ export const ExamScores: React.FC = () => {
                     <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
                       <input 
                         type="number" 
-                        className={`input-field`}
+                        className={`input-std`}
                         style={{ 
                           textAlign: 'center', 
                           fontWeight: 800, 
@@ -301,7 +300,7 @@ export const ExamScores: React.FC = () => {
                     <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
                       <input 
                         type="text" 
-                        className="input-field"
+                        className="input-std"
                         style={{ height: '46px', backgroundColor: '#f8fafc', fontSize: '0.9rem' }}
                         value={row.notes}
                         onChange={(e) => handleRowChange(index, 'notes', e.target.value)}

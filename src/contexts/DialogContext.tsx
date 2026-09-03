@@ -67,27 +67,27 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     <DialogContext.Provider value={{ showAlert, showConfirm, showPrompt }}>
       {children}
       {dialog && createPortal(
-        <div className="modal-backdrop-v4" style={{ zIndex: 9999 }}>
-          <div className="modal-content-v4" style={{ maxWidth: '400px', width: '90%' }}>
-            <div className="modal-header-v4 border-b pb-4 mb-4 flex justify-between items-center">
-              <h2 className="flex items-center gap-2 text-lg font-semibold">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-8" style={{ background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-enter relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 leading-tight">
                 {dialog.type === 'alert' && <Info className="text-blue-500" size={24} />}
                 {dialog.type === 'confirm' && <HelpCircle className="text-orange-500" size={24} />}
                 {dialog.type === 'prompt' && <AlertCircle className="text-indigo-500" size={24} />}
                 {dialog.title}
               </h2>
-              <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors" onClick={handleClose}>
+              <button type="button" className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" onClick={handleClose}>
                 <X size={20} />
               </button>
             </div>
             
-            <div className="modal-body-v4">
-              <p className="text-gray-700 mb-4">{dialog.message}</p>
+            <div className="p-6">
+              <p className="text-gray-700 mb-2">{dialog.message}</p>
               
               {dialog.type === 'prompt' && (
                 <input
                   type="text"
-                  className="input-field w-full mb-4"
+                  className="w-full mt-4 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   autoFocus
@@ -98,21 +98,21 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 />
               )}
               
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 {dialog.type !== 'alert' && (
                   <button
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
                     onClick={handleClose}
                   >
                     Batal
                   </button>
                 )}
                 <button
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                  className={`px-6 py-2.5 rounded-xl text-white font-semibold shadow-sm transition-colors text-sm ${dialog.title?.toLowerCase().includes('hapus') ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
                   onClick={handleConfirm}
                   autoFocus={dialog.type !== 'prompt'}
                 >
-                  {dialog.type === 'alert' ? 'OK' : 'Ya, Lanjutkan'}
+                  {dialog.type === 'alert' ? 'OK' : (dialog.title?.toLowerCase().includes('hapus') ? 'Ya, Hapus' : 'Ya, Lanjutkan')}
                 </button>
               </div>
             </div>

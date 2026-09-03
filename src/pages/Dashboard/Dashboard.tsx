@@ -7,7 +7,6 @@ import type { Announcement } from '../../api/announcementService';
 import { getDashboardSummary } from '../../api/dashboardService';
 import type { DashboardSummary } from '../../api/dashboardService';
 import { GeolocationCheckin } from '../../components/widgets/GeolocationCheckin';
-import './Dashboard.css';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -44,7 +43,7 @@ export const Dashboard: React.FC = () => {
   };
 
   if (!summary) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading dashboard...</div>;
+    return <div className="p-8 text-center text-gray-500 font-medium">Memuat dashboard...</div>;
   }
 
   // Calculate attendance percentages
@@ -57,131 +56,156 @@ export const Dashboard: React.FC = () => {
   const isEmployee = user?.roles?.some(r => ['Guru / Wali Kelas', 'Staf', 'Kepala Sekolah'].includes(r.name));
 
   return (
-    <div className="dashboard-container">
+    <div className="p-6 max-w-7xl mx-auto page-enter flex flex-col gap-6">
       
-      {/* Breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
-        <span style={{ cursor: 'pointer' }}>Beranda</span>
-        <span>›</span>
-        <span style={{ fontWeight: 600, color: '#111827' }}>Dashboard</span>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', marginBottom: '0.25rem' }}>Dashboard Utama</h1>
-          <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Selamat datang kembali, {user?.name || 'Admin'}. Berikut ringkasan operasional sekolah hari ini.</p>
+      {/* Header Section */}
+      <div className="flex flex-col gap-4 mb-2">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <span className="cursor-pointer hover:text-gray-700 transition-colors">Beranda</span>
+          <span>›</span>
+          <span className="font-semibold text-gray-900">Dashboard</span>
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <button className="action-button" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '0.5rem', color: '#374151', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer' }}>
-            <Calendar size={16} /> {currentDate}
-          </button>
+
+        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Dashboard Utama</h1>
+            <p className="text-gray-500 text-sm">Selamat datang kembali, {user?.name || 'Admin'}. Berikut ringkasan operasional sekolah hari ini.</p>
+          </div>
+          <div className="flex gap-4">
+            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors shadow-sm">
+              <Calendar size={16} className="text-gray-400" /> {currentDate}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         
         {/* Siswa */}
-        <div className="stat-card" style={{ '--gradient-start': '#3b82f6', '--gradient-end': '#60a5fa' } as React.CSSProperties}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div className="stat-icon-wrapper" style={{ background: '#eff6ff', color: '#1d4ed8' }}>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4 relative overflow-hidden group hover:shadow-md transition-all hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110"></div>
+          <div className="flex justify-between items-start relative z-10">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600">
               <Users size={24} />
             </div>
-            <span style={{ background: '#def7ec', color: '#03543f', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.6rem', borderRadius: '999px' }}>Aktif</span>
+            <span className="bg-emerald-50 text-emerald-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-emerald-100">Aktif</span>
           </div>
-          <div>
-            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TOTAL SISWA</p>
-            <h2 className="stat-value">{summary.totalStudents.toLocaleString()}</h2>
+          <div className="relative z-10">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">TOTAL SISWA</p>
+            <h2 className="text-3xl font-extrabold text-gray-900">{summary.totalStudents.toLocaleString()}</h2>
           </div>
         </div>
 
         {/* Guru */}
-        <div className="stat-card" style={{ '--gradient-start': '#8b5cf6', '--gradient-end': '#a78bfa' } as React.CSSProperties}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div className="stat-icon-wrapper" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4 relative overflow-hidden group hover:shadow-md transition-all hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110"></div>
+          <div className="flex justify-between items-start relative z-10">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-50 text-purple-600">
               <Users size={24} />
             </div>
-            <span style={{ background: '#f3f4f6', color: '#374151', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.6rem', borderRadius: '999px' }}>Aktif</span>
+            <span className="bg-gray-50 text-gray-600 text-xs font-semibold px-2.5 py-1 rounded-full border border-gray-200">Aktif</span>
           </div>
-          <div>
-            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TOTAL GURU & STAF</p>
-            <h2 className="stat-value">{summary.totalEmployees.toLocaleString()}</h2>
+          <div className="relative z-10">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">TOTAL GURU & STAF</p>
+            <h2 className="text-3xl font-extrabold text-gray-900">{summary.totalEmployees.toLocaleString()}</h2>
           </div>
         </div>
 
         {/* Kelas */}
-        <div className="stat-card" style={{ '--gradient-start': '#f59e0b', '--gradient-end': '#fbbf24' } as React.CSSProperties}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div className="stat-icon-wrapper" style={{ background: '#fffbeb', color: '#d97706' }}>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4 relative overflow-hidden group hover:shadow-md transition-all hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110"></div>
+          <div className="flex justify-between items-start relative z-10">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600">
               <GraduationCap size={24} />
             </div>
-            <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.6rem', borderRadius: '999px' }}>ROMBEL</span>
+            <span className="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-100">ROMBEL</span>
           </div>
-          <div>
-            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>KELAS AKTIF</p>
-            <h2 className="stat-value">{summary.activeClassrooms.toLocaleString()}</h2>
+          <div className="relative z-10">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">KELAS AKTIF</p>
+            <h2 className="text-3xl font-extrabold text-gray-900">{summary.activeClassrooms.toLocaleString()}</h2>
           </div>
         </div>
 
         {/* Tahun Ajaran */}
-        <div className="stat-card" style={{ '--gradient-start': '#ec4899', '--gradient-end': '#f472b6' } as React.CSSProperties}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div className="stat-icon-wrapper" style={{ background: '#fdf2f8', color: '#db2777' }}>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4 relative overflow-hidden group hover:shadow-md transition-all hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110"></div>
+          <div className="flex justify-between items-start relative z-10">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-pink-50 text-pink-600">
               <Calendar size={24} />
             </div>
           </div>
-          <div>
-            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TAHUN AJARAN</p>
-            <h2 className="stat-value" style={{ fontSize: '1.75rem' }}>{summary.academicYear.name}</h2>
-            <span style={{ fontSize: '0.75rem', color: '#db2777', background: '#fdf2f8', padding: '0.25rem 0.5rem', borderRadius: '6px', marginTop: '0.5rem', display: 'inline-block', fontWeight: 500 }}>{summary.academicYear.semester}</span>
+          <div className="relative z-10">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">TAHUN AJARAN</p>
+            <h2 className="text-2xl font-extrabold text-gray-900 leading-tight">{summary.academicYear.name}</h2>
+            <span className="inline-block mt-2 text-xs font-semibold text-pink-700 bg-pink-50 px-2.5 py-1 rounded-md border border-pink-100">
+              {summary.academicYear.semester}
+            </span>
           </div>
         </div>
 
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Ringkasan Absensi */}
-        <div className="dashboard-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col lg:col-span-2 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
             <div>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', margin: 0 }}>Ringkasan Absensi Hari Ini</h3>
-              <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Update terakhir: {currentTime}</p>
+              <h3 className="text-lg font-bold text-gray-900">Ringkasan Absensi Hari Ini</h3>
+              <p className="text-xs text-gray-500 mt-1">Update terakhir: {currentTime}</p>
             </div>
-            <a href="#" style={{ fontSize: '0.875rem', color: '#1d4ed8', fontWeight: 500, textDecoration: 'none' }}>Detail Laporan</a>
+            <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">Detail Laporan</a>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '3rem' }}>
+          <div className="p-6 flex flex-col sm:flex-row items-center gap-8 lg:gap-12 flex-1">
             {/* Donut Chart Mock */}
-            <div style={{ position: 'relative', width: '160px', height: '160px', borderRadius: '50%', border: '24px solid #f3f4f6', borderTopColor: presentPct > 0 ? '#1d4ed8' : '#f3f4f6', borderRightColor: presentPct > 25 ? '#1d4ed8' : '#f3f4f6', borderBottomColor: presentPct > 50 ? '#1d4ed8' : '#f3f4f6', borderLeftColor: presentPct > 75 ? '#1d4ed8' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827' }}>{presentPct}%</div>
-                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Kehadiran</div>
+            <div className="relative w-40 h-40 rounded-full flex items-center justify-center flex-shrink-0 shrink-0" 
+                 style={{ 
+                   border: '24px solid #f3f4f6', 
+                   borderTopColor: presentPct > 0 ? '#3b82f6' : '#f3f4f6', 
+                   borderRightColor: presentPct > 25 ? '#3b82f6' : '#f3f4f6', 
+                   borderBottomColor: presentPct > 50 ? '#3b82f6' : '#f3f4f6', 
+                   borderLeftColor: presentPct > 75 ? '#3b82f6' : '#f3f4f6' 
+                 }}>
+              <div className="text-center">
+                <div className="text-3xl font-extrabold text-gray-900">{presentPct}%</div>
+                <div className="text-xs font-medium text-gray-500 mt-1">Kehadiran</div>
               </div>
             </div>
             
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#1d4ed8' }}></span> <span style={{ fontSize: '0.875rem', color: '#374151' }}>Hadir</span></div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{summary.attendance.present.toLocaleString()} Siswa ({presentPct}%)</div>
+            <div className="flex-1 flex flex-col gap-4 w-full">
+              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span> 
+                  <span className="text-sm font-medium text-gray-700">Hadir</span>
+                </div>
+                <div className="text-sm font-bold text-gray-900">{summary.attendance.present.toLocaleString()} Siswa <span className="text-gray-400 font-normal ml-1">({presentPct}%)</span></div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#fef08a' }}></span> <span style={{ fontSize: '0.875rem', color: '#374151' }}>Izin/Sakit</span></div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{summary.attendance.sickLeave.toLocaleString()} Siswa ({sickPct}%)</div>
+              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span> 
+                  <span className="text-sm font-medium text-gray-700">Izin/Sakit</span>
+                </div>
+                <div className="text-sm font-bold text-gray-900">{summary.attendance.sickLeave.toLocaleString()} Siswa <span className="text-gray-400 font-normal ml-1">({sickPct}%)</span></div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></span> <span style={{ fontSize: '0.875rem', color: '#374151' }}>Alpa</span></div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{summary.attendance.absent.toLocaleString()} Siswa ({absentPct}%)</div>
+              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span> 
+                  <span className="text-sm font-medium text-gray-700">Alpa</span>
+                </div>
+                <div className="text-sm font-bold text-gray-900">{summary.attendance.absent.toLocaleString()} Siswa <span className="text-gray-400 font-normal ml-1">({absentPct}%)</span></div>
               </div>
               
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <div style={{ border: '1px solid #e5e7eb', padding: '0.75rem', borderRadius: '8px', flex: 1 }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' }}>BELUM ABSENSI</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#ef4444' }}>{summary.classesWithoutAttendance.toLocaleString()} Kelas</div>
+              <div className="flex gap-4 mt-2">
+                <div className="border border-gray-100 bg-gray-50/50 p-4 rounded-xl flex-1 text-center">
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">BELUM ABSENSI</div>
+                  <div className="text-xl font-extrabold text-red-500">{summary.classesWithoutAttendance.toLocaleString()} Kelas</div>
                 </div>
-                <div style={{ border: '1px solid #e5e7eb', padding: '0.75rem', borderRadius: '8px', flex: 1 }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' }}>GURU ABSEN</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1d4ed8' }}>{summary.absentEmployees.toLocaleString()} Orang</div>
+                <div className="border border-gray-100 bg-gray-50/50 p-4 rounded-xl flex-1 text-center">
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">GURU ABSEN</div>
+                  <div className="text-xl font-extrabold text-blue-600">{summary.absentEmployees.toLocaleString()} Orang</div>
                 </div>
               </div>
             </div>
@@ -189,83 +213,88 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Kolom Kanan: Absensi Geo & Aktivitas Terbaru */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="flex flex-col gap-6">
           
           {isEmployee && (
             <GeolocationCheckin />
           )}
 
-          <div className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', margin: 0 }}>Aktivitas Terbaru</h3>
-            <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Log sistem dan log administratif</p>
-          </div>
-          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative' }}>
-            <div style={{ position: 'absolute', left: '2rem', top: '2rem', bottom: '2rem', width: '2px', background: '#e5e7eb' }}></div>
-            
-            {summary.recentActivities && summary.recentActivities.length > 0 ? (
-              summary.recentActivities.map((act, idx) => (
-                <div key={act.id} className="activity-item" style={{ display: 'flex', gap: '1rem', position: 'relative' }}>
-                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: idx === 0 ? '#93c5fd' : idx === 1 ? '#1d4ed8' : '#fef08a', border: '4px solid #ffffff', zIndex: 1, marginTop: '2px' }}></div>
-                  <div>
-                    <p style={{ fontSize: '0.875rem', color: '#374151', margin: 0, lineHeight: 1.4 }}>
-                      {act.message} <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'inline-block', marginLeft: '0.25rem', background: '#f3f4f6', padding: '0.125rem 0.375rem', borderRadius: '4px' }}>{act.status}</span>
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                      <Clock size={12} /> {new Date(act.createdAt).toLocaleString('id-ID')}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col flex-1 overflow-hidden">
+            <div className="p-5 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-base font-bold text-gray-900">Aktivitas Terbaru</h3>
+              <p className="text-xs text-gray-500 mt-1">Log sistem dan log administratif</p>
+            </div>
+            <div className="p-5 flex flex-col gap-6 relative flex-1">
+              <div className="absolute left-7 top-6 bottom-6 w-0.5 bg-gray-100 rounded-full"></div>
+              
+              {summary.recentActivities && summary.recentActivities.length > 0 ? (
+                summary.recentActivities.map((act, idx) => (
+                  <div key={act.id} className="flex gap-4 relative group">
+                    <div className={`w-4 h-4 rounded-full border-4 border-white z-10 mt-1 shadow-sm ${idx === 0 ? 'bg-blue-400' : idx === 1 ? 'bg-blue-600' : 'bg-amber-300'}`}></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-800 leading-snug">
+                        {act.message} <span className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded ml-1 font-semibold border border-gray-200">{act.status}</span>
+                      </p>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1.5 font-medium">
+                        <Clock size={12} /> {new Date(act.createdAt).toLocaleString('id-ID')}
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="py-4 text-gray-400 text-sm italic pl-4">
+                  Belum ada aktivitas terbaru hari ini.
                 </div>
-              ))
-            ) : (
-              <div style={{ padding: '1rem 0', color: '#6b7280', fontSize: '0.875rem', fontStyle: 'italic', marginLeft: '1rem' }}>
-                Belum ada aktivitas terbaru hari ini.
-              </div>
-            )}
-          </div>
-          <div style={{ background: '#f9fafb', padding: '1rem', textAlign: 'center', borderTop: '1px solid #e5e7eb' }}>
-            <a href="#" style={{ fontSize: '0.875rem', color: '#1d4ed8', fontWeight: 500, textDecoration: 'none' }}>Lihat Semua Aktivitas</a>
-          </div>
-        </div>
-        </div>
-
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-        
-        <div className="announcement-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Megaphone size={24} />
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Papan Pengumuman</h3>
+              )}
             </div>
-            <button 
-              className="action-button"
-              onClick={() => navigate('/announcements')}
-              style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.6rem 1.25rem', borderRadius: '0.75rem', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}
-            >
-              Lihat Semua Pengumuman
-            </button>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', zIndex: 1 }}>
-            {announcements.length === 0 ? (
-              <p style={{ fontSize: '0.875rem', color: '#bfdbfe', margin: 0, gridColumn: '1 / -1' }}>Belum ada pengumuman terbaru.</p>
-            ) : (
-              announcements.slice(0, 3).map((item) => (
-                <div key={item.id} className="announcement-item" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                    <h4 style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0, color: 'white', flex: 1, lineHeight: 1.4 }}>{item.title}</h4>
-                    {item.isPinned && <Pin size={14} color="#fef08a" style={{ flexShrink: 0, marginTop: '2px' }} />}
-                  </div>
-                  <div dangerouslySetInnerHTML={{ __html: item.content }} style={{ fontSize: '0.75rem', color: '#e0e7ff', margin: 0, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} />
-                </div>
-              ))
-            )}
+            <div className="bg-gray-50 p-4 text-center border-t border-gray-100">
+              <a href="#" className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">Lihat Semua Aktivitas</a>
+            </div>
           </div>
         </div>
 
       </div>
+
+      {/* Papan Pengumuman */}
+      <div className="bg-gradient-to-br from-indigo-900 to-blue-900 rounded-2xl shadow-md border border-indigo-800 overflow-hidden relative mt-2">
+        {/* Decorative background pattern */}
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent bg-[length:20px_20px]"></div>
+        
+        <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between z-10 relative border-b border-white/10">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-white backdrop-blur-sm border border-white/20">
+              <Megaphone size={24} />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-white">Papan Pengumuman</h3>
+              <p className="text-indigo-200 text-sm mt-1">Informasi dan pengumuman terbaru untuk seluruh sivitas</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate('/announcements')}
+            className="mt-4 md:mt-0 flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all backdrop-blur-sm"
+          >
+            Lihat Semua
+          </button>
+        </div>
+        
+        <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+          {announcements.length === 0 ? (
+            <p className="text-sm text-indigo-300 col-span-3 text-center py-4">Belum ada pengumuman terbaru.</p>
+          ) : (
+            announcements.slice(0, 3).map((item) => (
+              <div key={item.id} className="bg-white/5 border border-white/10 hover:bg-white/10 transition-colors rounded-xl p-5 flex flex-col backdrop-blur-sm">
+                <div className="flex items-start gap-3 mb-3">
+                  <h4 className="text-base font-bold text-white flex-1 leading-tight">{item.title}</h4>
+                  {item.isPinned && <Pin size={16} className="text-amber-300 shrink-0 mt-0.5 drop-shadow-sm" />}
+                </div>
+                <div dangerouslySetInnerHTML={{ __html: item.content }} className="text-sm text-indigo-100/80 leading-relaxed line-clamp-3" />
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
     </div>
   );
 };

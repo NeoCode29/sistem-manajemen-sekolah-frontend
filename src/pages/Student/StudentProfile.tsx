@@ -27,71 +27,73 @@ export const StudentProfile: React.FC = () => {
   if (!student) return <div style={{ padding: '2rem' }}>Data profil tidak ditemukan.</div>;
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '1rem', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-        
+    <div className="p-6 max-w-4xl mx-auto page-enter">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Header Cover */}
-        <div style={{ height: '120px', background: 'linear-gradient(to right, #3b82f6, #1d4ed8)' }}></div>
+        <div className="h-32 bg-gradient-to-r from-indigo-500 to-blue-600"></div>
         
         {/* Avatar & Basic Info */}
-        <div style={{ padding: '0 2rem 2rem', position: 'relative' }}>
-          <div style={{ width: '100px', height: '100px', borderRadius: '50%', backgroundColor: '#f3f4f6', border: '4px solid white', marginTop: '-50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 700, color: '#3b82f6', marginBottom: '1rem' }}>
+        <div className="px-8 pb-8 relative">
+          <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-md flex items-center justify-center text-4xl font-bold text-indigo-600 -mt-12 mb-4">
             {student.fullName.charAt(0)}
           </div>
           
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: '0 0 0.25rem 0' }}>{student.fullName}</h2>
-          <p style={{ color: '#6b7280', margin: 0, fontSize: '1rem' }}>NIS: {student.nis} {student.nisn ? `| NISN: ${student.nisn}` : ''}</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-1">{student.fullName}</h2>
+          <div className="flex flex-wrap gap-2 text-gray-600">
+            <span className="font-medium">NIS: {student.nis}</span>
+            {student.nisn && <><span className="text-gray-300">|</span><span className="font-medium">NISN: {student.nisn}</span></>}
+          </div>
         </div>
 
         {/* Detailed Info Grid */}
-        <div style={{ borderTop: '1px solid #e5e7eb' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0' }}>
-            
-            <div style={{ padding: '1.5rem', borderRight: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', color: '#6b7280' }}>
-                <User size={18} /> <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Jenis Kelamin</span>
+        <div className="border-t border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-2">
+            <div className="p-6 border-b md:border-r border-gray-100">
+              <div className="flex items-center gap-2 mb-2 text-gray-500">
+                <User size={18} /> <span className="text-sm font-semibold uppercase tracking-wider">Jenis Kelamin</span>
               </div>
-              <div style={{ color: '#111827', fontWeight: 500 }}>{student.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</div>
+              <div className="text-gray-900 font-medium">{student.gender === 'Laki-laki' || student.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</div>
             </div>
 
-            <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', color: '#6b7280' }}>
-                <Calendar size={18} /> <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Tempat, Tanggal Lahir</span>
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center gap-2 mb-2 text-gray-500">
+                <Calendar size={18} /> <span className="text-sm font-semibold uppercase tracking-wider">Tempat, Tanggal Lahir</span>
               </div>
-              <div style={{ color: '#111827', fontWeight: 500 }}>
+              <div className="text-gray-900 font-medium">
                 {student.birthPlace || '-'}, {student.birthDate ? new Date(student.birthDate).toLocaleDateString('id-ID') : '-'}
               </div>
             </div>
 
-            <div style={{ padding: '1.5rem', borderRight: '1px solid #e5e7eb' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', color: '#6b7280' }}>
-                <MapPin size={18} /> <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Alamat</span>
+            <div className="p-6 border-b md:border-b-0 md:border-r border-gray-100">
+              <div className="flex items-center gap-2 mb-2 text-gray-500">
+                <MapPin size={18} /> <span className="text-sm font-semibold uppercase tracking-wider">Alamat</span>
               </div>
-              <div style={{ color: '#111827', fontWeight: 500 }}>{student.address || '-'}</div>
+              <div className="text-gray-900 font-medium">{student.address || '-'}</div>
             </div>
 
-            <div style={{ padding: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', color: '#6b7280' }}>
-                <CreditCard size={18} /> <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Agama</span>
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-2 text-gray-500">
+                <CreditCard size={18} /> <span className="text-sm font-semibold uppercase tracking-wider">Agama</span>
               </div>
-              <div style={{ color: '#111827', fontWeight: 500 }}>{student.religion || '-'}</div>
+              <div className="text-gray-900 font-medium">{student.religion || '-'}</div>
             </div>
-            
           </div>
         </div>
 
         {/* Wali Murid Info */}
         {student.guardians && student.guardians.length > 0 && (
-          <div style={{ borderTop: '1px solid #e5e7eb', padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Users size={20} color="#3b82f6" /> Data Wali Murid
+          <div className="border-t border-gray-100 p-8">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Users size={20} className="text-blue-500" /> Data Wali Murid
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {student.guardians.map((guardian, i) => (
-                <div key={i} style={{ padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
-                  <div style={{ fontWeight: 600, color: '#111827' }}>{guardian.fullName}</div>
-                  <div style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '0.5rem' }}>{guardian.relationship} {guardian.isPrimary ? '(Utama)' : ''}</div>
-                  <div style={{ color: '#4b5563', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div key={i} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <div className="font-bold text-gray-900 mb-1">{guardian.fullName}</div>
+                  <div className="text-sm font-medium text-gray-600 mb-3">
+                    {guardian.relationship} {guardian.isPrimary && <span className="px-2 py-0.5 ml-2 bg-emerald-100 text-emerald-700 text-xs rounded-full">Utama</span>}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Phone size={14} /> {guardian.phone || '-'}
                   </div>
                 </div>
@@ -102,62 +104,51 @@ export const StudentProfile: React.FC = () => {
 
         {/* Riwayat Kelas */}
         {student.enrollments && student.enrollments.length > 0 && (
-          <div style={{ borderTop: '1px solid #e5e7eb', padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <GraduationCap size={20} color="#10b981" /> Riwayat Kelas
+          <div className="border-t border-gray-100 p-8">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <GraduationCap size={20} className="text-emerald-500" /> Riwayat Kelas
             </h3>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                    <th style={{ padding: '0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.875rem' }}>Tahun Ajaran</th>
-                    <th style={{ padding: '0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.875rem' }}>Semester</th>
-                    <th style={{ padding: '0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.875rem' }}>Kelas</th>
-                    <th style={{ padding: '0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.875rem' }}>Status</th>
+            <div className="overflow-x-auto rounded-xl border border-gray-100">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100">
+                  <tr>
+                    <th className="p-4">Tahun Ajaran</th>
+                    <th className="p-4">Semester</th>
+                    <th className="p-4">Kelas</th>
+                    <th className="p-4">Status</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-100">
                   {student.enrollments.map((e, i) => {
                     let statusLabel = e.status;
-                    let bgColor = '#f3f4f6';
-                    let textColor = '#374151';
+                    let badgeClass = 'bg-gray-100 text-gray-700';
 
                     switch (e.status) {
                       case 'ENROLLED':
                         statusLabel = 'Aktif';
-                        bgColor = '#d1fae5'; // green-100
-                        textColor = '#065f46'; // green-800
+                        badgeClass = 'bg-emerald-100 text-emerald-700';
                         break;
                       case 'PROMOTED':
-                        statusLabel = 'Selesai / Naik Kelas';
-                        bgColor = '#dbeafe'; // blue-100
-                        textColor = '#1e3a8a'; // blue-900
+                        statusLabel = 'Naik Kelas';
+                        badgeClass = 'bg-blue-100 text-blue-700';
                         break;
                       case 'GRADUATED':
                         statusLabel = 'Lulus';
-                        bgColor = '#fef3c7'; // amber-100
-                        textColor = '#92400e'; // amber-800
+                        badgeClass = 'bg-purple-100 text-purple-700';
                         break;
                       case 'RETAINED':
                         statusLabel = 'Tinggal Kelas';
-                        bgColor = '#fee2e2'; // red-100
-                        textColor = '#991b1b'; // red-800
-                        break;
-                      case 'DROPOUT':
-                      case 'EXPELLED':
-                        statusLabel = 'Keluar / Dikeluarkan';
-                        bgColor = '#fef2f2'; // red-50
-                        textColor = '#b91c1c'; // red-700
+                        badgeClass = 'bg-red-100 text-red-700';
                         break;
                     }
 
                     return (
-                      <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                        <td style={{ padding: '0.75rem', color: '#111827' }}>{e.academicYear?.name || '-'}</td>
-                        <td style={{ padding: '0.75rem', color: '#111827' }}>{e.semester?.name || '-'}</td>
-                        <td style={{ padding: '0.75rem', color: '#111827' }}>{e.classroom?.name || '-'}</td>
-                        <td style={{ padding: '0.75rem' }}>
-                          <span style={{ padding: '0.25rem 0.6rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600, backgroundColor: bgColor, color: textColor }}>
+                      <tr key={i} className="hover:bg-gray-50/50">
+                        <td className="p-4 font-medium text-gray-900">{e.academicYear?.name || '-'}</td>
+                        <td className="p-4 text-gray-600">{e.semester?.name || '-'}</td>
+                        <td className="p-4 font-semibold text-blue-600">{e.classroom?.name || '-'}</td>
+                        <td className="p-4">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${badgeClass}`}>
                             {statusLabel}
                           </span>
                         </td>
@@ -169,7 +160,6 @@ export const StudentProfile: React.FC = () => {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

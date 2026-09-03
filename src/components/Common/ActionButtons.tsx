@@ -9,10 +9,10 @@ export interface ActionButtonsProps {
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({ onEdit, onDelete, onView }) => {
   return (
-    <div className="action-buttons-group">
+    <div className="flex items-center gap-2">
       {onView && (
         <button 
-          className="action-btn action-btn-view"
+          className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
           onClick={onView}
           title="Detail"
         >
@@ -21,7 +21,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({ onEdit, onDelete, 
       )}
       {onEdit && (
         <button 
-          className="action-btn action-btn-edit"
+          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
           onClick={onEdit}
           title="Edit"
         >
@@ -30,7 +30,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({ onEdit, onDelete, 
       )}
       {onDelete && (
         <button 
-          className="action-btn action-btn-delete"
+          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
           onClick={onDelete}
           title="Hapus"
         >

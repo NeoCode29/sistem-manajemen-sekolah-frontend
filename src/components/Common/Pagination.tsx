@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 interface PaginationProps {
   currentPage: number;
@@ -25,7 +25,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   const canGoNext = totalPages !== undefined ? currentPage < totalPages : hasNextPage;
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white/50 backdrop-blur-md border-t border-gray-100 sm:px-6 rounded-b-xl mt-4">
+    <div className="flex items-center justify-between px-4 py-3 bg-white/50 backdrop-blur-md border-t border-gray-100 sm:px-6 rounded-b-2xl">
       <div className="flex flex-1 justify-between sm:hidden">
         <button
           onClick={() => onPageChange(currentPage - 1)}
@@ -59,17 +59,20 @@ export const Pagination: React.FC<PaginationProps> = ({
           {onItemsPerPageChange && itemsPerPage && (
             <div className="flex items-center space-x-2">
               <label htmlFor="limit" className="text-sm text-gray-500 font-medium">Tampilkan:</label>
-              <select
-                id="limit"
-                value={itemsPerPage}
-                onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-                className="rounded-lg border-gray-200 py-1.5 pl-3 pr-8 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white shadow-sm transition-all cursor-pointer"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
+              <div className="relative">
+                <select
+                  id="limit"
+                  value={itemsPerPage}
+                  onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+                  className="rounded-lg border-gray-200 py-1.5 pl-3 pr-8 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white shadow-sm transition-all cursor-pointer appearance-none"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+              </div>
             </div>
           )}
 

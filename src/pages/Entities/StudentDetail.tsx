@@ -4,9 +4,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getStudentById, updateStudent, createGuardian, updateGuardian, deleteGuardian, createEnrollment, updateEnrollment, deleteEnrollment, type Student, type StudentGuardian, type StudentEnrollment } from '../../api/studentService';
 import { getAcademicYears, getSemesters, getClassrooms, getMajors, type AcademicYear, type Semester, type Classroom, type Major } from '../../api/academicService';
-import { ArrowLeft, User, BookOpen, CreditCard, Award, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, BookOpen, CreditCard, Award, Pencil, Plus, Trash2, MapPin, Calendar, Phone, Briefcase, GraduationCap, Users } from 'lucide-react';
+import { Modal } from '../../components/ui/Modal';
+import { FormField } from '../../components/ui/FormField';
+import { Badge } from '../../components/ui/Badge';
 import { useDialog } from '../../contexts/DialogContext';
-import '../Academic/Academic.css';
 
 export const StudentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -109,8 +111,6 @@ export const StudentDetail: React.FC = () => {
       if (!payload.address) delete payload.address;
       if (!payload.majorId) {
         payload.majorId = null;
-      } else {
-        payload.majorId = Number(payload.majorId);
       }
 
       await updateStudent(student.id, payload);
@@ -243,147 +243,189 @@ export const StudentDetail: React.FC = () => {
   if (!student) return <div className="academic-container">Student not found</div>;
 
   return (
-    <div className="academic-container">
-      {success && <div className="alert alert-success" style={{ marginBottom: '1rem' }}>{success}</div>}
-      {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      {success && <div className="mb-6 p-4 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl flex items-center gap-3">{success}</div>}
+      {error && <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-3">{error}</div>}
 
-      <div style={{ marginBottom: '1.5rem' }}>
-        <button onClick={() => navigate('/entities/students')} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div className="mb-6">
+        <button onClick={() => navigate('/entities/students')} className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors font-medium text-sm">
           <ArrowLeft size={16} /> Kembali ke Daftar Siswa
         </button>
       </div>
 
       {/* Header Card */}
-      <div className="student-detail-header" style={{ position: 'relative' }}>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden mb-6">
+        <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-indigo-500 to-blue-600 z-0"></div>
         {canManageSivitas && (
           <button 
             onClick={handleOpenEditProfil}
-            className="btn-icon" 
-            style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: '#f3f4f6' }}
+            className="absolute top-6 right-6 z-10 w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-sm transition-colors" 
             title="Edit Profil"
           >
-            <Pencil size={18} />
+            <Pencil size={16} />
           </button>
         )}
-        <div className="student-detail-avatar">
+        <div className="w-32 h-32 shrink-0 bg-white border-4 border-white rounded-full shadow-md flex items-center justify-center text-5xl font-bold text-indigo-600 z-10 mt-6 md:mt-10">
           {student.fullName.charAt(0).toUpperCase()}
         </div>
-        <div className="student-detail-info">
-          <h2>{student.fullName}</h2>
-          <p>NIS: {student.nis} &bull; NISN: {student.nisn}</p>
-          {student.major?.name && <p style={{ fontSize: '0.875rem', color: '#0ea5e9', fontWeight: 600, marginTop: '2px', marginBottom: '8px' }}>{student.major.name}</p>}
-          <div>
-            <span className={`status-badge ${student.status === 'Aktif' || student.status === 'ACTIVE' ? 'active' : 'inactive'}`}>
-              {student.status === 'ACTIVE' ? 'Aktif' : student.status}
-            </span>
+        <div className="flex-1 text-center md:text-left z-10 md:mt-24">
+          <h2 className="text-2xl font-bold text-gray-900 mb-1">{student.fullName}</h2>
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-sm text-gray-600 mb-3">
+            <span className="font-medium">NIS: {student.nis}</span>
+            {student.nisn && <><span className="w-1 h-1 rounded-full bg-gray-300"></span><span className="font-medium">NISN: {student.nisn}</span></>}
+          </div>
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+            {student.major?.name && (
+              <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-semibold border border-indigo-100">{student.major.name}</span>
+            )}
+            <Badge variant={student.status === 'ACTIVE' ? 'success' : student.status === 'TRANSFER' ? 'info' : student.status === 'GRADUATED' ? 'purple' : 'danger'}>
+              {student.status === 'ACTIVE' ? 'Aktif' : student.status === 'TRANSFER' ? 'Pindahan' : student.status === 'GRADUATED' ? 'Lulus' : student.status === 'DROPOUT' ? 'Keluar' : student.status}
+            </Badge>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="student-detail-tabs">
-        <button className={`student-detail-tab ${activeTab === 'profil' ? 'active' : ''}`} onClick={() => setActiveTab('profil')}>
-          <User size={18} /> Profil & Wali
-        </button>
-        <button className={`student-detail-tab ${activeTab === 'akademik' ? 'active' : ''}`} onClick={() => setActiveTab('akademik')}>
-          <BookOpen size={18} /> Akademik
-        </button>
-        <button className={`student-detail-tab ${activeTab === 'keuangan' ? 'active' : ''}`} onClick={() => setActiveTab('keuangan')}>
-          <CreditCard size={18} /> Keuangan
-        </button>
-        <button className={`student-detail-tab ${activeTab === 'catatan' ? 'active' : ''}`} onClick={() => setActiveTab('catatan')}>
-          <Award size={18} /> Catatan
-        </button>
+      <div className="flex gap-6 mb-6 border-b border-gray-200 overflow-x-auto">
+        {[
+          { id: 'profil', icon: User, label: 'Profil & Wali' },
+          { id: 'akademik', icon: BookOpen, label: 'Akademik' },
+          { id: 'keuangan', icon: CreditCard, label: 'Keuangan' },
+          { id: 'catatan', icon: Award, label: 'Catatan' },
+        ].map(tab => (
+          <button 
+            key={tab.id}
+            className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`} 
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <tab.icon size={16} /> {tab.label}
+            {activeTab === tab.id && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
+          </button>
+        ))}
       </div>
 
       {/* Content Area */}
       <div>
         {activeTab === 'profil' && (
-          <div className="student-detail-grid">
-            <div className="student-detail-card">
-              <h3>Informasi Biodata</h3>
-              <div className="student-detail-row"><div className="student-detail-label">Jenis Kelamin</div><div className="student-detail-value">{student.gender}</div></div>
-              <div className="student-detail-row"><div className="student-detail-label">Jurusan</div><div className="student-detail-value">{student.major?.name || '-'}</div></div>
-              <div className="student-detail-row"><div className="student-detail-label">Agama</div><div className="student-detail-value">{student.religion || '-'}</div></div>
-              <div className="student-detail-row"><div className="student-detail-label">Tempat Lahir</div><div className="student-detail-value">{student.birthPlace || '-'}</div></div>
-              <div className="student-detail-row"><div className="student-detail-label">Tanggal Lahir</div><div className="student-detail-value">{student.birthDate ? new Date(student.birthDate).toLocaleDateString('id-ID') : '-'}</div></div>
-              <div className="student-detail-row"><div className="student-detail-label">Alamat Lengkap</div><div className="student-detail-value">{student.address || '-'}</div></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-5 border-b border-gray-100 bg-gray-50/50">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><User size={18} className="text-indigo-500"/> Biodata Siswa</h3>
+                </div>
+                <div className="p-0">
+                  <div className="flex flex-col">
+                    <div className="p-4 border-b border-gray-50">
+                      <div className="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">Jenis Kelamin</div>
+                      <div className="text-gray-900 font-medium">{student.gender === 'Laki-laki' || student.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</div>
+                    </div>
+                    <div className="p-4 border-b border-gray-50">
+                      <div className="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">Agama</div>
+                      <div className="text-gray-900 font-medium">{student.religion || '-'}</div>
+                    </div>
+                    <div className="p-4 border-b border-gray-50">
+                      <div className="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">Tempat, Tanggal Lahir</div>
+                      <div className="text-gray-900 font-medium">{student.birthPlace || '-'}, {student.birthDate ? new Date(student.birthDate).toLocaleDateString('id-ID') : '-'}</div>
+                    </div>
+                    <div className="p-4">
+                      <div className="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">Alamat Lengkap</div>
+                      <div className="text-gray-900 font-medium">{student.address || '-'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="student-detail-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem' }}>
-                <h3 style={{ margin: 0, border: 'none', padding: 0 }}>Data Wali (Guardians)</h3>
-                {canManageSivitas && (
-                  <button className="btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleOpenAddGuardian}>
-                    <Plus size={14} style={{ display: 'inline', marginRight: '4px' }}/> Tambah
-                  </button>
-                )}
-              </div>
-              {(!student.guardians || student.guardians.length === 0) ? (
-                <p style={{ color: '#6b7280', fontStyle: 'italic' }}>Belum ada data wali.</p>
-              ) : (
-                <div>
-                  {student.guardians.map((g: any) => (
-                    <div key={g.id} className="guardian-item" style={{ position: 'relative' }}>
-                      {canManageSivitas && (
-                        <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.5rem' }}>
-                          <button className="btn-icon" style={{ background: 'white' }} onClick={() => handleOpenEditGuardian(g)}><Pencil size={14} color="#3b82f6" /></button>
-                          <button className="btn-icon" style={{ background: 'white' }} onClick={() => handleDeleteGuardian(g.id)}><Trash2 size={14} color="#ef4444" /></button>
-                        </div>
-                      )}
-                      <div className="guardian-item-name">{g.fullName} <span className="guardian-item-rel">{g.relationship}</span> {g.isPrimary && <span className="guardian-item-rel" style={{ background: '#dcfce7', color: '#166534' }}>Utama</span>}</div>
-                      <div className="guardian-item-details">
-                        <span><strong>Telepon:</strong> {g.phone || '-'}</span>
-                        <span><strong>Pekerjaan:</strong> {g.occupation || '-'}</span>
-                        <span><strong>Alamat:</strong> {g.address || '-'}</span>
-                      </div>
-                    </div>
-                  ))}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Users size={18} className="text-emerald-500"/> Data Wali Murid</h3>
+                  {canManageSivitas && (
+                    <button className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-semibold hover:bg-indigo-100 transition-colors" onClick={handleOpenAddGuardian}>
+                      <Plus size={14}/> Tambah
+                    </button>
+                  )}
                 </div>
-              )}
+                <div className="p-5">
+                  {(!student.guardians || student.guardians.length === 0) ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Users size={48} className="mx-auto text-gray-200 mb-3" />
+                      <p>Belum ada data wali murid yang ditambahkan.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {student.guardians.map((g: any) => (
+                        <div key={g.id} className="p-4 border border-gray-100 rounded-xl bg-white shadow-sm relative group hover:border-indigo-200 transition-colors">
+                          {canManageSivitas && (
+                            <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-md transition-colors" onClick={() => handleOpenEditGuardian(g)}><Pencil size={14} /></button>
+                              <button className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors" onClick={() => handleDeleteGuardian(g.id)}><Trash2 size={14} /></button>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="font-bold text-gray-900">{g.fullName}</div>
+                            {g.isPrimary && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">Utama</span>}
+                          </div>
+                          <div className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-semibold mb-4">
+                            {g.relationship}
+                          </div>
+                          <div className="flex flex-col gap-2 text-sm text-gray-600">
+                            <div className="flex items-center gap-2"><Phone size={14} className="text-gray-400"/> {g.phone || '-'}</div>
+                            <div className="flex items-center gap-2"><Briefcase size={14} className="text-gray-400"/> {g.occupation || '-'}</div>
+                            <div className="flex items-start gap-2"><MapPin size={14} className="text-gray-400 mt-0.5"/> <span>{g.address || '-'}</span></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {activeTab === 'akademik' && (
-          <div className="student-detail-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0, border: 'none', padding: 0 }}>Riwayat Kelas & Penempatan</h3>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><GraduationCap size={18} className="text-blue-500"/> Riwayat Penempatan Kelas</h3>
               {canManageSivitas && (
-                <button className="btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleOpenAddEnrollment}>
-                  <Plus size={14} style={{ display: 'inline', marginRight: '4px' }}/> Tambah
+                <button className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-semibold hover:bg-indigo-100 transition-colors" onClick={handleOpenAddEnrollment}>
+                  <Plus size={14}/> Tambah
                 </button>
               )}
             </div>
             {(!student.enrollments || student.enrollments.length === 0) ? (
-              <p style={{ color: '#6b7280', fontStyle: 'italic' }}>Belum ada riwayat penempatan kelas.</p>
+              <div className="text-center py-12 text-gray-500">
+                <GraduationCap size={48} className="mx-auto text-gray-200 mb-3" />
+                <p>Belum ada riwayat penempatan kelas.</p>
+              </div>
             ) : (
-              <div className="table-responsive">
-                <table className="data-table">
-                  <thead>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm whitespace-nowrap">
+                  <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-semibold">
                     <tr>
-                      <th>Tahun Ajaran</th>
-                      <th>Semester</th>
-                      <th>Kelas</th>
-                      <th>Tanggal Masuk</th>
-                      <th style={{ width: '100px', textAlign: 'right' }}>Aksi</th>
+                      <th className="px-6 py-4">Tahun Ajaran</th>
+                      <th className="px-6 py-4">Semester</th>
+                      <th className="px-6 py-4">Kelas</th>
+                      <th className="px-6 py-4">Tanggal Masuk</th>
+                      {canManageSivitas && <th className="px-6 py-4 text-right">Aksi</th>}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-100">
                     {student.enrollments.map((enr: any) => (
-                      <tr key={enr.id}>
-                        <td>{enr.academicYear?.name || '-'}</td>
-                        <td>{enr.semester?.name || '-'}</td>
-                        <td className="font-semibold" style={{ color: '#2563eb' }}>{enr.classroom?.name || '-'}</td>
-                        <td style={{ color: '#6b7280' }}>{new Date(enr.createdAt).toLocaleDateString('id-ID')}</td>
-                        <td style={{ textAlign: 'right' }}>
-                          {canManageSivitas && (
-                            <>
-                              <button className="btn-icon" onClick={() => handleOpenEditEnrollment(enr)}><Pencil size={14} color="#3b82f6" /></button>
-                              <button className="btn-icon" onClick={() => handleDeleteEnrollment(enr.id)}><Trash2 size={14} color="#ef4444" /></button>
-                            </>
-                          )}
-                        </td>
+                      <tr key={enr.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4 text-gray-900 font-medium">{enr.academicYear?.name || '-'}</td>
+                        <td className="px-6 py-4 text-gray-900">{enr.semester?.name || '-'}</td>
+                        <td className="px-6 py-4"><span className="px-3 py-1 bg-blue-50 text-blue-700 font-semibold rounded-lg">{enr.classroom?.name || '-'}</span></td>
+                        <td className="px-6 py-4 text-gray-500">{new Date(enr.createdAt).toLocaleDateString('id-ID')}</td>
+                        {canManageSivitas && (
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex justify-end gap-2">
+                              <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" onClick={() => handleOpenEditEnrollment(enr)}><Pencil size={16} /></button>
+                              <button className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" onClick={() => handleDeleteEnrollment(enr.id)}><Trash2 size={16} /></button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -394,96 +436,104 @@ export const StudentDetail: React.FC = () => {
         )}
 
         {activeTab === 'keuangan' && (
-          <div className="student-detail-empty"><CreditCard size={64} /><h3>Fitur Keuangan</h3><p>Data tagihan SPP dan riwayat pembayaran sedang dalam tahap pengembangan.</p></div>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="w-16 h-16 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <CreditCard size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Fitur Keuangan</h3>
+            <p className="text-gray-500 max-w-md mx-auto">Data tagihan SPP dan riwayat pembayaran siswa sedang dalam tahap pengembangan dan akan segera hadir.</p>
+          </div>
         )}
 
         {activeTab === 'catatan' && (
-          <div className="student-detail-empty"><Award size={64} /><h3>Catatan Prestasi & Pelanggaran</h3><p>Data kedisiplinan dan pencapaian akademik sedang dalam tahap pengembangan.</p></div>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="w-16 h-16 bg-purple-100 text-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Award size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Catatan Prestasi & Pelanggaran</h3>
+            <p className="text-gray-500 max-w-md mx-auto">Data kedisiplinan dan pencapaian akademik sedang dalam tahap pengembangan.</p>
+          </div>
         )}
       </div>
 
       {/* MODALS */}
-      {showEditProfil && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4" style={{ maxWidth: '700px' }}>
-            <div className="modal-header-v4">
-              <h2>Edit Profil Siswa</h2>
-              <button className="btn-close" onClick={() => setShowEditProfil(false)}>&times;</button>
-            </div>
-            <form onSubmit={handleProfilSubmit} className="modal-form-v4">
-              <div className="modal-body-v4 form-grid">
-                <div className="form-group"><label>NIS</label><input type="text" className="input-field" value={editProfilData.nis || ''} onChange={(e)=>setEditProfilData({...editProfilData, nis: e.target.value})} required/></div>
-                <div className="form-group"><label>NISN</label><input type="text" className="input-field" value={editProfilData.nisn || ''} onChange={(e)=>setEditProfilData({...editProfilData, nisn: e.target.value})}/></div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Nama Lengkap</label><input type="text" className="input-field" value={editProfilData.fullName || ''} onChange={(e)=>setEditProfilData({...editProfilData, fullName: e.target.value})} required/></div>
-                <div className="form-group"><label>Jenis Kelamin</label><select className="input-field" value={editProfilData.gender || ''} onChange={(e)=>setEditProfilData({...editProfilData, gender: e.target.value})}><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
-                <div className="form-group"><label>Jurusan <span className="text-gray-400 text-xs">(Opsional)</span></label><select className="input-field" value={editProfilData.majorId || ''} onChange={(e)=>setEditProfilData({...editProfilData, majorId: e.target.value})}><option value="">-- Tidak Ada Jurusan --</option>{majors.filter(m => m.isActive).map(m => (<option key={m.id} value={m.id}>{m.name}</option>))}</select></div>
-                <div className="form-group"><label>Agama</label><input type="text" className="input-field" value={editProfilData.religion || ''} onChange={(e)=>setEditProfilData({...editProfilData, religion: e.target.value})}/></div>
-                <div className="form-group"><label>Tempat Lahir</label><input type="text" className="input-field" value={editProfilData.birthPlace || ''} onChange={(e)=>setEditProfilData({...editProfilData, birthPlace: e.target.value})}/></div>
-                <div className="form-group"><label>Tanggal Lahir</label><input type="date" className="input-field" value={editProfilData.birthDate || ''} onChange={(e)=>setEditProfilData({...editProfilData, birthDate: e.target.value})}/></div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Alamat</label><textarea className="input-field" rows={2} value={editProfilData.address || ''} onChange={(e)=>setEditProfilData({...editProfilData, address: e.target.value})}/></div>
-                <div className="form-group"><label>Status Siswa</label><select className="input-field" value={editProfilData.status || ''} onChange={(e)=>setEditProfilData({...editProfilData, status: e.target.value})}><option value="ACTIVE">Aktif</option><option value="TRANSFER">Pindahan</option><option value="GRADUATED">Lulus</option><option value="DROPOUT">Keluar</option></select></div>
-              </div>
-              <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={() => setShowEditProfil(false)}>Batal</button>
-                <button type="submit" className="btn-primary" disabled={profilSaving}>{profilSaving ? 'Menyimpan...' : 'Simpan'}</button>
-              </div>
-            </form>
+      <Modal 
+        open={showEditProfil} 
+        onClose={() => setShowEditProfil(false)} 
+        title="Edit Profil Siswa" 
+        size="lg"
+        footer={
+          <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 rounded-b-2xl border-t border-gray-100">
+            <button type="button" className="btn-std-secondary" onClick={() => setShowEditProfil(false)}>Batal</button>
+            <button type="button" className="btn-std-primary" onClick={handleProfilSubmit} disabled={profilSaving}>{profilSaving ? 'Menyimpan...' : 'Simpan'}</button>
           </div>
-        </div>,
-        document.body
-      )}
+        }
+      >
+        <form id="edit-profil-form" onSubmit={handleProfilSubmit} className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <FormField label="NIS" required><input type="text" className="input-std" value={editProfilData.nis || ''} onChange={(e)=>setEditProfilData({...editProfilData, nis: e.target.value})} required/></FormField>
+            <FormField label="NISN"><input type="text" className="input-std" value={editProfilData.nisn || ''} onChange={(e)=>setEditProfilData({...editProfilData, nisn: e.target.value})}/></FormField>
+            <div className="md:col-span-2"><FormField label="Nama Lengkap" required><input type="text" className="input-std" value={editProfilData.fullName || ''} onChange={(e)=>setEditProfilData({...editProfilData, fullName: e.target.value})} required/></FormField></div>
+            <FormField label="Jenis Kelamin"><select className="input-std" value={editProfilData.gender || ''} onChange={(e)=>setEditProfilData({...editProfilData, gender: e.target.value})}><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></FormField>
+            <FormField label="Jurusan" hint="(Opsional)"><select className="input-std" value={editProfilData.majorId || ''} onChange={(e)=>setEditProfilData({...editProfilData, majorId: e.target.value})}><option value="">-- Tidak Ada Jurusan --</option>{majors.filter(m => m.isActive).map(m => (<option key={m.id} value={m.id}>{m.name}</option>))}</select></FormField>
+            <FormField label="Agama"><input type="text" className="input-std" value={editProfilData.religion || ''} onChange={(e)=>setEditProfilData({...editProfilData, religion: e.target.value})}/></FormField>
+            <FormField label="Status Siswa"><select className="input-std" value={editProfilData.status || ''} onChange={(e)=>setEditProfilData({...editProfilData, status: e.target.value})}><option value="ACTIVE">Aktif</option><option value="TRANSFER">Pindahan</option><option value="GRADUATED">Lulus</option><option value="DROPOUT">Keluar</option></select></FormField>
+            <FormField label="Tempat Lahir"><input type="text" className="input-std" value={editProfilData.birthPlace || ''} onChange={(e)=>setEditProfilData({...editProfilData, birthPlace: e.target.value})}/></FormField>
+            <FormField label="Tanggal Lahir"><input type="date" className="input-std" value={editProfilData.birthDate || ''} onChange={(e)=>setEditProfilData({...editProfilData, birthDate: e.target.value})}/></FormField>
+            <div className="md:col-span-2"><FormField label="Alamat"><textarea className="input-std" rows={3} value={editProfilData.address || ''} onChange={(e)=>setEditProfilData({...editProfilData, address: e.target.value})}/></FormField></div>
+          </div>
+        </form>
+      </Modal>
 
-      {showGuardianModal && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4" style={{ maxWidth: '600px' }}>
-            <div className="modal-header-v4">
-              <h2>{editingGuardian ? 'Edit Data Wali' : 'Tambah Data Wali'}</h2>
-              <button className="btn-close" onClick={() => setShowGuardianModal(false)}>&times;</button>
-            </div>
-            <form onSubmit={handleGuardianSubmit} className="modal-form-v4">
-              <div className="modal-body-v4 form-grid">
-                <div className="form-group"><label>Hubungan <span className="text-red-500">*</span></label><select className="input-field" value={guardianData.relationship || ''} onChange={(e)=>setGuardianData({...guardianData, relationship: e.target.value})}><option value="Ayah">Ayah</option><option value="Ibu">Ibu</option><option value="Wali">Wali Lainnya</option></select></div>
-                <div className="form-group"><label>Nama Lengkap <span className="text-red-500">*</span></label><input type="text" className="input-field" value={guardianData.fullName || ''} onChange={(e)=>setGuardianData({...guardianData, fullName: e.target.value})} required/></div>
-                <div className="form-group"><label>No. Telepon</label><input type="text" className="input-field" value={guardianData.phone || ''} onChange={(e)=>setGuardianData({...guardianData, phone: e.target.value})}/></div>
-                <div className="form-group"><label>Email</label><input type="email" className="input-field" value={guardianData.email || ''} onChange={(e)=>setGuardianData({...guardianData, email: e.target.value})}/></div>
-                <div className="form-group"><label>Pekerjaan</label><input type="text" className="input-field" value={guardianData.occupation || ''} onChange={(e)=>setGuardianData({...guardianData, occupation: e.target.value})}/></div>
-                <div className="form-group"><label>NIK / KTP</label><input type="text" className="input-field" value={guardianData.nationalId || ''} onChange={(e)=>setGuardianData({...guardianData, nationalId: e.target.value})}/></div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Alamat</label><textarea className="input-field" rows={2} value={guardianData.address || ''} onChange={(e)=>setGuardianData({...guardianData, address: e.target.value})}/></div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}><label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}><input type="checkbox" checked={guardianData.isPrimary || false} onChange={(e)=>setGuardianData({...guardianData, isPrimary: e.target.checked})} /> Jadikan Wali Utama</label></div>
-              </div>
-              <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={() => setShowGuardianModal(false)}>Batal</button>
-                <button type="submit" className="btn-primary" disabled={guardianSaving}>{guardianSaving ? 'Menyimpan...' : 'Simpan'}</button>
-              </div>
-            </form>
+      <Modal 
+        open={showGuardianModal} 
+        onClose={() => setShowGuardianModal(false)} 
+        title={editingGuardian ? 'Edit Data Wali' : 'Tambah Data Wali'}
+        footer={
+          <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 rounded-b-2xl border-t border-gray-100">
+            <button type="button" className="btn-std-secondary" onClick={() => setShowGuardianModal(false)}>Batal</button>
+            <button type="button" className="btn-std-primary" onClick={handleGuardianSubmit} disabled={guardianSaving}>{guardianSaving ? 'Menyimpan...' : 'Simpan'}</button>
           </div>
-        </div>,
-        document.body
-      )}
+        }
+      >
+        <form onSubmit={handleGuardianSubmit} className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <FormField label="Hubungan" required><select className="input-std" value={guardianData.relationship || ''} onChange={(e)=>setGuardianData({...guardianData, relationship: e.target.value})}><option value="Ayah">Ayah</option><option value="Ibu">Ibu</option><option value="Wali">Wali Lainnya</option></select></FormField>
+            <FormField label="No. Telepon"><input type="text" className="input-std" value={guardianData.phone || ''} onChange={(e)=>setGuardianData({...guardianData, phone: e.target.value})}/></FormField>
+            <div className="md:col-span-2"><FormField label="Nama Lengkap" required><input type="text" className="input-std" value={guardianData.fullName || ''} onChange={(e)=>setGuardianData({...guardianData, fullName: e.target.value})} required/></FormField></div>
+            <FormField label="Email"><input type="email" className="input-std" value={guardianData.email || ''} onChange={(e)=>setGuardianData({...guardianData, email: e.target.value})}/></FormField>
+            <FormField label="Pekerjaan"><input type="text" className="input-std" value={guardianData.occupation || ''} onChange={(e)=>setGuardianData({...guardianData, occupation: e.target.value})}/></FormField>
+            <div className="md:col-span-2"><FormField label="NIK / KTP"><input type="text" className="input-std" value={guardianData.nationalId || ''} onChange={(e)=>setGuardianData({...guardianData, nationalId: e.target.value})}/></FormField></div>
+            <div className="md:col-span-2"><FormField label="Alamat"><textarea className="input-std" rows={2} value={guardianData.address || ''} onChange={(e)=>setGuardianData({...guardianData, address: e.target.value})}/></FormField></div>
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked={guardianData.isPrimary || false} onChange={(e)=>setGuardianData({...guardianData, isPrimary: e.target.checked})} />
+                <span className="text-sm font-semibold text-gray-900">Jadikan Wali Utama</span>
+              </label>
+            </div>
+          </div>
+        </form>
+      </Modal>
 
-      {showEnrollmentModal && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
-            <div className="modal-header-v4">
-              <h2>{editingEnrollment ? 'Edit Penempatan' : 'Tambah Penempatan'}</h2>
-              <button className="btn-close" onClick={() => setShowEnrollmentModal(false)}>&times;</button>
-            </div>
-            <form onSubmit={handleEnrollmentSubmit} className="modal-form-v4">
-              <div className="modal-body-v4" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="form-group"><label>Tahun Ajaran <span className="text-red-500">*</span></label><select className="input-field" value={enrollmentData.academicYearId || ''} onChange={(e)=>setEnrollmentData({...enrollmentData, academicYearId: e.target.value})} required><option value="">Pilih Tahun Ajaran</option>{academicYears.map(ay => (<option key={ay.id} value={ay.id}>{ay.name}</option>))}</select></div>
-                <div className="form-group"><label>Semester <span className="text-red-500">*</span></label><select className="input-field" value={enrollmentData.semesterId || ''} onChange={(e)=>setEnrollmentData({...enrollmentData, semesterId: e.target.value})} required><option value="">Pilih Semester</option>{semesters.map(sm => (<option key={sm.id} value={sm.id}>{sm.name}</option>))}</select></div>
-                <div className="form-group"><label>Kelas <span className="text-red-500">*</span></label><select className="input-field" value={enrollmentData.classroomId || ''} onChange={(e)=>setEnrollmentData({...enrollmentData, classroomId: e.target.value})} required><option value="">Pilih Kelas</option>{classrooms.map(cr => (<option key={cr.id} value={cr.id}>{cr.name}</option>))}</select></div>
-              </div>
-              <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={() => setShowEnrollmentModal(false)}>Batal</button>
-                <button type="submit" className="btn-primary" disabled={enrollmentSaving}>{enrollmentSaving ? 'Menyimpan...' : 'Simpan'}</button>
-              </div>
-            </form>
+      <Modal 
+        open={showEnrollmentModal} 
+        onClose={() => setShowEnrollmentModal(false)} 
+        title={editingEnrollment ? 'Edit Penempatan' : 'Tambah Penempatan'}
+        footer={
+          <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 rounded-b-2xl border-t border-gray-100">
+            <button type="button" className="btn-std-secondary" onClick={() => setShowEnrollmentModal(false)}>Batal</button>
+            <button type="button" className="btn-std-primary" onClick={handleEnrollmentSubmit} disabled={enrollmentSaving}>{enrollmentSaving ? 'Menyimpan...' : 'Simpan'}</button>
           </div>
-        </div>
-      ,
-        document.body
-      )}
+        }
+      >
+        <form onSubmit={handleEnrollmentSubmit} className="p-6">
+          <div className="flex flex-col gap-5">
+            <FormField label="Tahun Ajaran" required><select className="input-std" value={enrollmentData.academicYearId || ''} onChange={(e)=>setEnrollmentData({...enrollmentData, academicYearId: e.target.value})} required><option value="">Pilih Tahun Ajaran</option>{academicYears.map(ay => (<option key={ay.id} value={ay.id}>{ay.name}</option>))}</select></FormField>
+            <FormField label="Semester" required><select className="input-std" value={enrollmentData.semesterId || ''} onChange={(e)=>setEnrollmentData({...enrollmentData, semesterId: e.target.value})} required><option value="">Pilih Semester</option>{semesters.map(sm => (<option key={sm.id} value={sm.id}>{sm.name}</option>))}</select></FormField>
+            <FormField label="Kelas" required><select className="input-std" value={enrollmentData.classroomId || ''} onChange={(e)=>setEnrollmentData({...enrollmentData, classroomId: e.target.value})} required><option value="">Pilih Kelas</option>{classrooms.map(cr => (<option key={cr.id} value={cr.id}>{cr.name}</option>))}</select></FormField>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

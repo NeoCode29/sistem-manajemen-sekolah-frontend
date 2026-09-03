@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Plus, BookOpen, AlertCircle } from 'lucide-react';
+import { Plus, AlertCircle } from 'lucide-react';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
+import { Modal } from '../../components/ui/Modal';
+import { FormField } from '../../components/ui/FormField';
 import { useSubjects } from '../../hooks/useSubjects';
 import type { Subject } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
-import './Academic.css';
 
 export const Subjects: React.FC = () => {
   const {
@@ -85,13 +85,10 @@ export const Subjects: React.FC = () => {
   const columns: Column<Subject>[] = [
     { key: 'code', header: 'Kode', render: (row) => <span className="font-semibold">{row.code}</span> },
     { key: 'name', header: 'Mata Pelajaran', render: (row) => (
-      <div className="capacity-info" style={{ color: '#2563eb' }}>
-        <BookOpen size={16} />
-        {row.name}
-      </div>
+      <span className="font-medium text-gray-900">{row.name}</span>
     )},
     { key: 'minimumPassingGrade', header: 'KKM (Nilai Lulus)', render: (row) => (
-      <span className="grade-badge">
+      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-700">
         {row.minimumPassingGrade || '-'}
       </span>
     )},
@@ -104,25 +101,25 @@ export const Subjects: React.FC = () => {
   ];
 
   return (
-    <div className="academic-container">
-      <div className="page-header">
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="page-title">Mata Pelajaran</h1>
-          <p className="page-subtitle">Kelola master data Mata Pelajaran</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Mata Pelajaran</h1>
+          <p className="text-gray-500 mt-1">Kelola master data Mata Pelajaran</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>
+        <button className="btn-std-primary" onClick={() => setShowModal(true)}>
           <Plus size={18} /> Tambah Data
         </button>
       </div>
 
       {error && (
-        <div className="alert alert-error mb-4 flex items-center gap-2">
+        <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
         </div>
       )}
 
-      <div className="glass-panel">
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 overflow-hidden">
         <DataTable 
           columns={columns} 
           data={subjects} 
@@ -131,38 +128,31 @@ export const Subjects: React.FC = () => {
         />
       </div>
 
-      {showModal && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4">
-            <div className="modal-header-v4">
-              <h2>{isEditing ? 'Edit Mata Pelajaran' : 'Tambah Mata Pelajaran'}</h2>
-              <button type="button" className="btn-close" onClick={handleCloseModal}>&times;</button>
-            </div>
-            <form onSubmit={handleSubmit} className="modal-form-v4">
-              <div className="modal-body-v4 form-grid">
-              <div className="form-group">
-                <label>Kode <span className="text-red-500">*</span></label>
-                <input type="text" className="input-field" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: MAT-W-10" required />
-              </div>
-              <div className="form-group">
-                <label>Nama Mata Pelajaran <span className="text-red-500">*</span></label>
-                <input type="text" className="input-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Matematika Wajib Kelas X" required />
-              </div>
-              <div className="form-group">
-                <label>KKM / Batas Kelulusan Minimum</label>
-                <input type="number" step="0.1" className="input-field" value={minimumPassingGrade} onChange={(e) => setMinimumPassingGrade(Number(e.target.value))} placeholder="75" />
-              </div>
-              </div>
-              <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Batal</button>
-                <button type="submit" className="btn-primary">Simpan</button>
-              </div>
-            </form>
+      <Modal 
+        open={showModal} 
+        onClose={handleCloseModal} 
+        title={isEditing ? 'Edit Mata Pelajaran' : 'Tambah Mata Pelajaran'}
+        footer={
+          <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 rounded-b-2xl border-t border-gray-100">
+            <button type="button" className="btn-std-secondary" onClick={handleCloseModal}>Batal</button>
+            <button type="submit" form="subject-form" className="btn-std-primary">Simpan</button>
           </div>
-        </div>
-      ,
-        document.body
-      )}
+        }
+      >
+        <form id="subject-form" onSubmit={handleSubmit} className="p-6">
+          <div className="flex flex-col gap-5">
+            <FormField label="Kode" required>
+              <input type="text" className="input-std" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: MAT-W-10" required />
+            </FormField>
+            <FormField label="Nama Mata Pelajaran" required>
+              <input type="text" className="input-std" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Matematika Wajib Kelas X" required />
+            </FormField>
+            <FormField label="KKM / Batas Kelulusan Minimum">
+              <input type="number" step="0.1" className="input-std" value={minimumPassingGrade} onChange={(e) => setMinimumPassingGrade(Number(e.target.value))} placeholder="75" />
+            </FormField>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { getLetterTemplates, createLetterTemplate, updateLetterTemplate, deleteLetterTemplate, uploadTemplateAttachment } from '../../api/letterService';
 import type { LetterTemplate } from '../../api/letterService';
 import { getSchoolProfile, updateSchoolProfile, uploadSchoolLogo } from '../../api/schoolProfileService';
-import { FileCode, Plus, Edit2, Trash2, X, Download, Settings, FileText } from 'lucide-react';
+import { FileCode, Plus, Edit2, Trash2, Download, Settings, FileText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useDialog } from '../../contexts/DialogContext';
-import '../Academic/Academic.css';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { DataTable, type Column } from '../../components/Common/DataTable';
+import { Modal } from '../../components/ui/Modal';
+import { FormField } from '../../components/ui/FormField';
+import { Badge } from '../../components/ui/Badge';
 
 export const LetterTemplates: React.FC = () => {
   const { user } = useAuth();
@@ -174,311 +177,282 @@ export const LetterTemplates: React.FC = () => {
     });
   };
 
-  return (
-    <div className="academic-container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Template Surat</h1>
-          <p className="page-subtitle">Kelola Kop Surat dan Bank File Template</p>
+  const columns: Column<LetterTemplate>[] = [
+    { key: 'name', header: 'Nama Template', render: (item) => (
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+          <FileCode size={18} />
         </div>
+        <span className="font-bold text-gray-900">{item.name}</span>
+      </div>
+    )},
+    { key: 'category', header: 'Kategori', render: (item) => (
+      <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold border border-gray-200">
+        {item.category}
+      </span>
+    )},
+    { key: 'code', header: 'Kode', render: (item) => (
+      <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md font-mono text-sm border border-indigo-100 font-semibold">
+        {item.code}
+      </span>
+    )},
+    { key: 'status', header: 'Status', render: (item) => (
+      <Badge variant={item.isActive ? 'success' : 'default'}>
+        {item.isActive ? 'Aktif' : 'Nonaktif'}
+      </Badge>
+    )},
+    { key: 'file', header: 'File Master', render: (item) => (
+      item.attachmentUrl ? (
+        <a href={`http://localhost:3000${item.attachmentUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors w-max border border-blue-100">
+          <Download size={14} /> Unduh
+        </a>
+      ) : (
+        <span className="text-xs text-gray-400 italic bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 w-max inline-block">Belum ada file</span>
+      )
+    )},
+    { key: 'actions', header: 'Aksi', render: (item) => (
+      <div className="flex gap-2 justify-end">
+        <button onClick={() => openModal(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+          <Edit2 size={16} />
+        </button>
+        <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+          <Trash2 size={16} />
+        </button>
+      </div>
+    )}
+  ];
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+        <PageHeader 
+          title="Template Surat" 
+          subtitle="Kelola Kop Surat dan Bank File Template"
+        />
         {activeTab === 'TEMPLATE' && (
-          <div className="header-actions">
-            <button className="btn-primary" onClick={() => openModal()}>
-              <Plus size={18} />
-              <span>Upload Template Baru</span>
-            </button>
-          </div>
+          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => openModal()}>
+            <Plus size={18} />
+            <span>Upload Template Baru</span>
+          </button>
         )}
       </div>
 
-      <div className="flex gap-4 border-b border-gray-200 mt-6 px-1">
+      <div className="flex bg-gray-100/80 p-1 rounded-xl w-max mb-6 border border-gray-200/50">
         <button
-          className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-5 py-2.5 text-sm font-semibold rounded-lg flex items-center gap-2 transition-all ${
             activeTab === 'KOP_SURAT' 
-              ? 'border-blue-600 text-blue-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'bg-white text-indigo-700 shadow-sm border border-gray-200/50' 
+              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
           }`}
           onClick={() => setActiveTab('KOP_SURAT')}
         >
-          <div className="flex items-center gap-2">
-            <Settings size={16} /> Pengaturan Kop Surat
-          </div>
+          <Settings size={16} /> Pengaturan Kop Surat
         </button>
         <button
-          className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-5 py-2.5 text-sm font-semibold rounded-lg flex items-center gap-2 transition-all ${
             activeTab === 'TEMPLATE' 
-              ? 'border-blue-600 text-blue-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'bg-white text-indigo-700 shadow-sm border border-gray-200/50' 
+              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
           }`}
           onClick={() => setActiveTab('TEMPLATE')}
         >
-          <div className="flex items-center gap-2">
-            <FileText size={16} /> Bank File Template
-          </div>
+          <FileText size={16} /> Bank File Template
         </button>
       </div>
 
-      <div className="glass-panel mt-6">
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Memuat data...</div>
+          <div className="p-12 text-center text-gray-500 font-medium">Memuat data...</div>
         ) : activeTab === 'KOP_SURAT' && profile ? (
-          <div className="p-6 max-w-3xl">
-            <h2 className="text-lg font-semibold text-gray-800 mb-6 border-b pb-2">Informasi Kop Surat Sekolah</h2>
-            <form onSubmit={handleProfileSubmit} className="space-y-6">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 md:px-8 md:py-6 bg-indigo-50/50 border-b border-indigo-100">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-white text-indigo-600 flex items-center justify-center shadow-sm border border-indigo-100/50">
+                  <Settings size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Informasi Kop Surat Sekolah</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Data ini akan digunakan sebagai header pada setiap template surat keluar.</p>
+                </div>
+              </div>
+            </div>
+            
+            <form onSubmit={handleProfileSubmit} className="flex flex-col gap-6 p-6 md:p-8 max-w-4xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Nama Sekolah</label>
+                <FormField label="Nama Sekolah" required>
                   <input
                     type="text"
                     name="name"
                     value={profile.name || ''}
                     onChange={handleProfileChange}
-                    className="input-field mt-1 w-full"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-gray-900"
                     required
                   />
-                </div>
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Logo Sekolah (PNG/JPG)</label>
-                  <div className="mt-1 flex items-center gap-4">
+                </FormField>
+                <FormField label="Logo Sekolah (PNG/JPG)">
+                  <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-xl border border-gray-200">
                     {profile.logoUrl && !logoFile && (
-                      <img src={`http://localhost:3000${profile.logoUrl}`} alt="Logo" className="h-12 w-12 object-contain bg-gray-50 rounded border" />
+                      <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                        <img src={`http://localhost:3000${profile.logoUrl}`} alt="Logo" className="max-w-full max-h-full object-contain" />
+                      </div>
                     )}
                     <input
                       type="file"
                       accept=".png,.jpg,.jpeg"
                       onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                      className="text-sm"
+                      className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer w-full"
                     />
                   </div>
-                </div>
+                </FormField>
               </div>
 
-              <div className="form-group">
-                <label className="text-sm font-medium text-gray-700">Alamat Lengkap</label>
+              <FormField label="Alamat Lengkap">
                 <textarea
                   name="address"
                   value={profile.address || ''}
                   onChange={handleProfileChange}
-                  className="input-field mt-1 w-full"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900"
                   rows={2}
                 />
-              </div>
+              </FormField>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Telepon / Fax</label>
+                <FormField label="Telepon / Fax">
                   <input
                     type="text"
                     name="phone"
                     value={profile.phone || ''}
                     onChange={handleProfileChange}
-                    className="input-field mt-1 w-full"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900"
                   />
-                </div>
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Email</label>
+                </FormField>
+                <FormField label="Email">
                   <input
                     type="email"
                     name="email"
                     value={profile.email || ''}
                     onChange={handleProfileChange}
-                    className="input-field mt-1 w-full"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900"
                   />
-                </div>
+                </FormField>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Website</label>
+                <FormField label="Website">
                   <input
                     type="text"
                     name="website"
                     value={profile.website || ''}
                     onChange={handleProfileChange}
-                    className="input-field mt-1 w-full"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-blue-600 font-medium"
                   />
-                </div>
+                </FormField>
               </div>
 
-              <div className="pt-4 border-t flex gap-4">
-                <button type="submit" className="btn-primary" disabled={profileSaving}>
-                  {profileSaving ? 'Menyimpan...' : 'Simpan Pengaturan Kop'}
+              <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row gap-3 mt-4">
+                <button type="submit" className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm w-full sm:w-auto" disabled={profileSaving}>
+                  {profileSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}
                 </button>
-                <button type="button" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors border border-gray-300" onClick={handleDownloadDocx}>
-                  <Download size={16} /> Unduh Contoh Kop (DOCX)
+                <button type="button" className="px-5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors border border-gray-200 shadow-sm" onClick={handleDownloadDocx}>
+                  <Download size={16} /> Unduh Contoh Kop
                 </button>
               </div>
             </form>
           </div>
         ) : (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Nama Template</th>
-                  <th>Kategori</th>
-                  <th>Kode</th>
-                  <th>Status</th>
-                  <th>File Master</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {templates.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-6 text-gray-500">
-                      Belum ada template surat
-                    </td>
-                  </tr>
-                ) : (
-                  templates.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                            <FileCode size={18} />
-                          </div>
-                          <span className="font-semibold text-gray-900">{item.name}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                          {item.category}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md font-mono text-sm border">
-                          {item.code}
-                        </span>
-                      </td>
-                      <td>
-                        {item.isActive ? (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Aktif</span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">Nonaktif</span>
-                        )}
-                      </td>
-                      <td>
-                        {item.attachmentUrl ? (
-                          <a href={`http://localhost:3000${item.attachmentUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-blue-600 hover:underline">
-                            <Download size={14} /> Unduh
-                          </a>
-                        ) : (
-                          <span className="text-xs text-gray-500">Belum ada file</span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="flex gap-2">
-                          <button onClick={() => openModal(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
-                            <Edit2 size={16} />
-                          </button>
-                          <button onClick={() => handleDelete(item.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Hapus">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable 
+            columns={columns}
+            data={templates}
+            loading={loading}
+            emptyMessage="Belum ada template surat"
+          />
         )}
       </div>
 
       {/* Modal Form Template */}
-      {isModalOpen && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4" style={{ maxWidth: '600px' }}>
-            <div className="modal-header-v4">
-              <h2 className="flex items-center gap-2">
-                <FileCode size={20} className="text-blue-600" />
-                {editingId ? 'Edit Template Surat' : 'Upload Template Baru'}
-              </h2>
-              <button type="button" className="btn-close" onClick={closeModal}>&times;</button>
-            </div>
+      <Modal
+        open={isModalOpen}
+        onClose={closeModal}
+        title={editingId ? 'Edit Template Surat' : 'Upload Template Baru'}
+      >
+        <div className="p-6">
+          <form id="template-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
+            {error && <div className="mb-2 p-4 bg-red-50 text-red-700 text-sm rounded-xl border border-red-200 font-medium">{error}</div>}
             
-            <form id="template-form" onSubmit={handleSubmit} className="modal-form-v4">
-              <div className="modal-body-v4 form-grid">
-                {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
-                
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">Nama Template *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    className="input-field mt-1 w-full"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="Misal: Surat Keterangan Aktif"
-                  />
-                </div>
+            <FormField label="Nama Template" required>
+              <input
+                type="text"
+                name="name"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900 font-bold"
+                value={formData.name}
+                onChange={handleInputChange}
+                required
+                placeholder="Misal: Surat Keterangan Aktif"
+              />
+            </FormField>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="form-group">
-                    <label className="text-sm font-medium text-gray-700">Kode Unik *</label>
-                    <input
-                      type="text"
-                      name="code"
-                      className="input-field mt-1 w-full uppercase"
-                      value={formData.code}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Misal: SK-AKTIF-01"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="text-sm font-medium text-gray-700">Kategori</label>
-                    <select
-                      name="category"
-                      className="input-field mt-1 w-full"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                    >
-                      <option value="UMUM">UMUM</option>
-                      <option value="PANGGILAN">PANGGILAN</option>
-                      <option value="UNDANGAN">UNDANGAN</option>
-                      <option value="KETERANGAN">KETERANGAN</option>
-                    </select>
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField label="Kode Unik" required>
+                <input
+                  type="text"
+                  name="code"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all uppercase font-mono font-semibold"
+                  value={formData.code}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Misal: SK-AKTIF-01"
+                />
+              </FormField>
+              <FormField label="Kategori">
+                <select
+                  name="category"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer font-medium text-gray-900"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                >
+                  <option value="UMUM">UMUM</option>
+                  <option value="PANGGILAN">PANGGILAN</option>
+                  <option value="UNDANGAN">UNDANGAN</option>
+                  <option value="KETERANGAN">KETERANGAN</option>
+                </select>
+              </FormField>
+            </div>
 
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-700">File Master (.docx / .pdf)</label>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                    className="input-field mt-1 w-full"
-                    required={!editingId}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Upload file surat master yang sudah terdapat layout kop/isi standar.
-                  </p>
-                </div>
+            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+              <FormField label="File Master (.docx / .pdf)" hint="Upload file surat master yang sudah terdapat layout kop/isi standar." required={!editingId}>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  className="text-sm mt-2 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition-colors w-full bg-white p-1 rounded-xl border border-gray-200"
+                  required={!editingId}
+                />
+              </FormField>
+            </div>
 
-                <div className="form-group">
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="isActive"
-                      checked={formData.isActive}
-                      onChange={handleInputChange}
-                      className="rounded text-blue-600 focus:ring-blue-500"
-                    />
-                    Template Aktif (Dapat digunakan)
-                  </label>
+            <div className="pt-2">
+              <label className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-colors w-full ${formData.isActive ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>
+                <input
+                  type="checkbox"
+                  name="isActive"
+                  checked={formData.isActive}
+                  onChange={handleInputChange}
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                />
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${formData.isActive ? 'bg-emerald-500' : 'bg-gray-400'}`}></div>
+                  <span className={`text-sm font-semibold ${formData.isActive ? 'text-emerald-900' : 'text-gray-700'}`}>Template Aktif (Dapat digunakan)</span>
                 </div>
-              </div>
-              <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={closeModal}>Batal</button>
-                <button type="submit" className="btn-primary">Simpan Template</button>
-              </div>
-            </form>
-          </div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100 mt-2">
+              <button type="button" className="px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-colors" onClick={closeModal}>Batal</button>
+              <button type="submit" className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm">Simpan Template</button>
+            </div>
+          </form>
         </div>
-      , document.body)}
+      </Modal>
     </div>
   );
 };

@@ -79,6 +79,7 @@ export const getExams = async (params?: Record<string, any>): Promise<Exam[]> =>
     ...item,
     examType: item.type?.name || 'TUGAS',
     examDate: item.assessmentDate,
+    description: item.notes,
     weight: item.component?.weight || 1,
   }));
 };
@@ -90,6 +91,7 @@ export const getExamById = async (id: string): Promise<Exam> => {
     ...item,
     examType: item.type?.name || 'TUGAS',
     examDate: item.assessmentDate,
+    description: item.notes,
     weight: item.component?.weight || 1,
   };
 };

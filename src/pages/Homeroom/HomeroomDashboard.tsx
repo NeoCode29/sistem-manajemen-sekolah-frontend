@@ -3,7 +3,6 @@ import { Users, FileText, AlertOctagon, Award, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getHomeroomByTeacher, getAcademicYears, getSemesters } from '../../api/academicService';
-import '../Academic/Academic.css';
 
 export const HomeroomDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -44,11 +43,11 @@ export const HomeroomDashboard: React.FC = () => {
   }, [user]);
 
   return (
-    <div className="academic-container">
-      <div className="page-header">
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="page-title">Dashboard Wali Kelas</h1>
-          <p className="page-subtitle">Selamat datang, {user?.name || 'Bapak/Ibu Guru'}</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard Wali Kelas</h1>
+          <p className="text-gray-500 mt-1">Selamat datang, {user?.name || 'Bapak/Ibu Guru'}</p>
         </div>
       </div>
 
@@ -58,7 +57,7 @@ export const HomeroomDashboard: React.FC = () => {
         </div>
       ) : classroom ? (
         <>
-          <div className="glass-panel mb-6 p-6 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-blue-200">
+          <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 mb-6 p-6 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-blue-200">
             <h2 className="text-xl font-bold text-gray-800 mb-2">Kelas Binaan: {classroom.name}</h2>
             <p className="text-gray-600">
               Tahun Ajaran: {classroom.academicYear} | Semester: {classroom.semester}
@@ -66,7 +65,7 @@ export const HomeroomDashboard: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="glass-panel p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
               <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
                 <Users size={24} />
               </div>
@@ -76,7 +75,7 @@ export const HomeroomDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="glass-panel p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
               <div className="p-3 bg-green-100 text-green-600 rounded-lg">
                 <FileText size={24} />
               </div>
@@ -86,7 +85,7 @@ export const HomeroomDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="glass-panel p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
               <div className="p-3 bg-yellow-100 text-yellow-600 rounded-lg">
                 <Award size={24} />
               </div>
@@ -96,7 +95,7 @@ export const HomeroomDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="glass-panel p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
               <div className="p-3 bg-red-100 text-red-600 rounded-lg">
                 <AlertOctagon size={24} />
               </div>
@@ -108,7 +107,7 @@ export const HomeroomDashboard: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="glass-panel p-6">
+            <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <BookOpen size={20} className="text-primary" />
                 Aksi Cepat
@@ -138,7 +137,7 @@ export const HomeroomDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="glass-panel p-6">
+            <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4">Aktivitas Terakhir</h3>
               <div className="space-y-4">
                 {classroom.recentActivities && classroom.recentActivities.length > 0 ? (
@@ -159,7 +158,7 @@ export const HomeroomDashboard: React.FC = () => {
           </div>
         </>
       ) : (
-        <div className="glass-panel p-8 text-center">
+        <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-8 text-center">
           <div className="text-gray-400 mb-4 flex justify-center">
             <Users size={48} />
           </div>

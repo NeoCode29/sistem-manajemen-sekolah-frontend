@@ -3,7 +3,6 @@ import { getAcademicYears, getSemesters, getGrades, getClassrooms, type Academic
 import { getStudents } from '../../api/studentService';
 import { getStudentAttendances, upsertStudentAttendanceBatch, type StudentAttendance, type StudentAttendanceBatchItem } from '../../api/attendanceService';
 import { Save, Calendar } from 'lucide-react';
-import '../Academic/Academic.css';
 
 interface AttendanceRow {
   studentId: string;
@@ -177,18 +176,18 @@ export const StudentAttendancePage: React.FC = () => {
   };
 
   return (
-    <div className="academic-container">
-      <div className="page-header">
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="page-title">Absensi Siswa</h1>
-          <p className="page-subtitle">Kelola kehadiran harian siswa per kelas</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Absensi Siswa</h1>
+          <p className="text-gray-500 mt-1">Kelola kehadiran harian siswa per kelas</p>
         </div>
       </div>
 
       {error && <div className="error-message mb-4 p-3 bg-red-100 text-red-700 rounded-md border border-red-200">{error}</div>}
       {success && <div className="success-message mb-4 p-3 bg-green-100 text-green-700 rounded-md border border-green-200">{success}</div>}
 
-      <div className="glass-panel p-5 mb-6">
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-5 mb-6">
         <div className="flex items-center gap-2 mb-4 text-blue-600 border-b pb-2">
           <Calendar size={20} />
           <h2 className="text-lg font-semibold">Filter Absensi</h2>
@@ -197,7 +196,7 @@ export const StudentAttendancePage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="form-group">
             <label className="text-sm font-medium text-gray-700">Tahun Ajaran</label>
-            <select className="input-field mt-1 pr-10 truncate" value={selectedAcademicYearId} onChange={(e) => setSelectedAcademicYearId(e.target.value)}>
+            <select className="input-std mt-1 pr-10 truncate" value={selectedAcademicYearId} onChange={(e) => setSelectedAcademicYearId(e.target.value)}>
               <option value="">Pilih Tahun Ajaran</option>
               {academicYears.map(ay => (
                 <option key={ay.id} value={ay.id}>{ay.name}</option>
@@ -207,7 +206,7 @@ export const StudentAttendancePage: React.FC = () => {
           
           <div className="form-group">
             <label className="text-sm font-medium text-gray-700">Semester</label>
-            <select className="input-field mt-1 pr-10 truncate" value={selectedSemesterId} onChange={(e) => setSelectedSemesterId(e.target.value)}>
+            <select className="input-std mt-1 pr-10 truncate" value={selectedSemesterId} onChange={(e) => setSelectedSemesterId(e.target.value)}>
               <option value="">Pilih Semester</option>
               {semesters.map(s => (
                 <option key={s.id} value={s.id}>{s.name}</option>
@@ -217,7 +216,7 @@ export const StudentAttendancePage: React.FC = () => {
           
           <div className="form-group">
             <label className="text-sm font-medium text-gray-700">Tingkat</label>
-            <select className="input-field mt-1 pr-8" value={selectedGradeId} onChange={(e) => setSelectedGradeId(e.target.value)}>
+            <select className="input-std mt-1 pr-8" value={selectedGradeId} onChange={(e) => setSelectedGradeId(e.target.value)}>
               <option value="">Pilih Tingkat</option>
               {grades.map(g => (
                 <option key={g.id} value={g.id}>{g.name}</option>
@@ -227,7 +226,7 @@ export const StudentAttendancePage: React.FC = () => {
           
           <div className="form-group">
             <label className="text-sm font-medium text-gray-700">Kelas / Rombel</label>
-            <select className="input-field mt-1 pr-8" value={selectedClassroomId} onChange={(e) => setSelectedClassroomId(e.target.value)} disabled={!selectedGradeId}>
+            <select className="input-std mt-1 pr-8" value={selectedClassroomId} onChange={(e) => setSelectedClassroomId(e.target.value)} disabled={!selectedGradeId}>
               <option value="">Pilih Kelas</option>
               {classrooms.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -237,16 +236,16 @@ export const StudentAttendancePage: React.FC = () => {
           
           <div className="form-group">
             <label className="text-sm font-medium text-gray-700">Tanggal</label>
-            <input type="date" className="input-field mt-1" value={date} onChange={(e) => setDate(e.target.value)} />
+            <input type="date" className="input-std mt-1" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
         </div>
       </div>
 
-      <div className="glass-panel">
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6">
         <div className="p-4 border-b flex justify-between items-center bg-gray-50/50">
           <h2 className="text-lg font-semibold text-gray-800">Daftar Kehadiran</h2>
           <button 
-            className="btn-primary flex items-center gap-2"
+            className="btn-std-primary flex items-center gap-2"
             onClick={handleSave}
             disabled={saving || rows.length === 0}
           >
@@ -263,7 +262,7 @@ export const StudentAttendancePage: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="data-table">
+            <table className="w-full text-left text-sm whitespace-nowrap">
               <thead>
                 <tr>
                   <th className="w-12 text-center">No</th>
@@ -301,7 +300,7 @@ export const StudentAttendancePage: React.FC = () => {
                     <td>
                       <input 
                         type="text" 
-                        className="input-field py-1.5 px-2"
+                        className="input-std py-1.5 px-2"
                         value={row.notes}
                         onChange={(e) => handleRowChange(index, 'notes', e.target.value)}
                         placeholder="Keterangan..."

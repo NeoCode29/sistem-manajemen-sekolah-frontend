@@ -5,7 +5,7 @@ import { Pagination } from '../../components/Common/Pagination';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { usePromotions } from '../../hooks/usePromotions';
 import { useDialog } from '../../contexts/DialogContext';
-import './Academic.css';
+import { Badge } from '../../components/ui/Badge';
 
 export const Promotions: React.FC = () => {
   const navigate = useNavigate();
@@ -38,11 +38,11 @@ export const Promotions: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'PROMOTED': return <span className="status-badge active">Naik Kelas</span>;
-      case 'RETAINED': return <span className="status-badge inactive">Tinggal Kelas</span>;
-      case 'CANCELLED': return <span className="status-badge inactive" style={{ background: '#fef2f2', color: '#991b1b' }}>Dibatalkan</span>;
-      case 'DROPPED_OUT': return <span className="status-badge inactive" style={{ background: '#fef2f2', color: '#991b1b' }}>Keluar / DO</span>;
-      case 'GRADUATED': return <span className="status-badge active" style={{ background: '#eff6ff', color: '#1e40af' }}>Lulus</span>;
+      case 'PROMOTED': return <Badge variant="success">Naik Kelas</Badge>;
+      case 'RETAINED': return <Badge variant="danger">Tinggal Kelas</Badge>;
+      case 'CANCELLED': return <Badge variant="warning">Dibatalkan</Badge>;
+      case 'DROPPED_OUT': return <Badge variant="danger">Keluar / DO</Badge>;
+      case 'GRADUATED': return <Badge variant="info">Lulus</Badge>;
       default: return <span>{status}</span>;
     }
   };
@@ -62,24 +62,23 @@ export const Promotions: React.FC = () => {
     { key: 'actions', header: 'Aksi', render: (row) => (
       <button
         onClick={() => handleCancelPromotion(row.id)}
-        className="action-btn"
-        style={{ color: '#ea580c', border: '1px solid transparent' }}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
         title="Batalkan Kenaikan Kelas"
       >
-        <Undo2 size={16} style={{ marginRight: '0.25rem' }} /> Batal
+        <Undo2 size={16} /> Batal
       </button>
     )}
   ];
 
   return (
-    <div className="academic-container">
-      <div className="page-header">
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="page-title">Kenaikan Kelas</h1>
-          <p className="page-subtitle">Riwayat dan pemrosesan kenaikan kelas siswa</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Kenaikan Kelas</h1>
+          <p className="text-gray-500 mt-1">Riwayat dan pemrosesan kenaikan kelas siswa</p>
         </div>
         <div className="header-actions">
-          <button className="btn-primary" onClick={() => navigate('/academic/promotions/batch')}>
+          <button className="btn-std-primary" onClick={() => navigate('/academic/promotions/batch')}>
             <TrendingUp size={18} />
             <span>Proses Kenaikan Kelas</span>
           </button>
@@ -87,14 +86,15 @@ export const Promotions: React.FC = () => {
       </div>
 
       {error && (
-        <div className="alert alert-error mb-4 flex items-center gap-2">
+        <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
         </div>
       )}
 
-      <div className="glass-panel">
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 flex flex-col overflow-hidden">
         <DataTable 
+          containerClassName="w-full overflow-x-auto"
           columns={columns} 
           data={promotionsHistory} 
           loading={loading}
@@ -102,16 +102,18 @@ export const Promotions: React.FC = () => {
         />
         
         {!loading && totalPages > 1 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={(limit) => {
-              setItemsPerPage(limit);
-              setCurrentPage(1);
-            }}
-          />
+          <div className="border-t border-gray-100 bg-gray-50/50">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(limit) => {
+                setItemsPerPage(limit);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
         )}
       </div>
     </div>

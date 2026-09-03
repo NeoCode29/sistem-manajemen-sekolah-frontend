@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getAttendanceSetting, updateAttendanceSetting } from '../../api/attendanceService';
 import { Clock, Save, MapPin } from 'lucide-react';
-import '../Academic/Academic.css';
 
 export const AttendanceSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -77,18 +76,18 @@ export const AttendanceSettings: React.FC = () => {
   };
 
   return (
-    <div className="academic-container">
-      <div className="page-header">
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="page-title">Pengaturan Jam Absensi</h1>
-          <p className="page-subtitle">Atur batas waktu check-in, check-out, dan keterlambatan</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Pengaturan Jam Absensi</h1>
+          <p className="text-gray-500 mt-1">Atur batas waktu check-in, check-out, dan keterlambatan</p>
         </div>
       </div>
 
       {error && <div className="error-message mb-4 p-3 bg-red-100 text-red-700 rounded-md border border-red-200">{error}</div>}
       {success && <div className="success-message mb-4 p-3 bg-green-100 text-green-700 rounded-md border border-green-200">{success}</div>}
 
-      <div className="glass-panel p-5">
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-5">
         <div className="flex items-center gap-2 mb-4 text-blue-600 border-b pb-2">
           <Clock size={20} />
           <h2 className="text-lg font-semibold">Konfigurasi Waktu (Format 24-Jam HH:mm)</h2>
@@ -113,7 +112,7 @@ export const AttendanceSettings: React.FC = () => {
                     <label className="text-sm font-medium text-gray-700">Mulai Check-in Masuk</label>
                     <input
                       type="time"
-                      className="input-field mt-1"
+                      className="input-std mt-1"
                       value={minCheckinTime}
                       onChange={(e) => setMinCheckinTime(e.target.value)}
                       required
@@ -125,7 +124,7 @@ export const AttendanceSettings: React.FC = () => {
                     <label className="text-sm font-medium text-gray-700">Batas Check-in Masuk</label>
                     <input
                       type="time"
-                      className="input-field mt-1"
+                      className="input-std mt-1"
                       value={maxCheckinTime}
                       onChange={(e) => setMaxCheckinTime(e.target.value)}
                       required
@@ -137,7 +136,7 @@ export const AttendanceSettings: React.FC = () => {
                     <label className="text-sm font-medium text-red-600">Batas Terlambat (Late Threshold) *</label>
                     <input
                       type="time"
-                      className="input-field mt-1"
+                      className="input-std mt-1"
                       value={lateThreshold}
                       onChange={(e) => setLateThreshold(e.target.value)}
                       required
@@ -160,7 +159,7 @@ export const AttendanceSettings: React.FC = () => {
                     <label className="text-sm font-medium text-gray-700">Mulai Check-out Pulang</label>
                     <input
                       type="time"
-                      className="input-field mt-1"
+                      className="input-std mt-1"
                       value={minCheckoutTime}
                       onChange={(e) => setMinCheckoutTime(e.target.value)}
                       required
@@ -172,7 +171,7 @@ export const AttendanceSettings: React.FC = () => {
                     <label className="text-sm font-medium text-gray-700">Batas Check-out Pulang</label>
                     <input
                       type="time"
-                      className="input-field mt-1"
+                      className="input-std mt-1"
                       value={maxCheckoutTime}
                       onChange={(e) => setMaxCheckoutTime(e.target.value)}
                       required
@@ -198,7 +197,7 @@ export const AttendanceSettings: React.FC = () => {
                     <input
                       type="number"
                       step="any"
-                      className="input-field mt-1"
+                      className="input-std mt-1"
                       value={latitude}
                       onChange={(e) => setLatitude(e.target.value === '' ? '' : Number(e.target.value))}
                       placeholder="-6.200000"
@@ -209,7 +208,7 @@ export const AttendanceSettings: React.FC = () => {
                     <input
                       type="number"
                       step="any"
-                      className="input-field mt-1"
+                      className="input-std mt-1"
                       value={longitude}
                       onChange={(e) => setLongitude(e.target.value === '' ? '' : Number(e.target.value))}
                       placeholder="106.816666"
@@ -219,7 +218,7 @@ export const AttendanceSettings: React.FC = () => {
                     <label className="text-sm font-medium text-gray-700">Radius (Meter)</label>
                     <input
                       type="number"
-                      className="input-field mt-1"
+                      className="input-std mt-1"
                       value={radiusMeter}
                       onChange={(e) => setRadiusMeter(e.target.value === '' ? '' : Number(e.target.value))}
                       placeholder="100"
@@ -245,7 +244,7 @@ export const AttendanceSettings: React.FC = () => {
             <div className="mt-6 pt-4 border-t flex justify-end">
               <button
                 type="submit"
-                className="btn-primary flex items-center gap-2"
+                className="btn-std-primary flex items-center gap-2"
                 disabled={saving}
               >
                 <Save size={18} />

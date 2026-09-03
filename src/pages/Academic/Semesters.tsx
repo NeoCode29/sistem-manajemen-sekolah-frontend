@@ -6,7 +6,7 @@ import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useSemesters } from '../../hooks/useSemesters';
 import type { Semester } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
-import './Academic.css';
+import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 
 export const Semesters: React.FC = () => {
   const {
@@ -96,22 +96,21 @@ export const Semesters: React.FC = () => {
   const columns: Column<Semester>[] = [
     { key: 'name', header: 'Nama Semester', render: (row) => <span className="font-semibold">{row.name}</span> },
     { key: 'academicYear', header: 'Tahun Ajaran', render: (row) => (
-      <div className="capacity-info">
-        <Library size={14} />
+      <span className="text-gray-700">
         {row.academicYear?.name || '-'}
-      </div>
+      </span>
     )},
     { key: 'status', header: 'Status', render: (row) => (
-      <span className={`status-badge ${row.isActive ? 'active' : 'inactive'}`}>
+      <Badge variant={row.isActive ? 'success' : 'secondary'}>
         {row.isActive ? 'Aktif' : 'Tidak Aktif'}
-      </span>
+      </Badge>
     )},
     { key: 'actions', header: 'Aksi', render: (row) => {
       const activeYearId = academicYears.find(y => y.isActive)?.id;
       const isParentYearActive = row.academicYearId === activeYearId || row.academicYear?.isActive;
 
       return (
-      <div className="action-buttons-group">
+      <div className="flex items-center gap-2">
         {isParentYearActive && (
           <button 
             className={`action-btn ${row.isActive ? 'text-red-400' : 'text-green-400'}`}
@@ -131,25 +130,21 @@ export const Semesters: React.FC = () => {
   ];
 
   return (
-    <div className="academic-container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Semester</h1>
-          <p className="page-subtitle">Kelola data Semester dan Tahun Ajaran</p>
-        </div>
-        <button className="btn-primary" onClick={openAddModal}>
-          <Plus size={18} /> Tambah Data
-        </button>
-      </div>
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <PageHeader
+        title="Semester"
+        subtitle="Kelola data Semester dan Tahun Ajaran"
+        action={<button onClick={openAddModal} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+      />
 
       {error && (
-        <div className="alert alert-error mb-4 flex items-center gap-2">
+        <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-3 mb-4 flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
         </div>
       )}
 
-      <div className="glass-panel">
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6">
         <DataTable 
           columns={columns} 
           data={semesters} 
@@ -158,37 +153,30 @@ export const Semesters: React.FC = () => {
         />
       </div>
 
-      {showModal && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4">
-            <div className="modal-header-v4">
-              <h2>{isEditing ? 'Edit Semester' : 'Tambah Semester'}</h2>
-              <button type="button" className="btn-close" onClick={handleCloseModal}>&times;</button>
-            </div>
-            <form onSubmit={handleSubmit} className="modal-form-v4">
-              <div className="modal-body-v4 form-grid">
-              <div className="form-group">
-                <label>Tahun Ajaran Induk <span className="text-red-500">*</span></label>
-                <select className="input-field" value={academicYearId} onChange={(e) => setAcademicYearId(e.target.value)} required>
-                  {academicYears.map(year => (
-                    <option key={year.id} value={year.id}>{year.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Nama <span className="text-red-500">*</span></label>
-                <input type="text" className="input-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Semester Ganjil 2026/2027" required />
-              </div>
-              </div>
-              <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Batal</button>
-                <button type="submit" className="btn-primary">Simpan</button>
-              </div>
-            </form>
+      <Modal 
+        open={showModal} 
+        onClose={handleCloseModal} 
+        title={isEditing ? 'Edit Semester' : 'Tambah Semester'}
+        footer={
+          <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+            <button type="button" className="btn-std-secondary" onClick={handleCloseModal}>Batal</button>
+            <button type="button" className="btn-std-primary" onClick={handleSubmit}>Simpan</button>
           </div>
-        </div>,
-        document.body
-      )}
+        }
+      >
+        <form id="semester-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+          <FormField label="Tahun Ajaran Induk" required>
+            <select className="input-std" value={academicYearId} onChange={(e) => setAcademicYearId(e.target.value)} required>
+              {academicYears.map(year => (
+                <option key={year.id} value={year.id}>{year.name}</option>
+              ))}
+            </select>
+          </FormField>
+          <FormField label="Nama Semester" required>
+            <input type="text" className="input-std" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Semester Ganjil 2026/2027" required />
+          </FormField>
+        </form>
+      </Modal>
     </div>
   );
 };

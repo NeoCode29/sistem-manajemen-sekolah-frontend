@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Award, ShieldAlert, Calendar } from 'lucide-react';
+import { AlertTriangle, Award, ShieldAlert, Calendar, Star, Info } from 'lucide-react';
 import { getMyDiscipline, type DisciplineData } from '../../api/studentPortalService';
 
 export const StudentDiscipline: React.FC = () => {
@@ -22,84 +22,106 @@ export const StudentDiscipline: React.FC = () => {
   }, []);
 
   if (loading) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Memuat data kedisiplinan...</div>;
+    return (
+      <div className="flex items-center justify-center p-12 text-gray-500">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <span className="ml-3 font-medium">Memuat data kedisiplinan...</span>
+      </div>
+    );
   }
 
-  return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <ShieldAlert size={24} color="#ef4444" /> Kedisiplinan & Prestasi
-      </h2>
+  const totalAchievementPoints = data?.achievements?.reduce((sum, item) => sum + (item.points || 0), 0) || 0;
+  const totalViolationPoints = data?.violations?.reduce((sum, item) => sum + (item.points || 0), 0) || 0;
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+  return (
+    <div className="max-w-4xl mx-auto page-enter">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center shadow-sm border border-orange-100">
+          <ShieldAlert size={24} className="text-orange-600" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-extrabold text-gray-900 leading-tight">Kedisiplinan & Prestasi</h2>
+          <p className="text-sm text-gray-500 font-medium">Pantau catatan prestasi yang membanggakan dan rekam jejak kedisiplinan.</p>
+        </div>
+      </div>
+
+      {/* Ringkasan Poin */}
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg shadow-emerald-500/20 relative overflow-hidden">
+          <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl transform translate-x-1/2 -translate-y-1/2"></div>
+          <div className="flex items-center gap-2 mb-2">
+            <Award size={20} className="text-emerald-100" />
+            <span className="font-semibold text-emerald-100 uppercase tracking-wider text-xs">Total Poin Prestasi</span>
+          </div>
+          <div className="text-4xl font-black">{totalAchievementPoints}</div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl p-6 text-white shadow-lg shadow-red-500/20 relative overflow-hidden">
+          <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl transform translate-x-1/2 -translate-y-1/2"></div>
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle size={20} className="text-red-100" />
+            <span className="font-semibold text-red-100 uppercase tracking-wider text-xs">Total Poin Penalti</span>
+          </div>
+          <div className="text-4xl font-black">{totalViolationPoints}</div>
+        </div>
+      </div>
+
+      <div className="flex gap-2 mb-6 bg-gray-100 p-1.5 rounded-xl w-max">
         <button
           onClick={() => setActiveTab('achievements')}
-          style={{ 
-            padding: '0.75rem 1.5rem', 
-            borderRadius: '0.5rem', 
-            fontWeight: 600, 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.5rem',
-            border: 'none',
-            cursor: 'pointer',
-            backgroundColor: activeTab === 'achievements' ? '#3b82f6' : '#ffffff',
-            color: activeTab === 'achievements' ? '#ffffff' : '#6b7280',
-            boxShadow: activeTab === 'achievements' ? '0 4px 6px -1px rgba(59,130,246,0.5)' : '0 1px 2px 0 rgba(0,0,0,0.05)',
-            borderTop: activeTab !== 'achievements' ? '1px solid #e5e7eb' : 'none',
-            borderLeft: activeTab !== 'achievements' ? '1px solid #e5e7eb' : 'none',
-            borderRight: activeTab !== 'achievements' ? '1px solid #e5e7eb' : 'none',
-            borderBottom: activeTab !== 'achievements' ? '1px solid #e5e7eb' : 'none',
-          }}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold transition-all ${
+            activeTab === 'achievements' 
+              ? 'bg-white text-emerald-600 shadow-sm border border-gray-200' 
+              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+          }`}
         >
-          <Award size={18} /> Prestasi
+          <Award size={18} /> Daftar Prestasi
         </button>
         <button
           onClick={() => setActiveTab('violations')}
-          style={{ 
-            padding: '0.75rem 1.5rem', 
-            borderRadius: '0.5rem', 
-            fontWeight: 600, 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.5rem',
-            border: 'none',
-            cursor: 'pointer',
-            backgroundColor: activeTab === 'violations' ? '#ef4444' : '#ffffff',
-            color: activeTab === 'violations' ? '#ffffff' : '#6b7280',
-            boxShadow: activeTab === 'violations' ? '0 4px 6px -1px rgba(239,68,68,0.5)' : '0 1px 2px 0 rgba(0,0,0,0.05)',
-            borderTop: activeTab !== 'violations' ? '1px solid #e5e7eb' : 'none',
-            borderLeft: activeTab !== 'violations' ? '1px solid #e5e7eb' : 'none',
-            borderRight: activeTab !== 'violations' ? '1px solid #e5e7eb' : 'none',
-            borderBottom: activeTab !== 'violations' ? '1px solid #e5e7eb' : 'none',
-          }}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold transition-all ${
+            activeTab === 'violations' 
+              ? 'bg-white text-red-600 shadow-sm border border-gray-200' 
+              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+          }`}
         >
-          <AlertTriangle size={18} /> Pelanggaran
+          <AlertTriangle size={18} /> Daftar Pelanggaran
         </button>
       </div>
 
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '1rem', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+      <div className="bg-white/70 backdrop-blur-md rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {activeTab === 'achievements' && (
-          <div>
+          <div className="animate-in fade-in duration-300">
             {data?.achievements && data.achievements.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {data.achievements.map((item, i) => (
-                  <div key={item.id} style={{ padding: '1.5rem', borderBottom: i < data.achievements.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div className="divide-y divide-gray-100">
+                {data.achievements.map((item) => (
+                  <div key={item.id} className="p-6 hover:bg-emerald-50/30 transition-colors">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                       <div>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', margin: '0 0 0.5rem 0' }}>{item.title}</h3>
-                        <div style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-                          <span style={{ fontWeight: 600, color: '#3b82f6' }}>{item.category}</span> | {item.level} {item.rank ? `| Peringkat ${item.rank}` : ''}
+                        <h3 className="text-lg font-bold text-gray-900 mb-1.5">{item.title}</h3>
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 font-medium mb-3">
+                          <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">{item.category}</span>
+                          <span className="text-gray-300">|</span>
+                          <span>{item.level}</span>
+                          {item.rank && (
+                            <>
+                              <span className="text-gray-300">|</span>
+                              <span className="flex items-center gap-1"><Star size={14} className="text-amber-500" /> Peringkat {item.rank}</span>
+                            </>
+                          )}
                         </div>
                         {item.description && (
-                          <p style={{ color: '#4b5563', fontSize: '0.875rem', margin: 0 }}>{item.description}</p>
+                          <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-start gap-2">
+                            <Info size={16} className="text-indigo-400 flex-shrink-0 mt-0.5" />
+                            {item.description}
+                          </p>
                         )}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#6b7280', fontSize: '0.875rem' }}>
-                          <Calendar size={14} /> {new Date(item.eventDate).toLocaleDateString('id-ID')}
+                      <div className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-2 border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
+                        <div className="flex items-center gap-1.5 text-gray-500 text-sm font-medium">
+                          <Calendar size={16} /> {new Date(item.eventDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </div>
-                        <div style={{ padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 600 }}>
+                        <div className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-bold border border-emerald-200 shadow-sm ml-auto sm:ml-0">
                           +{item.points} Poin
                         </div>
                       </div>
@@ -108,35 +130,47 @@ export const StudentDiscipline: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
-                Belum ada data prestasi.
+              <div className="p-12 text-center text-gray-500">
+                <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Award size={28} className="text-emerald-400" />
+                </div>
+                <p className="font-medium">Belum ada catatan prestasi yang diraih.</p>
               </div>
             )}
           </div>
         )}
 
         {activeTab === 'violations' && (
-          <div>
+          <div className="animate-in fade-in duration-300">
             {data?.violations && data.violations.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {data.violations.map((item, i) => (
-                  <div key={item.id} style={{ padding: '1.5rem', borderBottom: i < data.violations.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div className="divide-y divide-gray-100">
+                {data.violations.map((item) => (
+                  <div key={item.id} className="p-6 hover:bg-red-50/30 transition-colors">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                       <div>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', margin: '0 0 0.5rem 0' }}>{item.title || 'Pelanggaran Kedisiplinan'}</h3>
-                        <div style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-                          <span style={{ fontWeight: 600, color: item.category === 'BERAT' ? '#ef4444' : item.category === 'SEDANG' ? '#f59e0b' : '#fcd34d' }}>{item.category || '-'}</span>
+                        <h3 className="text-lg font-bold text-gray-900 mb-1.5">{item.title || 'Pelanggaran Kedisiplinan'}</h3>
+                        <div className="flex items-center gap-2 text-sm text-gray-500 font-medium mb-3">
+                          <span className={`px-2.5 py-0.5 rounded-md border font-bold ${
+                            item.category === 'BERAT' ? 'bg-red-50 text-red-700 border-red-200' : 
+                            item.category === 'SEDANG' ? 'bg-orange-50 text-orange-700 border-orange-200' : 
+                            'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {item.category || 'RINGAN'}
+                          </span>
                         </div>
                         {item.actionTaken && (
-                          <p style={{ color: '#4b5563', fontSize: '0.875rem', margin: '0 0 0.25rem 0' }}><strong>Tindakan:</strong> {item.actionTaken}</p>
+                          <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <strong className="text-gray-900 block mb-1">Tindakan / Sanksi:</strong> 
+                            {item.actionTaken}
+                          </p>
                         )}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#6b7280', fontSize: '0.875rem' }}>
-                          <Calendar size={14} /> {new Date(item.violationDate).toLocaleDateString('id-ID')}
+                      <div className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-2 border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
+                        <div className="flex items-center gap-1.5 text-gray-500 text-sm font-medium">
+                          <Calendar size={16} /> {new Date(item.violationDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </div>
-                        <div style={{ padding: '0.25rem 0.5rem', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 600 }}>
-                          +{item.points} Poin Pelanggaran
+                        <div className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-bold border border-red-200 shadow-sm ml-auto sm:ml-0">
+                          +{item.points} Poin Penalti
                         </div>
                       </div>
                     </div>
@@ -144,8 +178,12 @@ export const StudentDiscipline: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
-                Belum ada catatan pelanggaran.
+              <div className="p-12 text-center text-gray-500">
+                <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ShieldAlert size={28} className="text-emerald-400" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Bagus Sekali!</h3>
+                <p className="font-medium">Tidak ada catatan pelanggaran kedisiplinan.</p>
               </div>
             )}
           </div>

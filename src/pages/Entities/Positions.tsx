@@ -1,302 +1,127 @@
-import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { getPositions, createPosition, updatePosition, deletePosition, type Position } from '../../api/employeeService';
-import { Plus, CheckCircle, XCircle, Trash2, Edit, Search } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Search } from 'lucide-react';
+import { usePositions } from '../../hooks/usePositions';
 import { useDialog } from '../../contexts/DialogContext';
-import '../Academic/Academic.css';
+import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import { DataTable, type Column } from '../../components/Common/DataTable';
+import { ActionButtons } from '../../components/Common/ActionButtons';
+import type { Position } from '../../api/employeeService';
+
+interface PositionForm {
+  code: string;
+  name: string;
+  description: string;
+  isActive: boolean;
+}
+
+const DEFAULT_FORM: PositionForm = { code: '', name: '', description: '', isActive: true };
 
 export const Positions: React.FC = () => {
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editId, setEditId] = useState('');
-  
-  // Form State
-  const [code, setCode] = useState('');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [isActive, setIsActive] = useState(true);
-
-  // Status State
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { items, loading, create, update, remove } = usePositions();
   const { showConfirm, showAlert } = useDialog();
 
-  // Search & Filter State
+  const [modal, setModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
+  const [form, setForm] = useState<PositionForm>(DEFAULT_FORM);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
 
-  const fetchPositions = async () => {
-    try {
-      setLoading(true);
-      const data = await getPositions();
-      setPositions(data);
-      setError('');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat data jabatan');
-    } finally {
-      setLoading(false);
-    }
+  const setField = (field: keyof PositionForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
+    setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  useEffect(() => {
-    fetchPositions();
-  }, []);
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setIsEditing(false);
-    setEditId('');
-    setCode('');
-    setName('');
-    setDescription('');
-    setIsActive(true);
-    setError('');
+  const openAdd = () => { setForm(DEFAULT_FORM); setModal({ open: true, editId: null }); };
+  const openEdit = (item: Position) => {
+    setForm({ code: item.code, name: item.name, description: item.description || '', isActive: item.isActive });
+    setModal({ open: true, editId: item.id });
   };
+  const closeModal = () => setModal({ open: false, editId: null });
 
-  const handleEdit = (pos: Position) => {
-    setIsEditing(true);
-    setEditId(pos.id);
-    setCode(pos.code);
-    setName(pos.name);
-    setDescription(pos.description || '');
-    setIsActive(pos.isActive);
-    setShowModal(true);
-  };
-
-  const handleToggle = async (pos: Position) => {
-    try {
-      await updatePosition(pos.id, { isActive: !pos.isActive });
-      setSuccess(`Status jabatan ${pos.name} berhasil diubah!`);
-      fetchPositions();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal merubah status jabatan');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    showConfirm('Apakah Anda yakin ingin menghapus jabatan ini?', async () => {
-      try {
-        await deletePosition(id);
-        setSuccess('Jabatan berhasil dihapus!');
-        fetchPositions();
-        setTimeout(() => setSuccess(''), 3000);
-      } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus jabatan', 'Gagal');
-      }
+  const handleDelete = (id: string) => {
+    showConfirm('Hapus data ini?', async () => {
+      try { await remove(id); } catch { showAlert('Gagal menghapus data', 'Error'); }
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload: Partial<Position> = {
-        code,
-        name,
-        description,
-        isActive,
-      };
-
-      if (isEditing) {
-        await updatePosition(editId, payload);
-        setSuccess('Data jabatan berhasil diperbarui!');
-      } else {
-        await createPosition(payload);
-        setSuccess('Jabatan baru berhasil ditambahkan!');
-      }
-      handleCloseModal();
-      fetchPositions();
-      setTimeout(() => setSuccess(''), 3000);
+      if (modal.editId) { await update(modal.editId, form); }
+      else { await create(form); }
+      closeModal();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
+      showAlert(err.message || 'Gagal menyimpan data', 'Error');
     }
   };
 
-  return (
-    <div className="academic-container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Jabatan / Posisi</h1>
-          <p className="page-subtitle">Manajemen daftar jabatan pegawai</p>
-        </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={18} /> Tambah Data
+  const handleToggleActive = async (item: Position) => {
+    try {
+      await update(item.id, { isActive: !item.isActive });
+    } catch (err: any) {
+      showAlert(err.message || 'Gagal merubah status', 'Error');
+    }
+  };
+
+  const columns: Column<Position>[] = [
+    { key: 'code', header: 'Kode', render: row => <span className="font-semibold text-gray-900">{row.code}</span> },
+    { key: 'name', header: 'Nama' },
+    { key: 'description', header: 'Deskripsi', render: row => row.description || '-' },
+    { key: 'isActive', header: 'Status', render: row => (
+        <button onClick={() => handleToggleActive(row)}>
+          <Badge variant={row.isActive ? 'success' : 'danger'}>{row.isActive ? 'Aktif' : 'Nonaktif'}</Badge>
         </button>
-      </div>
+      )
+    },
+    { key: 'actions', header: 'Aksi', render: row => <ActionButtons onEdit={() => openEdit(row)} onDelete={() => handleDelete(row.id)} /> },
+  ];
 
-      {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
+  return (
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <PageHeader
+        title="Data Jabatan"
+        subtitle="Manajemen master data jabatan untuk pegawai"
+        action={<button onClick={openAdd} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+      />
 
-      {/* Modern Filter Section */}
-      <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', borderRadius: '16px' }}>
-        <div className="flex items-center gap-2 mb-4">
-          <Search size={18} style={{ color: '#4f46e5' }} />
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1f2937' }}>Pencarian Data Jabatan</h2>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="form-group" style={{ gap: '0.35rem' }}>
-            <label style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>Cari Kode atau Nama</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="text" 
-                className="input-field" 
-                style={{ paddingLeft: '2.5rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }} 
-                placeholder="Ketik kata kunci pencarian..." 
-                value={searchTerm} 
-                onChange={(e) => setSearchTerm(e.target.value)} 
-              />
-              <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-            </div>
-          </div>
-          
-          <div className="form-group" style={{ gap: '0.35rem' }}>
-            <label style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>Filter Status</label>
-            <select 
-              className="input-field" 
-              style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}
-              value={filterStatus} 
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="">Semua Status</option>
-              <option value="ACTIVE">Aktif</option>
-              <option value="INACTIVE">Tidak Aktif</option>
-            </select>
-          </div>
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex flex-col md:flex-row gap-4">
+        <div className="flex-1 relative group">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+          <input type="text" className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" placeholder="Cari Kode atau Nama Jabatan..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
       </div>
 
-      <div className="glass-panel" style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.8)' }}>
-        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.4)' }}>
-          <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Daftar Jabatan Pegawai</h3>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0.2rem 0 0 0' }}>Seluruh jabatan yang terdaftar dalam sistem.</p>
-          </div>
-        </div>
-        
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ background: 'rgba(248, 250, 252, 0.7)', borderBottom: '2px solid #e2e8f0' }}>
-                <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kode</th>
-                <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nama Jabatan</th>
-                <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deskripsi</th>
-                <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Status</th>
-                <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-4 text-gray-500">Memuat data...</td>
-                </tr>
-              ) : positions.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-4 text-gray-500">Belum ada data jabatan.</td>
-                </tr>
-              ) : (
-                positions
-                  .filter(pos => 
-                    (filterStatus === '' || (filterStatus === 'ACTIVE' && pos.isActive) || (filterStatus === 'INACTIVE' && !pos.isActive)) &&
-                    (pos.code.toLowerCase().includes(searchTerm.toLowerCase()) || pos.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                  )
-                  .map((pos) => (
-                  <tr key={pos.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                    <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
-                      <span style={{ fontWeight: 700, color: '#4f46e5', fontSize: '0.9rem', backgroundColor: '#e0e7ff', padding: '0.25rem 0.6rem', borderRadius: '6px' }}>{pos.code}</span>
-                    </td>
-                    <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle', fontWeight: 700, color: '#1e293b' }}>
-                      {pos.name}
-                    </td>
-                    <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle', color: '#64748b', fontSize: '0.9rem' }}>
-                      {pos.description || '-'}
-                    </td>
-                    <td style={{ padding: '1.25rem 2rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                      <span style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: pos.isActive ? '#ecfdf5' : '#fef2f2', color: pos.isActive ? '#059669' : '#dc2626', border: `1px solid ${pos.isActive ? '#a7f3d0' : '#fecaca'}`, display: 'inline-block' }}>
-                        {pos.isActive ? 'Aktif' : 'Tidak Aktif'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '1.25rem 2rem', textAlign: 'right', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', alignItems: 'center' }}>
-                        <button 
-                          onClick={() => handleToggle(pos)}
-                          style={{ padding: '0.5rem', color: pos.isActive ? '#ef4444' : '#10b981', backgroundColor: 'transparent', borderRadius: '8px', border: '1px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }} 
-                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = pos.isActive ? '#fef2f2' : '#ecfdf5'; }} 
-                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                          title={pos.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                        >
-                          {pos.isActive ? <XCircle size={16} /> : <CheckCircle size={16} />}
-                        </button>
-                        <button 
-                          onClick={() => handleEdit(pos)}
-                          style={{ padding: '0.5rem', color: '#64748b', backgroundColor: 'transparent', borderRadius: '8px', border: '1px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }} 
-                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.color = '#4f46e5'; }} 
-                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
-                          title="Edit"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(pos.id)}
-                          style={{ padding: '0.5rem', color: '#64748b', backgroundColor: 'transparent', borderRadius: '8px', border: '1px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }} 
-                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.color = '#ef4444'; }} 
-                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
-                          title="Hapus"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="bg-white/70 backdrop-blur-sm border border-gray-100 rounded-2xl shadow-sm overflow-hidden mt-6">
+        <DataTable columns={columns} data={items.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()) || i.code.toLowerCase().includes(searchTerm.toLowerCase()))} loading={loading} emptyMessage="Belum ada data jabatan." />
       </div>
 
-      {showModal && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4">
-            <div className="modal-header-v4">
-              <h2>{isEditing ? 'Edit Jabatan' : 'Tambah Jabatan'}</h2>
-              <button type="button" className="btn-close" onClick={handleCloseModal}>&times;</button>
-            </div>
-            <form onSubmit={handleSubmit} className="modal-form-v4">
-              <div className="modal-body-v4 form-grid">
-                {error && <div className="alert alert-error" style={{ gridColumn: '1 / -1' }}>{error}</div>}
-                
-                <div className="form-group">
-                  <label>Kode Jabatan <span className="text-red-500">*</span></label>
-                  <input type="text" className="input-field" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: KEPSEK, GURU" required />
-                </div>
-                <div className="form-group">
-                  <label>Nama Jabatan <span className="text-red-500">*</span></label>
-                  <input type="text" className="input-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Kepala Sekolah" required />
-                </div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label>Deskripsi Tugas</label>
-                  <input type="text" className="input-field" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Opsional" />
-                </div>
-                <div className="form-group checkbox-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-                    Jabatan Aktif
-                  </label>
-                </div>
-              </div>
-              <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Batal</button>
-                <button type="submit" className="btn-primary">Simpan</button>
-              </div>
-            </form>
+      <Modal 
+        open={modal.open} 
+        onClose={closeModal} 
+        title={modal.editId ? 'Edit Jabatan' : 'Tambah Jabatan'}
+        footer={
+          <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+            <button type="button" onClick={closeModal} className="btn-std-secondary">Batal</button>
+            <button type="button" onClick={handleSubmit} className="btn-std-primary">Simpan</button>
           </div>
-        </div>
-      ,
-        document.body
-      )}
+        }
+      >
+        <form id="position-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+          <FormField label="Kode Jabatan" required>
+            <input type="text" className="input-std" value={form.code} onChange={setField('code')} required />
+          </FormField>
+          <FormField label="Nama Jabatan" required>
+            <input type="text" className="input-std" value={form.name} onChange={setField('name')} required />
+          </FormField>
+          <FormField label="Deskripsi">
+            <textarea className="input-std" value={form.description} onChange={setField('description')} rows={3} />
+          </FormField>
+          <FormField label="Status Aktif">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded" checked={form.isActive} onChange={setField('isActive')} />
+              <span>{form.isActive ? 'Aktif' : 'Nonaktif'}</span>
+            </label>
+          </FormField>
+        </form>
+      </Modal>
     </div>
   );
 };

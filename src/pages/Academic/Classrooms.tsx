@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users } from 'lucide-react';
+import { Plus, Users, Search, Filter, ChevronDown } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useClassrooms } from '../../hooks/useClassrooms';
 import type { Classroom } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
-import './Academic.css';
+import { PageHeader, Modal, FormField } from '../../components/ui';
 
 export const Classrooms: React.FC = () => {
   const navigate = useNavigate();
   const [filterGradeId, setFilterGradeId] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Custom Hook for Data Layer
   const {
@@ -103,8 +104,13 @@ export const Classrooms: React.FC = () => {
     setShowModal(true);
   };
 
-  const paginatedClassrooms = classrooms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(classrooms.length / itemsPerPage);
+  const filteredClassrooms = classrooms.filter(c => 
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.code.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  const paginatedClassrooms = filteredClassrooms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(filteredClassrooms.length / itemsPerPage);
 
   // DataTable Columns Configuration
   const classroomColumns: Column<Classroom>[] = [
@@ -113,9 +119,9 @@ export const Classrooms: React.FC = () => {
     { key: 'major', header: 'Jurusan', render: (row) => row.major?.name || '-' },
     { key: 'grade', header: 'Tingkat', render: (row) => <span className="grade-badge">{row.grade?.name || '-'}</span> },
     { key: 'capacity', header: 'Kapasitas', render: (row) => (
-        <div className="capacity-info">
-          <Users size={14} /> {row.capacity || 0} Siswa
-        </div>
+        <span className="text-gray-700">
+          {row.capacity || 0} Siswa
+        </span>
       ) 
     },
     { key: 'actions', header: 'Aksi', render: (row) => (
@@ -129,47 +135,44 @@ export const Classrooms: React.FC = () => {
   ];
 
   return (
-    <div className="academic-container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Rombongan Belajar (Kelas)</h1>
-          <p className="page-subtitle">Kelola master data Rombel/Ruang Kelas</p>
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <PageHeader
+        title="Rombongan Belajar (Kelas)"
+        subtitle="Kelola master data Rombel/Ruang Kelas"
+        action={<button onClick={openAddModal} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+      />
+
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mt-6 mb-6 p-4 flex flex-col md:flex-row gap-4">
+        <div className="flex-1 relative group">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+          <input type="text" className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" placeholder="Cari Kode atau Nama Rombel..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
-        <button className="btn-primary" onClick={openAddModal}>
-          <Plus size={18} /> Tambah Data
-        </button>
+        <div className="w-full md:w-64 relative group">
+          <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors z-10" size={18} />
+          <select className="w-full pl-10 pr-10 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer relative z-0" value={filterGradeId} onChange={(e) => { setFilterGradeId(e.target.value); setCurrentPage(1); }}>
+            <option value="">Semua Tingkat</option>
+            {grades.map(g => (
+              <option key={g.id} value={g.id}>{g.name} ({g.educationLevel})</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+        </div>
       </div>
 
-      <div className="glass-panel filter-bar">
-        <span className="filter-label">Filter Tingkat:</span>
-        <select 
-          className="input-field filter-select" 
-          value={filterGradeId} 
-          onChange={(e) => {
-            setFilterGradeId(e.target.value);
-            setCurrentPage(1);
-          }}
-        >
-          <option value="">-- Semua Tingkat --</option>
-          {grades.map(g => (
-            <option key={g.id} value={g.id}>{g.name} ({g.educationLevel})</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="glass-panel">
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 flex flex-col">
         <DataTable 
           columns={classroomColumns} 
           data={paginatedClassrooms} 
           loading={loading}
           emptyMessage="Belum ada data Rombel."
+          containerClassName="w-full overflow-x-auto"
         />
         
-        {!loading && classrooms.length > 0 && (
+        {!loading && filteredClassrooms.length > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={classrooms.length}
+            totalItems={filteredClassrooms.length}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={(limit) => {
@@ -180,55 +183,44 @@ export const Classrooms: React.FC = () => {
         )}
       </div>
 
-      {showModal && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4">
-            <div className="modal-header-v4">
-              <h2>{isEditing ? 'Edit Rombel / Kelas' : 'Tambah Rombel / Kelas'}</h2>
-              <button type="button" className="btn-close" onClick={handleCloseModal}>&times;</button>
-            </div>
-            <form onSubmit={handleSubmit} className="modal-form-v4">
-              <div className="modal-body-v4 form-grid">
-              <div className="form-group">
-                <label>Tingkat / Level <span className="text-red-500">*</span></label>
-                <select className="input-field" value={gradeId} onChange={(e) => setGradeId(e.target.value)} required>
-                  {grades.map(g => (
-                    <option key={g.id} value={g.id}>{g.name} ({g.educationLevel})</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Jurusan <span className="text-gray-400 text-xs">(Opsional)</span></label>
-                <select className="input-field" value={majorId} onChange={(e) => setMajorId(e.target.value)}>
-                  <option value="">-- Tidak Ada Jurusan --</option>
-                  {majors.filter(m => m.isActive).map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Kode <span className="text-red-500">*</span></label>
-                <input type="text" className="input-field" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: 10-IPA-1" required />
-              </div>
-              <div className="form-group">
-                <label>Nama Rombel <span className="text-red-500">*</span></label>
-                <input type="text" className="input-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: X MIPA 1" required />
-              </div>
-              <div className="form-group">
-                <label>Kapasitas Maksimal Siswa</label>
-                <input type="number" className="input-field" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} />
-              </div>
-              </div>
-              <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Batal</button>
-                <button type="submit" className="btn-primary">Simpan</button>
-              </div>
-            </form>
+      <Modal 
+        open={showModal} 
+        onClose={handleCloseModal} 
+        title={isEditing ? 'Edit Rombel / Kelas' : 'Tambah Rombel / Kelas'}
+        footer={
+          <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+            <button type="button" className="btn-std-secondary" onClick={handleCloseModal}>Batal</button>
+            <button type="button" className="btn-std-primary" onClick={handleSubmit}>Simpan</button>
           </div>
-        </div>
-      ,
-        document.body
-      )}
+        }
+      >
+        <form id="classroom-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+          <FormField label="Tingkat / Level" required>
+            <select className="input-std" value={gradeId} onChange={(e) => setGradeId(e.target.value)} required>
+              {grades.map(g => (
+                <option key={g.id} value={g.id}>{g.name} ({g.educationLevel})</option>
+              ))}
+            </select>
+          </FormField>
+          <FormField label="Jurusan">
+            <select className="input-std" value={majorId} onChange={(e) => setMajorId(e.target.value)}>
+              <option value="">-- Tidak Ada Jurusan --</option>
+              {majors.filter(m => m.isActive).map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </FormField>
+          <FormField label="Kode" required>
+            <input type="text" className="input-std" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: 10-IPA-1" required />
+          </FormField>
+          <FormField label="Nama Rombel" required>
+            <input type="text" className="input-std" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: X MIPA 1" required />
+          </FormField>
+          <FormField label="Kapasitas Maksimal Siswa">
+            <input type="number" className="input-std" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} />
+          </FormField>
+        </form>
+      </Modal>
     </div>
   );
 };

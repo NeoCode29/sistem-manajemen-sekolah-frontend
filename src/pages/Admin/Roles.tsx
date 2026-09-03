@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { getRoles, createRole, assignPermissionsToRole, getPermissions, type Role, type Permission } from '../../api/rbacService';
 import { Plus, UserCheck, Shield } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
-import '../Academic/Academic.css';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { DataTable, type Column } from '../../components/Common/DataTable';
+import { Modal } from '../../components/ui/Modal';
+import { FormField } from '../../components/ui/FormField';
 
 export const Roles: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -79,142 +81,115 @@ export const Roles: React.FC = () => {
     }
   };
 
-  return (
-    <div className="academic-container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Peran (Roles)</h1>
-          <p className="page-subtitle">Kelola daftar Peran dan Hak Aksesnya</p>
+  const columns: Column<Role>[] = [
+    { key: 'id', header: 'ID', render: (role) => (
+      <span className="font-semibold text-gray-500">#{role.id}</span>
+    )},
+    { key: 'name', header: 'Nama Peran', render: (role) => (
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+          <UserCheck size={14} />
         </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>
+        <span className="font-semibold text-gray-900">{role.name}</span>
+      </div>
+    )},
+    { key: 'permissions', header: 'Hak Akses (Permissions)', render: (role) => (
+      <div className="flex flex-wrap gap-1">
+        {role.permissions && role.permissions.length > 0 ? (
+          role.permissions.map(p => (
+            <span key={p.id} className="text-xs px-2 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+              {p.name}
+            </span>
+          ))
+        ) : (
+          <span className="text-gray-400 text-xs italic">Belum ada izin</span>
+        )}
+      </div>
+    )},
+    { key: 'actions', header: 'Aksi', render: (role) => (
+      <div className="flex justify-end">
+        <button
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+          onClick={() => openAssignModal(role)}
+        >
+          <Shield size={14} /> Atur Izin
+        </button>
+      </div>
+    )}
+  ];
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <PageHeader 
+          title="Peran (Roles)" 
+          subtitle="Kelola daftar Peran dan Hak Aksesnya"
+        />
+        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => setShowModal(true)}>
           <Plus size={18} /> Tambah Data
         </button>
       </div>
 
-      <div className="glass-panel">
-        {loading ? (
-          <div className="loading-state">Memuat data...</div>
-        ) : (
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nama Peran</th>
-                  <th>Hak Akses (Permissions)</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {roles.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="text-center py-4 text-gray-500">Belum ada data.</td>
-                  </tr>
-                ) : (
-                  roles.map((role) => (
-                    <tr key={role.id}>
-                      <td className="font-semibold">{role.id}</td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <UserCheck size={16} className="text-blue-600" />
-                          {role.name}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex flex-wrap gap-1">
-                          {role.permissions && role.permissions.length > 0 ? (
-                            role.permissions.map(p => (
-                              <span key={p.id} className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-600">
-                                {p.name}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-gray-400 text-sm italic">Belum ada izin</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <button
-                          className="btn-primary"
-                          style={{ padding: '6px 12px', fontSize: '0.85rem' }}
-                          onClick={() => openAssignModal(role)}
-                        >
-                          Atur Izin
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <DataTable 
+        columns={columns}
+        data={roles}
+        loading={loading}
+        emptyMessage="Belum ada data peran."
+      />
 
-      {showModal && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4 animate-fade-in">
-            <div className="modal-header-v4">
-              <h2>Tambah Peran Baru</h2>
-              <button className="btn-close" onClick={() => setShowModal(false)}>&times;</button>
-            </div>
-            <form onSubmit={handleCreateRole} className="modal-form-v4">
-              <div className="modal-body-v4 form-grid">
-              <div className="form-group">
-                <label>Nama Peran <span className="text-red-500">*</span></label>
-                <input type="text" className="input-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Guru" required />
-              </div>
-              <div className="form-group">
-                <label>Guard Name <span className="text-red-500">*</span></label>
-                <input type="text" className="input-field" value={guardName} onChange={(e) => setGuardName(e.target.value)} placeholder="jwt" required />
-              </div>
-              </div>
-              <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Batal</button>
-                <button type="submit" className="btn-primary">Simpan</button>
-              </div>
-            </form>
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title="Tambah Peran Baru"
+      >
+        <form onSubmit={handleCreateRole} className="flex flex-col gap-5 p-6">
+          <FormField label="Nama Peran" required>
+            <input type="text" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Guru" required />
+          </FormField>
+          
+          <FormField label="Guard Name" required>
+            <input type="text" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" value={guardName} onChange={(e) => setGuardName(e.target.value)} placeholder="jwt" required />
+          </FormField>
+          
+          <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-gray-100">
+            <button type="button" className="px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-colors" onClick={() => setShowModal(false)}>Batal</button>
+            <button type="submit" className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm">Simpan</button>
           </div>
-        </div>
-      , document.body)}
+        </form>
+      </Modal>
 
-      {showPermModal && selectedRole && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4 animate-fade-in" style={{ maxWidth: '600px' }}>
-            <div className="modal-header-v4">
-              <h2>Atur Hak Akses: {selectedRole.name}</h2>
-              <button className="btn-close" onClick={() => setShowPermModal(false)}>&times;</button>
-            </div>
-            <form onSubmit={handleAssignPermissions} className="modal-form-v4">
-              <div className="modal-body-v4">
-              <p className="text-sm text-gray-500 mb-4">Pilih hak akses apa saja yang dimiliki oleh peran ini.</p>
-              
-              <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem', maxHeight: '400px', overflowY: 'auto', padding: '0.5rem' }}>
-                {allPermissions.map(perm => (
-                  <label key={perm.id} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-blue-50">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedPermIds.includes(perm.id)}
-                      onChange={() => togglePermission(perm.id)}
-                    />
-                    <Shield size={14} className="text-blue-500" />
-                    <span className="text-sm">{perm.name}</span>
-                  </label>
-                ))}
-              </div>
-              
-              </div>
-              
-              <div className="modal-footer-v4" style={{ marginTop: '1.5rem' }}>
-                <button type="button" className="btn-secondary" onClick={() => setShowPermModal(false)}>Batal</button>
-                <button type="submit" className="btn-primary">Simpan Perubahan</button>
-              </div>
-            </form>
+      <Modal
+        open={showPermModal}
+        onClose={() => setShowPermModal(false)}
+        title={`Atur Hak Akses: ${selectedRole?.name || ''}`}
+        size="lg"
+      >
+        <form onSubmit={handleAssignPermissions} className="flex flex-col gap-4 p-6">
+          <p className="text-sm text-gray-500 px-2">Pilih hak akses apa saja yang dimiliki oleh peran ini.</p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto p-2">
+            {allPermissions.map(perm => (
+              <label key={perm.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedPermIds.includes(perm.id) ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                  checked={selectedPermIds.includes(perm.id)}
+                  onChange={() => togglePermission(perm.id)}
+                />
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <Shield size={14} className={selectedPermIds.includes(perm.id) ? 'text-indigo-600 shrink-0' : 'text-gray-400 shrink-0'} />
+                  <span className={`text-xs font-medium truncate ${selectedPermIds.includes(perm.id) ? 'text-indigo-900' : 'text-gray-700'}`} title={perm.name}>{perm.name}</span>
+                </div>
+              </label>
+            ))}
           </div>
-        </div>
-      ,
-        document.body
-      )}
+          
+          <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-gray-100">
+            <button type="button" className="px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-colors" onClick={() => setShowPermModal(false)}>Batal</button>
+            <button type="submit" className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm">Simpan Perubahan</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

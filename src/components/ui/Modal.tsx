@@ -10,6 +10,7 @@ export interface ModalProps {
   title: string;
   size?: ModalSize;
   children: React.ReactNode;
+  footer?: React.ReactNode;
 }
 
 const SIZE_CLASSES: Record<ModalSize, string> = {
@@ -25,6 +26,7 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   size = 'md',
   children,
+  footer,
 }) => {
   // Close on Escape key
   useEffect(() => {
@@ -77,6 +79,13 @@ export const Modal: React.FC<ModalProps> = ({
         <div className="overflow-y-auto flex-1">
           {children}
         </div>
+
+        {/* Footer */}
+        {footer && (
+          <div className="flex-shrink-0">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body

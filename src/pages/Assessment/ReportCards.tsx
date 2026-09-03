@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { useReportCards, type ReportCard } from '../../hooks/useReportCards';
 import { useAcademicYears } from '../../hooks/useAcademicYears';
 import { useSemesters } from '../../hooks/useSemesters';
 import { useClassrooms } from '../../hooks/useClassrooms';
 import { FileText, Edit2, Printer, Loader2, AlertCircle, Settings, User, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import '../Academic/Academic.css';
+import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import { DataTable, type Column } from '../../components/Common/DataTable';
 
 export const ReportCards: React.FC = () => {
   const { years: academicYears, refresh: fetchAcademicYears } = useAcademicYears();
@@ -21,9 +21,9 @@ export const ReportCards: React.FC = () => {
   
   const [isClassroomApproved, setIsClassroomApproved] = useState(false);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCard, setEditingCard] = useState<ReportCard | null>(null);
+  const [modal, setModal] = useState<{ open: boolean; editCard: ReportCard | null }>({ open: false, editCard: null });
   const [formData, setFormData] = useState({ sickDays: 0, excusedDays: 0, unexcusedDays: 0, homeroomNotes: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isPrincipal = user?.roles?.some(r => r.name === 'Kepala Sekolah');
 
@@ -75,329 +75,295 @@ export const ReportCards: React.FC = () => {
   };
 
   const openEditModal = (card: ReportCard) => {
-    setEditingCard(card);
     setFormData({
       sickDays: card.sickDays,
       excusedDays: card.excusedDays,
       unexcusedDays: card.unexcusedDays,
       homeroomNotes: card.homeroomNotes || ''
     });
-    setIsModalOpen(true);
+    setModal({ open: true, editCard: card });
   };
 
-  const saveNotes = async () => {
-    if (editingCard) {
+  const closeEditModal = () => {
+    setModal({ open: false, editCard: null });
+  };
+
+  const saveNotes = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (modal.editCard) {
       try {
-        await updateHomeroomNotes(editingCard.id, formData);
-        setIsModalOpen(false);
-      } catch (e) {
-        alert('Gagal menyimpan catatan');
+        setIsSubmitting(true);
+        await updateHomeroomNotes(modal.editCard.id, formData);
+        closeEditModal();
+      } catch (e: any) {
+        alert('Gagal menyimpan catatan: ' + (e.message || 'Error'));
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
 
-  return (
-    <div className="academic-container">
-      <div className="page-header" style={{ marginBottom: '1.5rem' }}>
-        <div>
-          <h1 className="page-title" style={{ fontSize: '2rem' }}>Cetak Rapor & Pengesahan</h1>
-          <p className="page-description" style={{ fontSize: '1rem', marginTop: '0.25rem' }}>Kelola dan sahkan dokumen rapor hasil belajar siswa per kelas.</p>
+  const columns: Column<ReportCard>[] = [
+    {
+      key: 'student',
+      header: 'Identitas Siswa',
+      render: (row) => (
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+            <User size={18} className="text-indigo-600" />
+          </div>
+          <div>
+            <div className="font-bold text-slate-900">{row.student.fullName}</div>
+            <div className="text-xs text-slate-500">NIS: {row.student.nis}</div>
+          </div>
         </div>
-        <div className="header-actions" style={{ display: 'flex', gap: '1rem' }}>
-          <button 
-            className="btn-primary" 
-            onClick={handleGenerate}
-            disabled={loading || !selectedClassroom}
-            style={{ padding: '0.875rem 1.75rem', borderRadius: '12px', fontSize: '0.95rem', opacity: (loading || !selectedClassroom) ? 0.7 : 1 }}
-          >
-            {loading ? <Loader2 size={20} className="animate-spin" /> : <FileText size={20} />}
-            Generate Rapor Kelas
-          </button>
+      )
+    },
+    {
+      key: 'attendance',
+      header: 'Kehadiran (S/I/A)',
+      render: (row) => (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold tracking-wide uppercase bg-slate-100 text-slate-600 border border-slate-200">
+          <div className="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
+          {row.sickDays} Sakit / {row.excusedDays} Izin / {row.unexcusedDays} Alpa
+        </span>
+      )
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (row) => (
+        <div className="flex flex-col gap-2">
+          {row.validatedAt ? (
+            <Badge variant="success">Wali: Valid</Badge>
+          ) : (
+            <Badge variant="warning">Wali: Menunggu</Badge>
+          )}
           
-          {isPrincipal && (
+          {isClassroomApproved ? (
+            <Badge variant="info">Kepsek: Sah</Badge>
+          ) : (
+            <Badge variant="default">Kepsek: Menunggu</Badge>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'actions',
+      header: 'Aksi',
+      render: (row) => (
+        <div className="flex justify-end items-center gap-2">
+          {!row.validatedAt && (
             <button 
-              className="btn-primary" 
               onClick={async () => {
-                if (window.confirm('Sahkah rapor untuk kelas ini? Tanda tangan Anda akan dibubuhkan secara otomatis pada seluruh dokumen rapor di kelas ini.')) {
+                if (window.confirm('Validasi rapor ini? Tindakan ini akan membubuhkan tanda tangan digital Anda.')) {
                   try {
-                    await approveClassroom({
-                      classroomId: selectedClassroom,
-                      academicYearId: selectedYear,
-                      semesterId: selectedSemester,
-                      action: 'APPROVE',
-                      notes: ''
-                    });
-                    setIsClassroomApproved(true);
-                    alert('Berhasil Disahkan!');
+                    await validateReportCard(row.id);
                   } catch (e: any) {
-                    alert(e.response?.data?.message || e.message || 'Gagal mengesahkan rapor');
+                    alert(e.message || 'Gagal memvalidasi rapor');
                   }
                 }
               }}
-              disabled={loading || !selectedClassroom || isClassroomApproved}
-              style={{ padding: '0.875rem 1.75rem', borderRadius: '12px', fontSize: '0.95rem', opacity: (loading || !selectedClassroom || isClassroomApproved) ? 0.7 : 1, background: isClassroomApproved ? '#059669' : undefined }}
+              className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent"
+              title="Validasi & Tanda Tangani"
             >
-              <CheckCircle size={20} style={{ marginRight: '8px', display: 'inline' }} />
-              {isClassroomApproved ? 'Telah Disahkan' : 'Sahkah Rapor Kelas'}
+              <CheckCircle size={16} />
             </button>
           )}
+          <button 
+            onClick={() => openEditModal(row)}
+            className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent"
+            title="Isi Catatan & Absensi"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button 
+            onClick={() => exportPdf(row.id, row.student.fullName)}
+            className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent"
+            title="Cetak PDF"
+          >
+            <Printer size={16} />
+          </button>
         </div>
-      </div>
+      )
+    }
+  ];
 
-
+  return (
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <PageHeader
+        title="Cetak Rapor & Pengesahan"
+        subtitle="Kelola dan sahkan dokumen rapor hasil belajar siswa per kelas."
+        action={
+          <div className="flex gap-4">
+            <button 
+              className="btn-std-primary flex items-center gap-2 disabled:opacity-70" 
+              onClick={handleGenerate}
+              disabled={loading || !selectedClassroom}
+            >
+              {loading ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
+              Generate Rapor Kelas
+            </button>
+            
+            {isPrincipal && (
+              <button 
+                className={`btn-std-primary flex items-center gap-2 disabled:opacity-70 ${isClassroomApproved ? 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500' : ''}`}
+                onClick={async () => {
+                  if (window.confirm('Sahkah rapor untuk kelas ini? Tanda tangan Anda akan dibubuhkan secara otomatis pada seluruh dokumen rapor di kelas ini.')) {
+                    try {
+                      await approveClassroom({
+                        classroomId: selectedClassroom,
+                        academicYearId: selectedYear,
+                        semesterId: selectedSemester,
+                        action: 'APPROVE',
+                        notes: ''
+                      });
+                      setIsClassroomApproved(true);
+                      alert('Berhasil Disahkan!');
+                    } catch (e: any) {
+                      alert(e.response?.data?.message || e.message || 'Gagal mengesahkan rapor');
+                    }
+                  }
+                }}
+                disabled={loading || !selectedClassroom || isClassroomApproved}
+              >
+                <CheckCircle size={18} />
+                {isClassroomApproved ? 'Telah Disahkan' : 'Sahkah Rapor Kelas'}
+              </button>
+            )}
+          </div>
+        }
+      />
 
       {error && (
-        <div className="alert flex items-center gap-3" style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '1.5rem', fontWeight: 500 }}>
+        <div className="alert flex items-center gap-3 bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 mb-6 font-medium">
           <AlertCircle size={20} className="text-red-500" />
           {error}
         </div>
       )}
 
       {/* Modern Filter Section */}
-      <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', borderRadius: '16px' }}>
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-6 mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <Settings size={18} style={{ color: '#4f46e5' }} />
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1f2937' }}>Filter Pencarian Rapor</h2>
+          <Settings size={18} className="text-indigo-600" />
+          <h2 className="text-lg font-bold text-gray-900">Filter Pencarian Rapor</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="form-group" style={{ gap: '0.35rem' }}>
-            <label style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>Tahun Ajaran</label>
-            <div style={{ position: 'relative' }}>
-              <select className="input-field" style={{ paddingLeft: '1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer' }} value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
-                {academicYears.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
-              </select>
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tahun Ajaran</label>
+            <select className="input-std bg-slate-50 border-slate-200 cursor-pointer" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+              <option value="">Pilih Tahun Ajaran...</option>
+              {academicYears.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
+            </select>
           </div>
           
-          <div className="form-group" style={{ gap: '0.35rem' }}>
-            <label style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>Semester</label>
-            <div style={{ position: 'relative' }}>
-              <select className="input-field" style={{ paddingLeft: '1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer' }} value={selectedSemester} onChange={e => setSelectedSemester(e.target.value)}>
-                {semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Semester</label>
+            <select 
+              className="input-std bg-slate-50 border-slate-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
+              value={selectedSemester} 
+              onChange={e => setSelectedSemester(e.target.value)}
+              disabled={!selectedYear}
+            >
+              <option value="">Pilih Semester...</option>
+              {semesters.filter(s => s.academicYearId === selectedYear).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
           </div>
 
-          <div className="form-group" style={{ gap: '0.35rem' }}>
-            <label style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>Kelas</label>
-            <div style={{ position: 'relative' }}>
-              <select className="input-field" style={{ paddingLeft: '1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer' }} value={selectedClassroom} onChange={e => setSelectedClassroom(e.target.value)}>
-                <option value="">Pilih Kelas</option>
-                {classrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Kelas</label>
+            <select className="input-std bg-slate-50 border-slate-200 cursor-pointer" value={selectedClassroom} onChange={e => setSelectedClassroom(e.target.value)}>
+              <option value="">Pilih Kelas</option>
+              {classrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           </div>
         </div>
       </div>
 
-      {/* Table Section */}
-      <div className="glass-panel" style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.8)' }}>
-        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.4)' }}>
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white/40">
           <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Daftar Rapor Siswa</h3>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0.2rem 0 0 0' }}>Data absensi dan dokumen rapor siswa di kelas terpilih</p>
+            <h3 className="text-lg font-bold text-slate-900 m-0">Daftar Rapor Siswa</h3>
+            <p className="text-sm text-slate-500 mt-1">Data absensi dan dokumen rapor siswa di kelas terpilih</p>
           </div>
         </div>
 
-        {loading && reportCards.length === 0 ? (
-          <div style={{ padding: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        {(loading && reportCards.length === 0) ? (
+          <div className="p-16 flex flex-col items-center justify-center">
             <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-            <span style={{ fontSize: '1rem', fontWeight: 600, color: '#6b7280' }}>Memuat data rapor...</span>
+            <span className="text-base font-semibold text-gray-500">Memuat data rapor...</span>
+          </div>
+        ) : (!loading && reportCards.length === 0) ? (
+          <div className="p-24 text-center flex flex-col items-center justify-center">
+             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center mb-6 shadow-sm">
+                <FileText size={36} className="text-indigo-600" />
+             </div>
+             <div className="text-xl font-extrabold text-slate-800">Belum Ada Rapor</div>
+             <div className="text-sm text-slate-500 mt-2 max-w-md leading-relaxed">
+               Belum ada rapor di kelas ini. Silakan tekan tombol "Generate Rapor Kelas".
+             </div>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ background: 'rgba(248, 250, 252, 0.7)', borderBottom: '2px solid #e2e8f0' }}>
-                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', width: '80px' }}>No</th>
-                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Identitas Siswa</th>
-                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kehadiran (S / I / A)</th>
-                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportCards.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} style={{ padding: '6rem 2rem', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', boxShadow: '0 10px 15px -3px rgba(79, 70, 229, 0.1)' }}>
-                          <FileText size={36} style={{ color: '#4f46e5' }} />
-                        </div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1f2937' }}>Belum Ada Rapor</div>
-                        <div style={{ fontSize: '0.95rem', color: '#6b7280', marginTop: '0.5rem', maxWidth: '400px', lineHeight: 1.5 }}>
-                          Belum ada rapor di kelas ini. Silakan tekan tombol "Generate Rapor Kelas".
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  reportCards.map((card, index) => (
-                    <tr key={card.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                      <td style={{ padding: '1.25rem 2rem', color: '#64748b', fontWeight: 500, verticalAlign: 'middle' }}>{index + 1}</td>
-                      
-                      <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <User size={18} style={{ color: '#4f46e5' }} />
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.95rem' }}>{card.student.fullName}</div>
-                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>NIS: {card.student.nis}</div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
-                        <span style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#64748b' }}></div>
-                          {card.sickDays} Sakit / {card.excusedDays} Izin / {card.unexcusedDays} Alpa
-                        </span>
-                      </td>
-
-                      <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {card.validatedAt ? (
-                            <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #10b981', display: 'inline-flex', alignItems: 'center', width: 'fit-content' }}>
-                              Wali: Valid
-                            </span>
-                          ) : (
-                            <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', backgroundColor: '#fffbeb', color: '#d97706', border: '1px solid #fbbf24', display: 'inline-flex', alignItems: 'center', width: 'fit-content' }}>
-                              Wali: Menunggu
-                            </span>
-                          )}
-                          
-                          {isClassroomApproved ? (
-                            <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #3b82f6', display: 'inline-flex', alignItems: 'center', width: 'fit-content' }}>
-                              Kepsek: Sah
-                            </span>
-                          ) : (
-                            <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', display: 'inline-flex', alignItems: 'center', width: 'fit-content' }}>
-                              Kepsek: Menunggu
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      <td style={{ padding: '1.25rem 2rem', textAlign: 'right', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', alignItems: 'center' }}>
-                          {!card.validatedAt && (
-                            <button 
-                              onClick={async () => {
-                                if (window.confirm('Validasi rapor ini? Tindakan ini akan membubuhkan tanda tangan digital Anda.')) {
-                                  try {
-                                    await validateReportCard(card.id);
-                                  } catch (e: any) {
-                                    alert(e.message || 'Gagal memvalidasi rapor');
-                                  }
-                                }
-                              }}
-                              style={{ padding: '0.5rem', color: '#64748b', backgroundColor: 'transparent', borderRadius: '8px', border: '1px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }} 
-                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ecfdf5'; e.currentTarget.style.color = '#059669'; }} 
-                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
-                              title="Validasi & Tanda Tangani"
-                            >
-                              <CheckCircle size={16} />
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => openEditModal(card)}
-                            style={{ padding: '0.5rem', color: '#64748b', backgroundColor: 'transparent', borderRadius: '8px', border: '1px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }} 
-                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.color = '#4f46e5'; }} 
-                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
-                            title="Isi Catatan & Absensi"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button 
-                            onClick={() => exportPdf(card.id, card.student.fullName)}
-                            style={{ padding: '0.5rem', color: '#64748b', backgroundColor: 'transparent', borderRadius: '8px', border: '1px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }} 
-                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ecfdf5'; e.currentTarget.style.color = '#059669'; }} 
-                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
-                            title="Cetak PDF"
-                          >
-                            <Printer size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable columns={columns} data={reportCards} loading={loading} emptyMessage="Belum ada data rapor." />
         )}
       </div>
 
-      {isModalOpen && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4" style={{ maxWidth: '500px' }}>
-            <div className="modal-header-v4" style={{ background: 'linear-gradient(to right, #f8fafc, #ffffff)' }}>
-              <h2>Edit Kehadiran & Catatan</h2>
-              <button type="button" className="btn-close" onClick={() => setIsModalOpen(false)}>&times;</button>
-            </div>
-            
-            <div className="modal-body-v4 form-grid" style={{ padding: '2rem 1.5rem' }}>
-              <div className="mb-4 text-sm text-gray-600 flex items-center gap-2 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
-                <User size={18} className="text-indigo-600" />
-                <span>Siswa: <strong className="text-indigo-900">{editingCard?.student?.fullName}</strong></span>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div className="form-group">
-                  <label className="text-xs font-semibold text-gray-700">Sakit (Hari)</label>
-                  <input 
-                    type="number" 
-                    value={formData.sickDays} 
-                    onChange={e => setFormData({...formData, sickDays: parseInt(e.target.value)||0})} 
-                    className="input-field" 
-                    min={0}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="text-xs font-semibold text-gray-700">Izin (Hari)</label>
-                  <input 
-                    type="number" 
-                    value={formData.excusedDays} 
-                    onChange={e => setFormData({...formData, excusedDays: parseInt(e.target.value)||0})} 
-                    className="input-field" 
-                    min={0}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="text-xs font-semibold text-gray-700">Alpa (Hari)</label>
-                  <input 
-                    type="number" 
-                    value={formData.unexcusedDays} 
-                    onChange={e => setFormData({...formData, unexcusedDays: parseInt(e.target.value)||0})} 
-                    className="input-field" 
-                    min={0}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="text-sm font-semibold text-gray-700">Catatan Wali Kelas</label>
-                <textarea 
-                  value={formData.homeroomNotes} 
-                  onChange={e => setFormData({...formData, homeroomNotes: e.target.value})}
-                  className="input-field"
-                  placeholder="Tuliskan pesan / motivasi untuk siswa..."
-                  rows={4}
-                  style={{ resize: 'none' }}
-                ></textarea>
-              </div>
-            </div>
-
-            <div className="modal-footer-v4">
-              <button onClick={() => setIsModalOpen(false)} className="btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.95rem' }}>Batal</button>
-              <button onClick={saveNotes} className="btn-primary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.95rem' }}>Simpan Data</button>
-            </div>
+      <Modal open={modal.open} onClose={closeEditModal} title="Edit Kehadiran & Catatan">
+        <form onSubmit={saveNotes} className="flex flex-col gap-4 p-6">
+          <div className="mb-4 text-sm text-slate-600 flex items-center gap-2 bg-indigo-50/50 p-3 rounded-lg border border-indigo-100">
+            <User size={18} className="text-indigo-600" />
+            <span>Siswa: <strong className="text-indigo-900">{modal.editCard?.student?.fullName}</strong></span>
           </div>
-        </div>,
-        document.body
-      )}
+          
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <FormField label="Sakit (Hari)" required>
+              <input 
+                type="number" 
+                value={formData.sickDays} 
+                onChange={e => setFormData({...formData, sickDays: parseInt(e.target.value)||0})} 
+                className="input-std" 
+                min={0}
+              />
+            </FormField>
+            <FormField label="Izin (Hari)" required>
+              <input 
+                type="number" 
+                value={formData.excusedDays} 
+                onChange={e => setFormData({...formData, excusedDays: parseInt(e.target.value)||0})} 
+                className="input-std" 
+                min={0}
+              />
+            </FormField>
+            <FormField label="Alpa (Hari)" required>
+              <input 
+                type="number" 
+                value={formData.unexcusedDays} 
+                onChange={e => setFormData({...formData, unexcusedDays: parseInt(e.target.value)||0})} 
+                className="input-std" 
+                min={0}
+              />
+            </FormField>
+          </div>
+
+          <FormField label="Catatan Wali Kelas">
+            <textarea 
+              value={formData.homeroomNotes} 
+              onChange={e => setFormData({...formData, homeroomNotes: e.target.value})}
+              className="input-std resize-none"
+              placeholder="Tuliskan pesan / motivasi untuk siswa..."
+              rows={4}
+            ></textarea>
+          </FormField>
+
+          <div className="flex justify-end gap-3 pt-6 mt-2 border-t border-slate-100">
+            <button type="button" onClick={closeEditModal} className="btn-std-secondary" disabled={isSubmitting}>Batal</button>
+            <button type="submit" className="btn-std-primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Menyimpan...' : 'Simpan Data'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

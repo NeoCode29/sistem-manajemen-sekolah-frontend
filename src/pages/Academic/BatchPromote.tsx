@@ -7,8 +7,7 @@ import { getStudents } from '../../api/studentService';
 import type { Student } from '../../api/studentService';
 import { TrendingUp, AlertTriangle, ChevronRight, ChevronLeft, ArrowLeft, CheckSquare } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
-import './Academic.css';
-import './BatchPromote.css';
+import { FormField } from '../../components/ui/FormField';
 
 export const BatchPromote: React.FC = () => {
   const navigate = useNavigate();
@@ -97,8 +96,8 @@ export const BatchPromote: React.FC = () => {
         const students = await getStudents({ 
           classroomId: selectedSourceClass, 
           academicYearId: selectedSourceAcademicYear,
-          status: 'ACTIVE', 
-          enrollmentStatus: 'ENROLLED' 
+          status: 'ACTIVE',
+          limit: 1000
         });
         setSourceStudents(students as Student[]);
         setPromotedStudents([]);
@@ -197,111 +196,90 @@ export const BatchPromote: React.FC = () => {
   };
 
   return (
-    <div className="bp-container">
-      <div className="bp-header">
-        <div className="bp-header-top" onClick={() => navigate('/academic/promotions')}>
+    <div className="p-6 max-w-7xl mx-auto page-enter pb-6">
+      <div className="mb-6">
+        <button onClick={() => navigate('/academic/promotions')} className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors font-medium text-sm mb-4">
           <ArrowLeft size={16} /> Kembali ke Riwayat
-        </div>
-        <h1>
-          <TrendingUp size={24} color="var(--bp-secondary)" />
+        </button>
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
+          <TrendingUp size={28} className="text-indigo-600" />
           Pemrosesan Kenaikan Kelas (Batch)
         </h1>
-        <p>Pindahkan siswa dari kelas asal ke kelas tujuan. Siswa yang tidak dipindahkan akan berstatus tinggal kelas.</p>
+        <p className="text-gray-500 mt-2">Pindahkan siswa dari kelas asal ke kelas tujuan. Siswa yang tidak dipindahkan akan berstatus tinggal kelas.</p>
       </div>
 
-      <div className="bp-info-banner">
-        <AlertTriangle size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
+      <div className="bg-blue-50 text-blue-800 p-4 rounded-xl border border-blue-200 flex items-start gap-3 mb-6 text-sm leading-relaxed">
+        <AlertTriangle size={20} className="flex-shrink-0 mt-0.5 text-blue-600" />
         <div>
           Siswa yang dipindahkan ke panel kanan akan <strong>NAIK KELAS</strong> ke Kelas Tujuan. Siswa yang dibiarkan di panel kiri akan berstatus <strong>TINGGAL KELAS</strong> dan didaftarkan kembali ke Kelas Asal pada Tahun Ajaran Baru.
         </div>
       </div>
 
       {/* Toolbar Filters */}
-      <div className="bp-toolbar">
-        <div className="bp-filter-group">
-          <h3 style={{ color: 'var(--bp-secondary)' }}>
-            <TrendingUp size={16} /> Asal Siswa
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="flex flex-col gap-5">
+          <h3 className="font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-2">
+            <TrendingUp size={18} className="text-indigo-500" /> Asal Siswa
           </h3>
-          <div className="bp-filter-row">
-            <div className="bp-input-group">
-              <label>Tahun Ajaran</label>
-              <select
-                value={selectedSourceAcademicYear}
-                onChange={(e) => setSelectedSourceAcademicYear(e.target.value)}
-              >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Tahun Ajaran Asal">
+              <select className="input-std w-full" value={selectedSourceAcademicYear} onChange={(e) => setSelectedSourceAcademicYear(e.target.value)}>
                 <option value="">-- Pilih --</option>
                 {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}</option>)}
               </select>
-            </div>
-            <div className="bp-input-group">
-              <label>Pilih Kelas Asal</label>
-              <select
-                value={selectedSourceClass}
-                onChange={(e) => handleSourceClassChange(e.target.value)}
-              >
+            </FormField>
+            <FormField label="Kelas Asal">
+              <select className="input-std w-full" value={selectedSourceClass} onChange={(e) => handleSourceClassChange(e.target.value)}>
                 <option value="">-- Pilih Kelas --</option>
                 {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-            </div>
+            </FormField>
           </div>
         </div>
 
-        <div className="bp-filter-group">
-          <h3 style={{ color: 'var(--bp-primary)' }}>
-            <CheckSquare size={16} /> Tujuan (Naik Ke)
+        <div className="flex flex-col gap-5">
+          <h3 className="font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-2">
+            <CheckSquare size={18} className="text-emerald-500" /> Tujuan (Naik Ke)
           </h3>
-          <div className="bp-filter-row">
-            <div className="bp-input-group">
-              <label>Tahun Ajaran Baru</label>
-              <select
-                value={selectedTargetAcademicYear}
-                onChange={(e) => setSelectedTargetAcademicYear(e.target.value)}
-              >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField label="Tahun Ajaran Baru">
+              <select className="input-std w-full" value={selectedTargetAcademicYear} onChange={(e) => setSelectedTargetAcademicYear(e.target.value)}>
                 <option value="">-- Pilih --</option>
                 {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}</option>)}
               </select>
-            </div>
-            <div className="bp-input-group">
-              <label>Semester Baru</label>
-              <select
-                value={selectedTargetSemester}
-                onChange={(e) => setSelectedTargetSemester(e.target.value)}
-              >
+            </FormField>
+            <FormField label="Semester Baru">
+              <select className="input-std w-full" value={selectedTargetSemester} onChange={(e) => setSelectedTargetSemester(e.target.value)}>
                 <option value="">-- Pilih --</option>
                 {semesters
                   .filter(sem => !selectedTargetAcademicYear || sem.academicYearId === selectedTargetAcademicYear)
                   .map(sem => <option key={sem.id} value={sem.id}>{sem.name} ({sem.academicYear?.name || ''})</option>)}
               </select>
-            </div>
-            <div className="bp-input-group">
-              <label>Kelas Tujuan</label>
-              <select
-                value={selectedTargetClass}
-                onChange={(e) => setSelectedTargetClass(e.target.value)}
-              >
+            </FormField>
+            <FormField label="Kelas Tujuan">
+              <select className="input-std w-full" value={selectedTargetClass} onChange={(e) => setSelectedTargetClass(e.target.value)}>
                 <option value="">-- Pilih Kelas --</option>
-                {classes.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
+                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-            </div>
+            </FormField>
           </div>
         </div>
       </div>
 
       {/* Dual Pane Workspace */}
-      <div className="bp-workspace">
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-stretch mb-8 min-h-[500px]">
         {/* Source Pane */}
-        <div className="bp-pane">
-          <div className="bp-pane-header source">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full md:w-[45%]">
+          <div className="bg-gray-50 border-b border-gray-100 p-4 flex justify-between items-center">
             <div>
-              <div className="bp-pane-title">
+              <div className="font-bold text-gray-900 text-lg">
                 {classes.find(c => c.id === selectedSourceClass)?.name || 'Kelas Asal'}
               </div>
-              <div className="bp-pane-subtitle">Siswa belum diproses (Tetap tinggal)</div>
+              <div className="text-sm text-gray-500">Siswa belum diproses (Tetap tinggal)</div>
             </div>
-            <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
-              <div style={{ fontSize: '0.75rem', cursor: 'pointer', color: 'var(--bp-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}
+            <div className="flex items-center gap-4">
+              <div 
+                className="text-xs cursor-pointer text-gray-500 hover:text-indigo-600 font-medium flex items-center gap-1.5 transition-colors"
                 onClick={() => {
                   const allIds = new Set(sourceStudents.map(s => s.id.toString()));
                   if (checkedSourceIds.size === sourceStudents.length && sourceStudents.length > 0) {
@@ -312,19 +290,19 @@ export const BatchPromote: React.FC = () => {
                 }}>
                 <CheckSquare size={14} /> Pilih Semua
               </div>
-              <div className="bp-student-count">{sourceStudents.length}</div>
+              <div className="bg-gray-200 text-gray-700 px-2.5 py-1 rounded-lg text-xs font-bold">{sourceStudents.length}</div>
             </div>
           </div>
           
-          <div className="bp-student-list">
+          <div className="flex-1 overflow-y-auto p-3 bg-gray-50/50">
             {!selectedSourceClass ? (
-              <div className="bp-empty-state">
-                <TrendingUp size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12 text-sm">
+                <TrendingUp size={48} className="opacity-20 mb-4" />
                 Pilih Kelas Asal terlebih dahulu.
               </div>
             ) : sourceStudents.length === 0 ? (
-              <div className="bp-empty-state">
-                <CheckSquare size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12 text-sm">
+                <CheckSquare size={48} className="opacity-20 mb-4" />
                 Semua siswa sudah dipindahkan.
               </div>
             ) : (
@@ -338,17 +316,17 @@ export const BatchPromote: React.FC = () => {
                         toggleSourceSelection(student.id.toString());
                       }
                     }}
-                    className={`bp-student-item ${isSelected ? 'selected' : ''}`}
+                    className={`flex items-center gap-4 p-3 rounded-xl border transition-colors cursor-pointer mb-2 ${isSelected ? 'bg-indigo-50/50 border-indigo-200' : 'bg-white border-transparent hover:border-gray-200 shadow-sm'}`}
                   >
                     <input 
                       type="checkbox" 
-                      className="bp-student-checkbox"
+                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
                       checked={isSelected}
                       onChange={() => toggleSourceSelection(student.id.toString())}
                     />
-                    <div className="bp-student-info">
-                      <div className="bp-student-name">{student.fullName}</div>
-                      <div className="bp-student-nis">{student.nis || '-'}</div>
+                    <div>
+                      <div className="font-semibold text-gray-900">{student.fullName}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{student.nis || '-'}</div>
                     </div>
                   </div>
                 );
@@ -358,48 +336,44 @@ export const BatchPromote: React.FC = () => {
         </div>
 
         {/* Actions */}
-        <div className="bp-actions-area">
+        <div className="flex md:flex-col justify-center gap-4 py-4 md:py-0 w-full md:w-auto">
           <button 
-            className="bp-btn-move" 
+            className="w-12 h-12 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm border border-indigo-100" 
             title="Pindahkan ke Kelas Tujuan" 
             disabled={checkedSourceIds.size === 0 || !selectedTargetClass}
             onClick={moveRight}
           >
-            <ChevronRight size={24} />
+            <ChevronRight size={24} className="ml-0.5" />
           </button>
           <button 
-            className="bp-btn-move danger" 
+            className="w-12 h-12 flex items-center justify-center bg-red-50 text-red-600 rounded-full hover:bg-red-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm border border-red-100" 
             title="Kembalikan ke Kelas Asal" 
             disabled={checkedTargetIds.size === 0}
             onClick={moveLeft}
-            style={checkedTargetIds.size > 0 ? { color: 'var(--bp-danger)' } : {}}
           >
-            <ChevronLeft size={24} />
+            <ChevronLeft size={24} className="mr-0.5" />
           </button>
         </div>
 
         {/* Target Pane */}
-        <div className="bp-pane">
-          <div className="bp-pane-header target">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full md:w-[45%]">
+          <div className="bg-emerald-50/50 border-b border-emerald-100 p-4 flex justify-between items-center">
             <div>
-              <div className="bp-pane-title">
+              <div className="font-bold text-gray-900 text-lg">
                 {classes.find(c => c.id === selectedTargetClass)?.name || 'Kelas Tujuan'}
               </div>
-              <div className="bp-pane-subtitle">
+              <div className="text-sm text-gray-500">
                 Siswa yang akan naik kelas 
                 {targetCapacityInfo && targetCapacityInfo.capacity !== null && (
-                  <span style={{ 
-                    marginLeft: '8px', 
-                    color: (targetCapacityInfo.currentCount + promotedStudents.length) > targetCapacityInfo.capacity ? 'var(--bp-danger)' : 'var(--bp-text-muted)',
-                    fontWeight: (targetCapacityInfo.currentCount + promotedStudents.length) > targetCapacityInfo.capacity ? 'bold' : 'normal'
-                  }}>
+                  <span className={`ml-2 ${(targetCapacityInfo.currentCount + promotedStudents.length) > targetCapacityInfo.capacity ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
                     (Kapasitas: {targetCapacityInfo.currentCount + promotedStudents.length}/{targetCapacityInfo.capacity})
                   </span>
                 )}
               </div>
             </div>
-            <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
-              <div style={{ fontSize: '0.75rem', cursor: 'pointer', color: 'var(--bp-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}
+            <div className="flex items-center gap-4">
+              <div 
+                className="text-xs cursor-pointer text-gray-500 hover:text-emerald-600 font-medium flex items-center gap-1.5 transition-colors"
                 onClick={() => {
                   const allIds = new Set(promotedStudents.map(s => s.id.toString()));
                   if (checkedTargetIds.size === promotedStudents.length && promotedStudents.length > 0) {
@@ -410,19 +384,19 @@ export const BatchPromote: React.FC = () => {
                 }}>
                 <CheckSquare size={14} /> Pilih Semua
               </div>
-              <div className="bp-student-count">{promotedStudents.length}</div>
+              <div className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold">{promotedStudents.length}</div>
             </div>
           </div>
           
-          <div className="bp-student-list">
+          <div className="flex-1 overflow-y-auto p-3 bg-gray-50/50">
             {!selectedTargetClass ? (
-              <div className="bp-empty-state">
-                <CheckSquare size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12 text-sm">
+                <CheckSquare size={48} className="opacity-20 mb-4" />
                 Pilih Kelas Tujuan terlebih dahulu.
               </div>
             ) : promotedStudents.length === 0 ? (
-              <div className="bp-empty-state">
-                <ChevronRight size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12 text-sm">
+                <ChevronRight size={48} className="opacity-20 mb-4" />
                 Belum ada siswa yang dipindahkan.
               </div>
             ) : (
@@ -436,17 +410,17 @@ export const BatchPromote: React.FC = () => {
                         toggleTargetSelection(student.id.toString());
                       }
                     }}
-                    className={`bp-student-item moved ${isSelected ? 'selected' : ''}`}
+                    className={`flex items-center gap-4 p-3 rounded-xl border transition-colors cursor-pointer mb-2 ${isSelected ? 'bg-red-50/50 border-red-200' : 'bg-emerald-50 border-emerald-200 shadow-sm'}`}
                   >
                     <input 
                       type="checkbox" 
-                      className="bp-student-checkbox"
+                      className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
                       checked={isSelected}
                       onChange={() => toggleTargetSelection(student.id.toString())}
                     />
-                    <div className="bp-student-info">
-                      <div className="bp-student-name">{student.fullName}</div>
-                      <div className="bp-student-nis">{student.nis || '-'}</div>
+                    <div>
+                      <div className="font-semibold text-gray-900">{student.fullName}</div>
+                      <div className="text-xs text-emerald-700 mt-0.5 font-medium">{student.nis || '-'}</div>
                     </div>
                   </div>
                 );
@@ -457,18 +431,18 @@ export const BatchPromote: React.FC = () => {
       </div>
 
       {/* Action Bar Bottom */}
-      <div className="bp-action-bar">
-        <div className="bp-action-summary">
-          Total <strong>{sourceStudents.length + promotedStudents.length}</strong> siswa siap diproses.
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 flex justify-between items-center shadow-[0_8px_30px_rgba(0,0,0,0.08)] z-20 sticky bottom-6 mt-6">
+        <div className="text-gray-600">
+          Total <strong className="text-gray-900">{sourceStudents.length + promotedStudents.length}</strong> siswa siap diproses.
         </div>
-        <div className="bp-action-buttons">
-          <button className="bp-btn bp-btn-outline" onClick={() => navigate('/academic/promotions')}>Batal</button>
+        <div className="flex items-center gap-3">
+          <button className="btn-std-secondary" onClick={() => navigate('/academic/promotions')}>Batal</button>
           <button 
-            className="bp-btn bp-btn-primary" 
+            className="btn-std-primary" 
             onClick={handleBatchPromoteSubmit}
             disabled={sourceStudents.length === 0 && promotedStudents.length === 0}
           >
-            <TrendingUp size={16} />
+            <TrendingUp size={18} />
             Simpan Data Kenaikan
           </button>
         </div>

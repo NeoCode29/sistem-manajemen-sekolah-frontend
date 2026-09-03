@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { getUsers, createUser, updateUser, assignRolesToUser, getRoles, type User, type Role } from '../../api/rbacService';
-import { Plus, Users as UsersIcon, UserCheck, Edit } from 'lucide-react';
+import { Plus, Users as UsersIcon, UserCheck, Edit, Shield } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
-import '../Academic/Academic.css';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { DataTable, type Column } from '../../components/Common/DataTable';
+import { Modal } from '../../components/ui/Modal';
+import { FormField } from '../../components/ui/FormField';
+import { Badge } from '../../components/ui/Badge';
+import { Pagination } from '../../components/Common/Pagination';
 
 export const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -117,205 +121,152 @@ export const Users: React.FC = () => {
     }
   };
 
+  const currentUsers = users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const columns: Column<User>[] = [
+    { key: 'username', header: 'Username', render: (user) => (
+      <span className="font-semibold text-gray-900">{user.username}</span>
+    )},
+    { key: 'name', header: 'Nama Lengkap', render: (user) => (
+      <span className="font-medium text-gray-700">{user.name}</span>
+    )},
+    { key: 'status', header: 'Status', render: (user) => (
+      <Badge variant={user.isActive ? 'success' : 'default'}>
+        {user.isActive ? 'Aktif' : 'Nonaktif'}
+      </Badge>
+    )},
+    { key: 'roles', header: 'Peran (Roles)', render: (user) => (
+      <div className="flex flex-wrap gap-1">
+        {user.roles && user.roles.length > 0 ? (
+          user.roles.map(r => (
+            <span key={r.id} className="text-xs px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">
+              {r.name}
+            </span>
+          ))
+        ) : (
+          <span className="text-gray-400 text-xs italic">Belum ada peran</span>
+        )}
+      </div>
+    )},
+    { key: 'actions', header: 'Aksi', render: (user) => (
+      <div className="flex items-center gap-2 justify-end">
+        <button
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+          onClick={() => openAssignModal(user)}
+        >
+          <Shield size={14} /> Atur Peran
+        </button>
+        <button 
+          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          onClick={() => handleEdit(user)}
+          title="Edit"
+        >
+          <Edit size={16} />
+        </button>
+      </div>
+    )}
+  ];
+
   return (
-    <div className="academic-container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Pengguna (Users)</h1>
-          <p className="page-subtitle">Kelola akun pengguna dan peran (Role) mereka</p>
-        </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <PageHeader 
+          title="Pengguna (Users)" 
+          subtitle="Kelola akun pengguna dan peran (Role) mereka"
+        />
+        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => setShowModal(true)}>
           <Plus size={18} /> Tambah Akun
         </button>
       </div>
 
-      <div className="glass-panel">
-        {loading ? (
-          <div className="loading-state">Memuat data...</div>
-        ) : (
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Username</th>
-                  <th>Nama Lengkap</th>
-                  <th>Status</th>
-                  <th>Peran (Roles)</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-4 text-gray-500">Belum ada data.</td>
-                  </tr>
-                ) : (
-                  users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((user) => (
-                    <tr key={user.id}>
-                      <td className="font-semibold">{user.username}</td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <UsersIcon size={16} className="text-blue-600" />
-                          {user.name}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>
-                          {user.isActive ? 'Aktif' : 'Nonaktif'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex flex-wrap gap-1">
-                          {user.roles && user.roles.length > 0 ? (
-                            user.roles.map(r => (
-                              <span key={r.id} className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-600">
-                                {r.name}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-gray-400 text-sm italic">Belum ada peran</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex gap-2">
-                          <button
-                            className="btn-primary"
-                            style={{ padding: '6px 12px', fontSize: '0.85rem' }}
-                            onClick={() => openAssignModal(user)}
-                          >
-                            Atur Peran
-                          </button>
-                          <button 
-                            className="btn-icon text-blue-400 hover:bg-blue-400/10"
-                            onClick={() => handleEdit(user)}
-                            title="Edit"
-                          >
-                            <Edit size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 flex flex-col">
+        <DataTable 
+          containerClassName="w-full overflow-x-auto"
+          columns={columns}
+          data={currentUsers}
+          loading={loading}
+          emptyMessage="Belum ada data pengguna."
+        />
 
         {/* PAGINATION */}
         {!loading && users.length > itemsPerPage && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 0.5rem 0.25rem', borderTop: '1px solid var(--border-color, #e5e7eb)', marginTop: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-              Menampilkan {Math.min((currentPage - 1) * itemsPerPage + 1, users.length)}–{Math.min(currentPage * itemsPerPage, users.length)} dari {users.length} pengguna
-            </span>
-            <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
-              <button
-                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-                disabled={currentPage === 1}
-                style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color, #e5e7eb)', background: currentPage === 1 ? '#f3f4f6' : 'white', color: currentPage === 1 ? '#9ca3af' : '#374151', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 500 }}
-              >
-                ← Sebelumnya
-              </button>
-              {Array.from({ length: Math.ceil(users.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color, #e5e7eb)', background: currentPage === page ? 'var(--primary-color, #3b82f6)' : 'white', color: currentPage === page ? 'white' : '#374151', cursor: 'pointer', fontSize: '0.85rem', fontWeight: currentPage === page ? 700 : 400, minWidth: '36px' }}
-                >
-                  {page}
-                </button>
-              ))}
-              <button
-                onClick={() => setCurrentPage(p => Math.min(p + 1, Math.ceil(users.length / itemsPerPage)))}
-                disabled={currentPage === Math.ceil(users.length / itemsPerPage)}
-                style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color, #e5e7eb)', background: currentPage === Math.ceil(users.length / itemsPerPage) ? '#f3f4f6' : 'white', color: currentPage === Math.ceil(users.length / itemsPerPage) ? '#9ca3af' : '#374151', cursor: currentPage === Math.ceil(users.length / itemsPerPage) ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 500 }}
-              >
-                Selanjutnya →
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(users.length / itemsPerPage)}
+            onPageChange={setCurrentPage}
+            hasNextPage={currentPage < Math.ceil(users.length / itemsPerPage)}
+            itemsPerPage={itemsPerPage}
+            onItemsPerPageChange={() => {}}
+          />
         )}
       </div>
 
-      {showModal && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4">
-            <div className="modal-header-v4">
-              <h2>{isEditing ? 'Edit Akun Pengguna' : 'Tambah Akun Pengguna'}</h2>
-              <button type="button" className="btn-close" onClick={handleCloseModal}>&times;</button>
-            </div>
-            <form onSubmit={handleCreateUser} className="modal-form-v4">
-              <div className="modal-body-v4 form-grid">
-              <div className="form-group">
-                <label>Username <span className="text-red-500">*</span></label>
-                <input type="text" className="input-field" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Contoh: joko_guru" required />
-              </div>
-              <div className="form-group">
-                <label>Nama Lengkap <span className="text-red-500">*</span></label>
-                <input type="text" className="input-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Joko Anwar, S.Pd." required />
-              </div>
-              <div className="form-group">
-                <label>Password {isEditing ? '(Kosongkan jika tidak diubah)' : <span className="text-red-500">*</span>}</label>
-                <input type="password" className="input-field" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Minimal 8 karakter" required={!isEditing} />
-                <span className="text-xs text-gray-500 mt-1">Harus mengandung huruf besar, kecil, angka, dan karakter khusus.</span>
-              </div>
-              {isEditing && (
-                <div className="form-group checkbox-group">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-                    Akun Aktif (Dapat Login)
-                  </label>
-                </div>
-              )}
-              </div>
-              <div className="modal-footer-v4">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Batal</button>
-                <button type="submit" className="btn-primary">Simpan</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      , document.body)}
+      {/* CREATE/EDIT MODAL */}
+      <Modal
+        open={showModal}
+        onClose={handleCloseModal}
+        title={isEditing ? 'Edit Akun Pengguna' : 'Tambah Akun Pengguna'}
+      >
+        <form onSubmit={handleCreateUser} className="flex flex-col gap-5 p-6">
+          <FormField label="Username" required>
+            <input type="text" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Contoh: joko_guru" required />
+          </FormField>
+          
+          <FormField label="Nama Lengkap" required>
+            <input type="text" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Joko Anwar, S.Pd." required />
+          </FormField>
+          
+          <FormField label="Password" hint={isEditing ? '(Kosongkan jika tidak diubah)' : ''} required={!isEditing}>
+            <input type="password" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Minimal 8 karakter" required={!isEditing} />
+            <p className="text-xs text-gray-500 mt-1.5">Harus mengandung huruf besar, kecil, angka, dan karakter khusus.</p>
+          </FormField>
+          
+          {isEditing && (
+            <label className="flex items-center gap-3 cursor-pointer text-gray-700 bg-gray-50 p-4 rounded-xl border border-gray-200 mt-2">
+              <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+              <span className="text-sm font-medium">Akun Aktif (Dapat Login)</span>
+            </label>
+          )}
 
-      {showRoleModal && selectedUser && createPortal(
-        <div className="modal-backdrop-v4">
-          <div className="modal-content-v4 animate-fade-in" style={{ maxWidth: '500px' }}>
-            <div className="modal-header-v4">
-              <h2>Atur Peran: {selectedUser.name}</h2>
-              <button className="btn-close" onClick={() => setShowRoleModal(false)}>&times;</button>
-            </div>
-            <form onSubmit={handleAssignRoles} className="modal-form-v4">
-              <div className="modal-body-v4">
-              <p className="text-sm text-gray-500 mb-4">Pilih peran apa saja yang dimiliki oleh pengguna ini.</p>
-              
-              <div className="form-grid" style={{ gap: '1rem', maxHeight: '400px', overflowY: 'auto', padding: '0.5rem' }}>
-                {allRoles.map(role => (
-                  <label key={role.id} className="flex items-center gap-2 p-3 border rounded cursor-pointer hover:bg-blue-50">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedRoleIds.includes(Number(role.id))}
-                      onChange={() => toggleRole(role.id)}
-                      style={{ width: '18px', height: '18px' }}
-                    />
-                    <UserCheck size={18} className="text-blue-500" />
-                    <span className="font-medium text-gray-700">{role.name}</span>
-                  </label>
-                ))}
-              </div>
-              
-              </div>
-              
-              <div className="modal-footer-v4" style={{ marginTop: '1.5rem' }}>
-                <button type="button" className="btn-secondary" onClick={() => setShowRoleModal(false)}>Batal</button>
-                <button type="submit" className="btn-primary">Simpan Perubahan</button>
-              </div>
-            </form>
+          <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-gray-100">
+            <button type="button" className="px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-colors" onClick={handleCloseModal}>Batal</button>
+            <button type="submit" className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm">Simpan</button>
           </div>
-        </div>
-      ,
-        document.body
-      )}
+        </form>
+      </Modal>
+
+      {/* ASSIGN ROLE MODAL */}
+      <Modal
+        open={showRoleModal}
+        onClose={() => setShowRoleModal(false)}
+        title={`Atur Peran: ${selectedUser?.name || ''}`}
+      >
+        <form onSubmit={handleAssignRoles} className="flex flex-col gap-4 p-6">
+          <p className="text-sm text-gray-500 px-2">Pilih peran apa saja yang dimiliki oleh pengguna ini.</p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto p-2">
+            {allRoles.map(role => (
+              <label key={role.id} className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${selectedRoleIds.includes(Number(role.id)) ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                  checked={selectedRoleIds.includes(Number(role.id))}
+                  onChange={() => toggleRole(role.id)}
+                />
+                <div className="flex items-center gap-2">
+                  <UserCheck size={16} className={selectedRoleIds.includes(Number(role.id)) ? 'text-indigo-600' : 'text-gray-400'} />
+                  <span className={`text-sm font-medium ${selectedRoleIds.includes(Number(role.id)) ? 'text-indigo-900' : 'text-gray-700'}`}>{role.name}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+          
+          <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-gray-100">
+            <button type="button" className="px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-colors" onClick={() => setShowRoleModal(false)}>Batal</button>
+            <button type="submit" className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm">Simpan Perubahan</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

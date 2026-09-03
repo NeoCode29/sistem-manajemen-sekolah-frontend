@@ -9,7 +9,6 @@ import {
   getStudentsByClass, processPromotion, processGraduation, 
   type Student 
 } from '../../api/promotionGraduationService';
-import '../Academic/Academic.css';
 
 export const Promotions: React.FC = () => {
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -167,18 +166,18 @@ export const Promotions: React.FC = () => {
   );
 
   return (
-    <div className="academic-container">
-      <div className="page-header mb-6">
+    <div className="p-6 max-w-7xl mx-auto page-enter">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 mb-6">
         <div>
-          <h1 className="page-title"><Award className="text-emerald-600" /> Kenaikan & Kelulusan</h1>
-          <p className="page-subtitle">Kelola transisi siswa antar tahun ajaran dan status kelulusan</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight"><Award className="text-emerald-600" /> Kenaikan & Kelulusan</h1>
+          <p className="text-gray-500 mt-1">Kelola transisi siswa antar tahun ajaran dan status kelulusan</p>
         </div>
       </div>
 
       {success && <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl mb-6 shadow-sm border border-emerald-100 flex items-center gap-2 font-medium"><CheckCircle2 size={20} /> {success}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <div className="glass-panel p-5 lg:col-span-1">
+        <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-5 lg:col-span-1">
           <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <Search size={18} className="text-emerald-600" /> Filter Asal Siswa
           </h3>
@@ -186,7 +185,7 @@ export const Promotions: React.FC = () => {
             <div className="form-group">
               <label>Tahun Ajaran</label>
               <select 
-                className="input-field bg-gray-100 cursor-not-allowed opacity-70" 
+                className="input-std bg-gray-100 cursor-not-allowed opacity-70" 
                 value={sourceYear} 
                 onChange={e => setSourceYear(e.target.value)}
                 disabled
@@ -197,14 +196,14 @@ export const Promotions: React.FC = () => {
             </div>
             <div className="form-group">
               <label>Semester</label>
-              <select className="input-field" value={sourceSemester} onChange={e => setSourceSemester(e.target.value)}>
+              <select className="input-std" value={sourceSemester} onChange={e => setSourceSemester(e.target.value)}>
                 <option value="">Pilih Semester</option>
                 {semesters.map(s => <option key={s.id} value={s.id}>{s.name} {s.isActive ? '(Aktif)' : ''}</option>)}
               </select>
             </div>
             <div className="form-group">
               <label>Kelas/Rombel</label>
-              <select className="input-field" value={sourceClass} onChange={e => setSourceClass(e.target.value)}>
+              <select className="input-std" value={sourceClass} onChange={e => setSourceClass(e.target.value)}>
                 <option value="">Pilih Kelas</option>
                 {classrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -212,21 +211,21 @@ export const Promotions: React.FC = () => {
           </div>
         </div>
 
-        <div className="glass-panel p-6 lg:col-span-3">
+        <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-6 lg:col-span-3">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
             <div className="relative w-full md:w-64">
               <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
               <input 
                 type="text" 
                 placeholder="Cari nama atau NIS..." 
-                className="input-field pl-10"
+                className="input-std pl-10"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="flex gap-3">
               <button 
-                className="btn-secondary flex items-center gap-2"
+                className="btn-std-secondary flex items-center gap-2"
                 disabled={selectedStudentIds.length === 0}
                 onClick={() => setIsGraduateModalOpen(true)}
               >
@@ -234,7 +233,7 @@ export const Promotions: React.FC = () => {
                 Luluskan ({selectedStudentIds.length})
               </button>
               <button 
-                className="btn-primary flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                className="btn-std-primary flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
                 disabled={selectedStudentIds.length === 0}
                 onClick={() => setIsPromoteModalOpen(true)}
               >
@@ -244,8 +243,8 @@ export const Promotions: React.FC = () => {
             </div>
           </div>
 
-          <div className="table-responsive rounded-xl border border-gray-100 shadow-sm overflow-hidden bg-white">
-            <table className="data-table">
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden rounded-xl border border-gray-100 shadow-sm overflow-hidden bg-white">
+            <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-gray-50/80 backdrop-blur-sm border-b border-gray-200">
                 <tr>
                   <th className="w-12 text-center">
@@ -328,29 +327,29 @@ export const Promotions: React.FC = () => {
 
                 <div className="form-group">
                   <label>Tahun Ajaran Tujuan *</label>
-                  <select className="input-field" value={targetYear} onChange={e => setTargetYear(e.target.value)} required>
+                  <select className="input-std" value={targetYear} onChange={e => setTargetYear(e.target.value)} required>
                     <option value="">Pilih Tahun Ajaran</option>
                     {academicYears.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
                   <label>Semester Tujuan *</label>
-                  <select className="input-field" value={targetSemester} onChange={e => setTargetSemester(e.target.value)} required>
+                  <select className="input-std" value={targetSemester} onChange={e => setTargetSemester(e.target.value)} required>
                     <option value="">Pilih Semester</option>
                     {semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
                   <label>Kelas/Rombel Tujuan *</label>
-                  <select className="input-field" value={targetClass} onChange={e => setTargetClass(e.target.value)} required>
+                  <select className="input-std" value={targetClass} onChange={e => setTargetClass(e.target.value)} required>
                     <option value="">Pilih Kelas</option>
                     {classrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
               </div>
               <div className="modal-footer-v4">
-                <button type="button" onClick={() => setIsPromoteModalOpen(false)} className="btn-secondary">Batal</button>
-                <button type="submit" className="btn-primary" disabled={submitting}>
+                <button type="button" onClick={() => setIsPromoteModalOpen(false)} className="btn-std-secondary">Batal</button>
+                <button type="submit" className="btn-std-primary" disabled={submitting}>
                   {submitting ? 'Memproses...' : 'Proses Kenaikan Kelas'}
                 </button>
               </div>
@@ -381,7 +380,7 @@ export const Promotions: React.FC = () => {
                   <label>Tanggal Kelulusan *</label>
                   <input 
                     type="date" 
-                    className="input-field" 
+                    className="input-std" 
                     value={graduationDate} 
                     onChange={e => setGraduationDate(e.target.value)} 
                     required 
@@ -391,7 +390,7 @@ export const Promotions: React.FC = () => {
                 <div className="form-group">
                   <label>Catatan Kelulusan / No. SK (Opsional)</label>
                   <textarea 
-                    className="input-field" 
+                    className="input-std" 
                     rows={3}
                     value={graduationNotes} 
                     onChange={e => setGraduationNotes(e.target.value)} 
@@ -400,8 +399,8 @@ export const Promotions: React.FC = () => {
                 </div>
               </div>
               <div className="modal-footer-v4">
-                <button type="button" onClick={() => setIsGraduateModalOpen(false)} className="btn-secondary">Batal</button>
-                <button type="submit" className="btn-primary" style={{ background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)' }} disabled={submitting}>
+                <button type="button" onClick={() => setIsGraduateModalOpen(false)} className="btn-std-secondary">Batal</button>
+                <button type="submit" className="btn-std-primary" style={{ background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)' }} disabled={submitting}>
                   {submitting ? 'Memproses...' : 'Proses Kelulusan'}
                 </button>
               </div>
