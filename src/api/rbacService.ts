@@ -43,6 +43,11 @@ export const createRole = async (data: { name: string; guardName: string }) => {
   return response.data;
 };
 
+export const deleteRole = async (id: number | string) => {
+  const response = await api.delete(`/roles/${id}`);
+  return response.data;
+};
+
 export const assignPermissionsToRole = async (roleId: number | string, permissionIds: number[]) => {
   const response = await api.put(`/roles/${roleId}/permissions`, { permissionIds });
   return response.data;

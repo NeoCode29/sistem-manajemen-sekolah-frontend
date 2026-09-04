@@ -59,8 +59,8 @@ export const IdentityRegistration: React.FC = () => {
 
   const openModal = (person: any) => {
     setSelectedPerson(person);
-    setRfidTag(person.rfidTag || '');
-    setFingerprintId(person.fingerprintId || '');
+    setRfidTag(person.cardId || '');
+    setFingerprintId(person.fingerId || '');
     setIsModalOpen(true);
     setIsListening(false);
   };
@@ -77,12 +77,12 @@ export const IdentityRegistration: React.FC = () => {
       try {
         const scansRes = await getRecentScans();
         const scans = Array.isArray(scansRes) ? scansRes : (scansRes.data || []);
-        const latestUnregistered = scans.find((s: any) => s.status === 'UNREGISTERED');
+        const latestUnregistered = scans.find((s: any) => s.status === 'UNREGISTERED' || s.status === 'REGISTER_MODE');
         if (latestUnregistered) {
-          if (latestUnregistered.scanType === 'RFID') {
-            setRfidTag(latestUnregistered.identityValue);
-          } else if (latestUnregistered.scanType === 'FINGERPRINT') {
-            setFingerprintId(latestUnregistered.identityValue);
+          if (latestUnregistered.scanType === 'CARD') {
+            setRfidTag(latestUnregistered.scanValue);
+          } else if (latestUnregistered.scanType === 'FINGER') {
+            setFingerprintId(latestUnregistered.scanValue);
           }
           stopListening();
         }
@@ -105,7 +105,10 @@ export const IdentityRegistration: React.FC = () => {
     e.preventDefault();
     if (!selectedPerson) return;
 
-    const payload = { rfidTag, fingerprintId };
+    const payload = { 
+      cardId: rfidTag || null, 
+      fingerId: fingerprintId || null 
+    };
 
     try {
       if (activeTab === 'STUDENT') {
@@ -191,7 +194,7 @@ export const IdentityRegistration: React.FC = () => {
                   </p>
                   
                   <div className="mt-auto pt-4 border-t border-gray-100 flex gap-2">
-                    {person.rfidTag ? (
+                    {person.cardId ? (
                       <span className="text-[10px] font-semibold px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-200 flex items-center gap-1.5 flex-1 justify-center">
                         <Smartphone size={12} /> Terdaftar
                       </span>
@@ -201,7 +204,7 @@ export const IdentityRegistration: React.FC = () => {
                       </span>
                     )}
                     
-                    {person.fingerprintId ? (
+                    {person.fingerId ? (
                       <span className="text-[10px] font-semibold px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-200 flex items-center gap-1.5 flex-1 justify-center">
                         <Fingerprint size={12} /> Terdaftar
                       </span>

@@ -1,35 +1,20 @@
 import api from './axios';
 
 export interface RegisterIdentityDto {
-  rfidTag?: string;
-  fingerprintId?: string;
-  faceId?: string;
+  cardId?: string | null;
+  fingerId?: string | null;
 }
 
 export interface HardwareLog {
   id: string;
-  deviceId: string;
+  deviceId?: string;
   scanType: string;
-  identityValue: string;
-  scanTimestamp: string;
-  status: string; // MATCHED, UNREGISTERED
-  matchedUserType?: string; // STUDENT, EMPLOYEE
-  matchedUserId?: string;
-  errorMessage?: string;
+  scanValue: string;
+  status: string;
+  attendableType?: string;
+  attendableId?: string;
+  message?: string;
   createdAt: string;
-  student?: {
-    id: string;
-    name: string;
-    nis: string;
-    class?: {
-      name: string;
-    }
-  };
-  employee?: {
-    id: string;
-    name: string;
-    nip: string;
-  };
 }
 
 export const registerStudentIdentity = async (studentId: string, data: RegisterIdentityDto) => {

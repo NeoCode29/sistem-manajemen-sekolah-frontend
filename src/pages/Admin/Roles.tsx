@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { getRoles, createRole, assignPermissionsToRole, getPermissions, type Role, type Permission } from '../../api/rbacService';
-import { Plus, UserCheck, Shield } from 'lucide-react';
+import { getRoles, createRole, deleteRole, assignPermissionsToRole, getPermissions, type Role, type Permission } from '../../api/rbacService';
+import { Plus, UserCheck, Shield, Trash2 } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable, type Column } from '../../components/Common/DataTable';
@@ -52,9 +52,26 @@ export const Roles: React.FC = () => {
       setName('');
       setGuardName('jwt');
       fetchData();
+      showAlert('Peran berhasil ditambahkan', 'Berhasil');
     } catch (error: any) {
       showAlert(error.response?.data?.message || 'Failed to create role', 'Gagal');
     }
+  };
+
+  const handleDeleteRole = async (role: Role) => {
+    showConfirm(
+      'Hapus Peran',
+      `Apakah Anda yakin ingin menghapus peran "${role.name}"?`,
+      async () => {
+        try {
+          await deleteRole(role.id);
+          fetchData();
+          showAlert('Peran berhasil dihapus', 'Berhasil');
+        } catch (error: any) {
+          showAlert(error.response?.data?.message || 'Gagal menghapus peran', 'Gagal');
+        }
+      }
+    );
   };
 
   const openAssignModal = (role: Role) => {
@@ -106,16 +123,36 @@ export const Roles: React.FC = () => {
         )}
       </div>
     )},
-    { key: 'actions', header: 'Aksi', render: (role) => (
-      <div className="flex justify-end">
-        <button
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-          onClick={() => openAssignModal(role)}
-        >
-          <Shield size={14} /> Atur Izin
-        </button>
-      </div>
-    )}
+    { key: 'actions', header: 'Aksi', render: (role) => {
+      const SYSTEM_ROLES = [
+        'Super Admin',
+        'Admin Sekolah',
+        'Kepala Sekolah',
+        'Guru / Wali Kelas',
+        'Siswa',
+        'Orang Tua / Wali'
+      ];
+      const isSystemRole = SYSTEM_ROLES.includes(role.name);
+
+      return (
+        <div className="flex justify-end gap-2">
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+            onClick={() => openAssignModal(role)}
+          >
+            <Shield size={14} /> Atur Izin
+          </button>
+          {!isSystemRole && (
+            <button
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+              onClick={() => handleDeleteRole(role)}
+            >
+              <Trash2 size={14} /> Hapus
+            </button>
+          )}
+        </div>
+      );
+    }}
   ];
 
   return (
