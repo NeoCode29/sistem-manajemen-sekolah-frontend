@@ -7,7 +7,7 @@ import { getHomeroomByTeacher, getAcademicYears, getSemesters } from '../../api/
 export const HomeroomDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(false);
   const [classroom, setClassroom] = useState<any>(null);
 
@@ -17,17 +17,17 @@ export const HomeroomDashboard: React.FC = () => {
         setLoading(false);
         return;
       }
-      
+
       setLoading(true);
       try {
         const [years, semesters] = await Promise.all([
           getAcademicYears(),
           getSemesters()
         ]);
-        
+
         const activeAy = years.find((y: any) => y.isActive);
         const activeSm = semesters.find((s: any) => s.isActive);
-        
+
         if (activeAy && activeSm) {
           const myRoom = await getHomeroomByTeacher(user.employeeId, activeAy.id, activeSm.id);
           setClassroom(myRoom);
@@ -58,7 +58,7 @@ export const HomeroomDashboard: React.FC = () => {
       ) : classroom ? (
         <>
           <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 mb-6 p-6 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-blue-200">
-            <h2 className="text-xl font-bold text-gray-800 mb-2">Kelas Binaan: {classroom.name}</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">Kelas Diampu: {classroom.name}</h2>
             <p className="text-gray-600">
               Tahun Ajaran: {classroom.academicYear} | Semester: {classroom.semester}
             </p>
@@ -113,21 +113,21 @@ export const HomeroomDashboard: React.FC = () => {
                 Aksi Cepat
               </h3>
               <div className="space-y-3">
-                <button 
+                <button
                   onClick={() => navigate(`/academic/classrooms/${classroom.id}`)}
                   className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-primary transition-colors flex justify-between items-center"
                 >
                   <span className="font-medium text-gray-700">Lihat Daftar Siswa</span>
                   <Users size={16} className="text-gray-400" />
                 </button>
-                <button 
+                <button
                   onClick={() => navigate('/student-affairs/violations')}
                   className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-primary transition-colors flex justify-between items-center"
                 >
                   <span className="font-medium text-gray-700">Catat Pelanggaran Siswa</span>
                   <AlertOctagon size={16} className="text-gray-400" />
                 </button>
-                <button 
+                <button
                   onClick={() => navigate('/assessment/report-cards')}
                   className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-primary transition-colors flex justify-between items-center"
                 >
@@ -162,7 +162,7 @@ export const HomeroomDashboard: React.FC = () => {
           <div className="text-gray-400 mb-4 flex justify-center">
             <Users size={48} />
           </div>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">Belum Ada Kelas Binaan</h3>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">Belum Ada Kelas Diampu</h3>
           <p className="text-gray-500">
             Anda belum ditugaskan sebagai wali kelas pada tahun ajaran & semester aktif ini.
             Silakan hubungi administrator jika ini adalah sebuah kesalahan.
