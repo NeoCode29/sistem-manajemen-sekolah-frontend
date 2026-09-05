@@ -126,10 +126,6 @@ export const SchoolProfilePage: React.FC = () => {
               
               {/* Actions */}
               <div className="flex gap-3 pb-2 w-full md:w-auto md:pt-20">
-                <button type="button" onClick={downloadTemplate} className="btn-std-secondary flex-1 md:flex-none justify-center" disabled={downloading}>
-                  <Download size={18} />
-                  {downloading ? 'Mengunduh...' : 'Kop Surat'}
-                </button>
                 <button type="submit" className="btn-std-primary flex-1 md:flex-none justify-center" disabled={saving}>
                   <Save size={18} />
                   {saving ? 'Menyimpan...' : 'Simpan'}
@@ -219,22 +215,6 @@ export const SchoolProfilePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Kop Surat & Cetakan */}
-              <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-100">
-                <div className="flex items-center gap-4 mb-6 pb-4 border-b border-gray-200/60">
-                  <div className="p-2.5 bg-purple-100 text-purple-700 rounded-lg">
-                    <FileText size={22} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-900">Kop Surat & Cetakan</h3>
-                    <p className="text-sm text-gray-500 mt-0.5">Pengaturan teks untuk cetakan rapor dan surat resmi</p>
-                  </div>
-                </div>
-                
-                <FormField label="Teks Header Kop Surat" hint="Teks ini otomatis dicetak rata tengah (center) pada kop surat PDF. Kosongkan jika menggunakan sistem bawaan.">
-                  <textarea className="input-std resize-none w-full min-h-[140px]" name="headerText" value={profile.headerText || ''} onChange={handleChange} placeholder={"PEMERINTAH KABUPATEN TASIKMALAYA\nDINAS PENDIDIKAN\nYAYASAN BINA UMMAT AL-QOMARIYAH\nSMK YASBU AL-QOMARIYAH"}></textarea>
-                </FormField>
-              </div>
             </div>
           </form>
         )}

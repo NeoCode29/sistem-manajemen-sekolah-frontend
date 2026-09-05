@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, HelpCircle, X, Info } from 'lucide-react';
@@ -33,6 +33,17 @@ export const useDialog = () => {
 export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [dialog, setDialog] = useState<DialogOptions | null>(null);
   const [inputValue, setInputValue] = useState('');
+
+  useEffect(() => {
+    const handleGlobalAlert = (e: any) => {
+      const { title, message } = e.detail;
+      setTimeout(() => {
+        setDialog({ type: 'alert', title, message });
+      }, 100);
+    };
+    window.addEventListener('global-alert', handleGlobalAlert);
+    return () => window.removeEventListener('global-alert', handleGlobalAlert);
+  }, []);
 
   const showAlert = (message: string, title = 'Perhatian') => {
     setDialog({ type: 'alert', message, title });

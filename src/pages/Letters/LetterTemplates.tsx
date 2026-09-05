@@ -70,11 +70,7 @@ export const LetterTemplates: React.FC = () => {
       setProfileSaving(true);
       await updateSchoolProfile({
         code: profile.code || 'SCH001',
-        name: profile.name,
-        address: profile.address,
-        phone: profile.phone,
-        email: profile.email,
-        website: profile.website,
+        headerText: profile.headerText,
       });
 
       if (logoFile) {
@@ -279,16 +275,6 @@ export const LetterTemplates: React.FC = () => {
             
             <form onSubmit={handleProfileSubmit} className="flex flex-col gap-6 p-6 md:p-8 max-w-4xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField label="Nama Sekolah" required>
-                  <input
-                    type="text"
-                    name="name"
-                    value={profile.name || ''}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-gray-900"
-                    required
-                  />
-                </FormField>
                 <FormField label="Logo Sekolah (PNG/JPG)">
                   <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-xl border border-gray-200">
                     {profile.logoUrl && !logoFile && (
@@ -306,48 +292,15 @@ export const LetterTemplates: React.FC = () => {
                 </FormField>
               </div>
 
-              <FormField label="Alamat Lengkap">
+              <FormField label="Teks Header Kop Surat" hint="Teks ini otomatis dicetak rata tengah (center) pada kop surat PDF. Kosongkan jika menggunakan sistem bawaan.">
                 <textarea
-                  name="address"
-                  value={profile.address || ''}
+                  name="headerText"
+                  value={profile.headerText || ''}
                   onChange={handleProfileChange}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900"
-                  rows={2}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900 min-h-[140px] resize-none"
+                  placeholder={"PEMERINTAH KABUPATEN TASIKMALAYA\nDINAS PENDIDIKAN\nYAYASAN BINA UMMAT AL-QOMARIYAH\nSMK YASBU AL-QOMARIYAH"}
                 />
               </FormField>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField label="Telepon / Fax">
-                  <input
-                    type="text"
-                    name="phone"
-                    value={profile.phone || ''}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900"
-                  />
-                </FormField>
-                <FormField label="Email">
-                  <input
-                    type="email"
-                    name="email"
-                    value={profile.email || ''}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900"
-                  />
-                </FormField>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField label="Website">
-                  <input
-                    type="text"
-                    name="website"
-                    value={profile.website || ''}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-blue-600 font-medium"
-                  />
-                </FormField>
-              </div>
 
               <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row gap-3 mt-4">
                 <button type="submit" className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm w-full sm:w-auto" disabled={profileSaving}>

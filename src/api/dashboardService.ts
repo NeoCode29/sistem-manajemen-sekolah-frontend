@@ -16,6 +16,11 @@ export interface DashboardSummary {
     sickLeave: number;
     absent: number;
   };
+  employeeAttendance: {
+    present: number;
+    sickLeave: number;
+    absent: number;
+  };
   classesWithoutAttendance: number;
   absentEmployees: number;
   recentActivities: {

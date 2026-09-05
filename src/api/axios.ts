@@ -39,6 +39,15 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
+    if (error.response?.status === 409 && error.response?.data?.code === 'FOREIGN_KEY_CONSTRAINT') {
+      window.dispatchEvent(new CustomEvent('global-alert', { 
+        detail: { 
+          title: 'Aksi Ditolak', 
+          message: error.response.data.error || 'Data masih terikat dengan data lain.'
+        } 
+      }));
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== '/auth/login' && originalRequest.url !== '/auth/refresh') {
       if (isRefreshing) {
         return new Promise(function(resolve, reject) {

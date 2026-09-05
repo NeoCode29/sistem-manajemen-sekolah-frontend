@@ -46,11 +46,22 @@ export const Dashboard: React.FC = () => {
     return <div className="p-8 text-center text-gray-500 font-medium">Memuat dashboard...</div>;
   }
 
-  // Calculate attendance percentages
-  const totalAttendance = summary.attendance.present + summary.attendance.sickLeave + summary.attendance.absent;
-  const presentPct = totalAttendance > 0 ? Math.round((summary.attendance.present / totalAttendance) * 100) : 0;
-  const sickPct = totalAttendance > 0 ? Math.round((summary.attendance.sickLeave / totalAttendance) * 100) : 0;
-  const absentPct = totalAttendance > 0 ? Math.round((summary.attendance.absent / totalAttendance) * 100) : 0;
+  // Hitung jumlah yang belum absen
+  const unrecordedStudents = Math.max(0, summary.totalStudents - summary.attendance.present - summary.attendance.sickLeave - summary.attendance.absent);
+  const unrecordedEmployees = Math.max(0, summary.totalEmployees - summary.employeeAttendance.present - summary.employeeAttendance.sickLeave - summary.employeeAttendance.absent);
+
+  // Calculate attendance percentages dari total keseluruhan
+  const totalStudents = summary.totalStudents;
+  const presentPct = totalStudents > 0 ? Math.round((summary.attendance.present / totalStudents) * 100) : 0;
+  const sickPct = totalStudents > 0 ? Math.round((summary.attendance.sickLeave / totalStudents) * 100) : 0;
+  const absentPct = totalStudents > 0 ? Math.round((summary.attendance.absent / totalStudents) * 100) : 0;
+  const unrecordedPct = totalStudents > 0 ? Math.round((unrecordedStudents / totalStudents) * 100) : 0;
+
+  const totalEmployees = summary.totalEmployees;
+  const empPresentPct = totalEmployees > 0 ? Math.round((summary.employeeAttendance.present / totalEmployees) * 100) : 0;
+  const empSickPct = totalEmployees > 0 ? Math.round((summary.employeeAttendance.sickLeave / totalEmployees) * 100) : 0;
+  const empAbsentPct = totalEmployees > 0 ? Math.round((summary.employeeAttendance.absent / totalEmployees) * 100) : 0;
+  const empUnrecordedPct = totalEmployees > 0 ? Math.round((unrecordedEmployees / totalEmployees) * 100) : 0;
 
   // Cek apakah user adalah Guru, Staf, Kepala Sekolah (yang bisa absen)
   const isEmployee = user?.roles?.some(r => ['Guru / Wali Kelas', 'Staf', 'Kepala Sekolah'].includes(r.name));
@@ -159,53 +170,107 @@ export const Dashboard: React.FC = () => {
             <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">Detail Laporan</a>
           </div>
           
-          <div className="p-6 flex flex-col sm:flex-row items-center gap-8 lg:gap-12 flex-1">
-            {/* Donut Chart Mock */}
-            <div className="relative w-40 h-40 rounded-full flex items-center justify-center flex-shrink-0 shrink-0" 
-                 style={{ 
-                   border: '24px solid #f3f4f6', 
-                   borderTopColor: presentPct > 0 ? '#3b82f6' : '#f3f4f6', 
-                   borderRightColor: presentPct > 25 ? '#3b82f6' : '#f3f4f6', 
-                   borderBottomColor: presentPct > 50 ? '#3b82f6' : '#f3f4f6', 
-                   borderLeftColor: presentPct > 75 ? '#3b82f6' : '#f3f4f6' 
-                 }}>
-              <div className="text-center">
-                <div className="text-3xl font-extrabold text-gray-900">{presentPct}%</div>
-                <div className="text-xs font-medium text-gray-500 mt-1">Kehadiran</div>
-              </div>
-            </div>
-            
-            <div className="flex-1 flex flex-col gap-4 w-full">
-              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span> 
-                  <span className="text-sm font-medium text-gray-700">Hadir</span>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 flex-1">
+            {/* Absensi Siswa */}
+            <div className="flex flex-col items-center gap-6 bg-white border border-gray-50 rounded-2xl p-4 xl:p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="relative w-32 h-32 xl:w-40 xl:h-40 rounded-full flex items-center justify-center flex-shrink-0 mt-2" 
+                   style={{ 
+                     border: '16px solid #f3f4f6', 
+                     borderTopColor: presentPct > 0 ? '#3b82f6' : '#f3f4f6', 
+                     borderRightColor: presentPct > 25 ? '#3b82f6' : '#f3f4f6', 
+                     borderBottomColor: presentPct > 50 ? '#3b82f6' : '#f3f4f6', 
+                     borderLeftColor: presentPct > 75 ? '#3b82f6' : '#f3f4f6' 
+                   }}>
+                <div className="text-center">
+                  <div className="text-2xl xl:text-3xl font-extrabold text-gray-900">{presentPct}%</div>
+                  <div className="text-[10px] xl:text-xs font-bold text-gray-500 mt-1 uppercase">Siswa</div>
                 </div>
-                <div className="text-sm font-bold text-gray-900">{summary.attendance.present.toLocaleString()} Siswa <span className="text-gray-400 font-normal ml-1">({presentPct}%)</span></div>
-              </div>
-              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span> 
-                  <span className="text-sm font-medium text-gray-700">Izin/Sakit</span>
-                </div>
-                <div className="text-sm font-bold text-gray-900">{summary.attendance.sickLeave.toLocaleString()} Siswa <span className="text-gray-400 font-normal ml-1">({sickPct}%)</span></div>
-              </div>
-              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span> 
-                  <span className="text-sm font-medium text-gray-700">Alpa</span>
-                </div>
-                <div className="text-sm font-bold text-gray-900">{summary.attendance.absent.toLocaleString()} Siswa <span className="text-gray-400 font-normal ml-1">({absentPct}%)</span></div>
               </div>
               
-              <div className="flex gap-4 mt-2">
-                <div className="border border-gray-100 bg-gray-50/50 p-4 rounded-xl flex-1 text-center">
-                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">BELUM ABSENSI</div>
-                  <div className="text-xl font-extrabold text-red-500">{summary.classesWithoutAttendance.toLocaleString()} Kelas</div>
+              <div className="flex-1 flex flex-col gap-2 w-full min-w-0">
+                <div className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 transition-colors gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0"></span> 
+                    <span className="text-sm font-medium text-gray-700">Hadir</span>
+                  </div>
+                  <div className="text-sm font-bold text-gray-900 truncate">{summary.attendance.present.toLocaleString()} <span className="text-gray-400 font-normal ml-0.5">({presentPct}%)</span></div>
                 </div>
-                <div className="border border-gray-100 bg-gray-50/50 p-4 rounded-xl flex-1 text-center">
-                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">GURU ABSEN</div>
-                  <div className="text-xl font-extrabold text-blue-600">{summary.absentEmployees.toLocaleString()} Orang</div>
+                <div className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 transition-colors gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span> 
+                    <span className="text-sm font-medium text-gray-700">Izin/Sakit</span>
+                  </div>
+                  <div className="text-sm font-bold text-gray-900 truncate">{summary.attendance.sickLeave.toLocaleString()} <span className="text-gray-400 font-normal ml-0.5">({sickPct}%)</span></div>
+                </div>
+                <div className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 transition-colors gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0"></span> 
+                    <span className="text-sm font-medium text-gray-700">Alpa</span>
+                  </div>
+                  <div className="text-sm font-bold text-gray-900 truncate">{summary.attendance.absent.toLocaleString()} <span className="text-gray-400 font-normal ml-0.5">({absentPct}%)</span></div>
+                </div>
+                <div className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 transition-colors gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-gray-400 shrink-0"></span> 
+                    <span className="text-sm font-medium text-gray-700">Belum Absen</span>
+                  </div>
+                  <div className="text-sm font-bold text-gray-900 truncate">{unrecordedStudents.toLocaleString()} <span className="text-gray-400 font-normal ml-0.5">({unrecordedPct}%)</span></div>
+                </div>
+                <div className="border border-gray-100 bg-gray-50/50 p-2.5 rounded-xl mt-1 text-center w-full">
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">KELAS BELUM ABSENSI</div>
+                  <div className="text-lg font-extrabold text-red-500">{summary.classesWithoutAttendance.toLocaleString()} Kelas</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Absensi Guru */}
+            <div className="flex flex-col items-center gap-6 bg-white border border-gray-50 rounded-2xl p-4 xl:p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="relative w-32 h-32 xl:w-40 xl:h-40 rounded-full flex items-center justify-center flex-shrink-0 mt-2" 
+                   style={{ 
+                     border: '16px solid #f3f4f6', 
+                     borderTopColor: empPresentPct > 0 ? '#8b5cf6' : '#f3f4f6', 
+                     borderRightColor: empPresentPct > 25 ? '#8b5cf6' : '#f3f4f6', 
+                     borderBottomColor: empPresentPct > 50 ? '#8b5cf6' : '#f3f4f6', 
+                     borderLeftColor: empPresentPct > 75 ? '#8b5cf6' : '#f3f4f6' 
+                   }}>
+                <div className="text-center">
+                  <div className="text-2xl xl:text-3xl font-extrabold text-gray-900">{empPresentPct}%</div>
+                  <div className="text-[10px] xl:text-xs font-bold text-gray-500 mt-1 uppercase">Guru</div>
+                </div>
+              </div>
+              
+              <div className="flex-1 flex flex-col gap-2 w-full min-w-0">
+                <div className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 transition-colors gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-purple-600 shrink-0"></span> 
+                    <span className="text-sm font-medium text-gray-700">Hadir</span>
+                  </div>
+                  <div className="text-sm font-bold text-gray-900 truncate">{summary.employeeAttendance.present.toLocaleString()} <span className="text-gray-400 font-normal ml-0.5">({empPresentPct}%)</span></div>
+                </div>
+                <div className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 transition-colors gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span> 
+                    <span className="text-sm font-medium text-gray-700">Izin/Sakit</span>
+                  </div>
+                  <div className="text-sm font-bold text-gray-900 truncate">{summary.employeeAttendance.sickLeave.toLocaleString()} <span className="text-gray-400 font-normal ml-0.5">({empSickPct}%)</span></div>
+                </div>
+                <div className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 transition-colors gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0"></span> 
+                    <span className="text-sm font-medium text-gray-700">Alpa</span>
+                  </div>
+                  <div className="text-sm font-bold text-gray-900 truncate">{summary.employeeAttendance.absent.toLocaleString()} <span className="text-gray-400 font-normal ml-0.5">({empAbsentPct}%)</span></div>
+                </div>
+                <div className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 transition-colors gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-gray-400 shrink-0"></span> 
+                    <span className="text-sm font-medium text-gray-700">Belum Absen</span>
+                  </div>
+                  <div className="text-sm font-bold text-gray-900 truncate">{unrecordedEmployees.toLocaleString()} <span className="text-gray-400 font-normal ml-0.5">({empUnrecordedPct}%)</span></div>
+                </div>
+                <div className="border border-gray-100 bg-gray-50/50 p-2.5 rounded-xl mt-1 text-center w-full">
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">GURU ABSEN (ALPA)</div>
+                  <div className="text-lg font-extrabold text-purple-600">{summary.employeeAttendance.absent.toLocaleString()} Orang</div>
                 </div>
               </div>
             </div>

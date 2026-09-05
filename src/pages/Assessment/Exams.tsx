@@ -252,7 +252,7 @@ export const Exams: React.FC = () => {
       render: (row) => (
         <div className="flex justify-end items-center gap-2">
           <Link 
-            to={`/academic/assessment/exams/${row.id}/scores`}
+            to={`/assessment/exams/${row.id}/scores`}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-100"
           >
             Input Nilai
