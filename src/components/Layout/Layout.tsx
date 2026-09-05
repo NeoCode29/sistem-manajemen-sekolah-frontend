@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, Navigate } from 'react-router-dom';
 import { Sidebar } from '../Sidebar/Sidebar';
-import { Search, Bell, HelpCircle } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getAcademicYears, getSemesters, type AcademicYear, type Semester } from '../../api/academicService';
 
@@ -79,13 +79,7 @@ export const Layout: React.FC = () => {
                 TA {activeAy.name} - {activeSem.name}
               </div>
             )}
-            <div style={{ position: 'relative', cursor: 'pointer' }}>
-              <Bell size={20} color="#6b7280" />
-              <span style={{ position: 'absolute', top: '-2px', right: '-2px', width: '8px', height: '8px', backgroundColor: '#ef4444', borderRadius: '50%', border: '2px solid white' }}></span>
-            </div>
-            <div style={{ cursor: 'pointer' }}>
-              <HelpCircle size={20} color="#6b7280" />
-            </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingLeft: '1.5rem', borderLeft: '1px solid #e5e7eb' }}>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.875rem' }}>{user?.name || 'Admin Utama'}</div>

@@ -82,8 +82,8 @@ export const AcademicYears: React.FC = () => {
   const columns: Column<AcademicYear>[] = [
     { key: 'name', header: 'Nama', render: (row) => <span className="font-semibold">{row.name}</span> },
     { key: 'status', header: 'Status', render: (row) => (
-      <Badge variant={row.isActive ? 'success' : 'secondary'}>
-        {row.isActive ? 'Aktif' : 'Tidak Aktif'}
+      <Badge variant={row.isActive ? 'success' : 'default'}>
+        {row.isActive ? 'Aktif' : 'Nonaktif'}
       </Badge>
     )},
     { key: 'actions', header: 'Aksi', render: (row) => (

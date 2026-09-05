@@ -15,6 +15,12 @@ export interface HardwareLog {
   attendableId?: string;
   message?: string;
   createdAt: string;
+  scanTimestamp?: string;
+  identityValue?: string;
+  errorMessage?: string;
+  matchedUserType?: string;
+  student?: any;
+  employee?: any;
 }
 
 export const registerStudentIdentity = async (studentId: string, data: RegisterIdentityDto) => {

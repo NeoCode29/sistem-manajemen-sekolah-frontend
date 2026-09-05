@@ -7,6 +7,7 @@ import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
+import { Pagination } from '../../components/Common/Pagination';
 
 interface ExamForm {
   academicYearId: string;
@@ -59,6 +60,10 @@ export const Exams: React.FC = () => {
   const [form, setForm] = useState<ExamForm>(DEFAULT_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalClassrooms, setModalClassrooms] = useState<Classroom[]>([]);
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchDependencies();
@@ -73,18 +78,20 @@ export const Exams: React.FC = () => {
   }, [form.gradeId]);
 
   useEffect(() => {
+    setCurrentPage(1);
     fetchExams();
   }, [filterAcademicYearId, filterSemesterId, search]);
 
   const fetchDependencies = async () => {
     try {
-      const [ayData, semData, grData, subjData, typesData, compData] = await Promise.all([
+      const [ayData, semData, grData, subjData, typesData, compData, classroomsData] = await Promise.all([
         getAcademicYears(),
         getSemesters(),
         getGrades(),
         getSubjects(),
         getAssessmentTypes(),
-        getAssessmentComponents()
+        getAssessmentComponents(),
+        getClassrooms()
       ]);
       setAcademicYears(ayData);
       setSemesters(semData);
@@ -92,6 +99,7 @@ export const Exams: React.FC = () => {
       setSubjects(subjData);
       setTypes(typesData);
       setComponents(compData);
+      setClassrooms(classroomsData);
       
       const activeAy = ayData.find(a => a.isActive);
       const activeSem = semData.find(s => s.isActive);
@@ -122,10 +130,11 @@ export const Exams: React.FC = () => {
 
   const handleOpenModal = (exam?: Exam) => {
     if (exam) {
+      const classroom = classrooms.find(c => c.id === exam.classroomId);
       setForm({
         academicYearId: exam.academicYearId || '',
         semesterId: exam.semesterId || '',
-        gradeId: '', // cannot easily infer gradeId from classroomId without searching the classrooms list, leaving empty is fine if disabled
+        gradeId: classroom?.gradeId || '',
         classroomId: exam.classroomId || '',
         subjectId: exam.subjectId || '',
         title: exam.title || '',
@@ -222,11 +231,11 @@ export const Exams: React.FC = () => {
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-1.5 text-sm text-gray-700">
             <Users size={14} className="text-gray-400" />
-            <span className="font-medium">{row.classroom?.name || 'Unknown Class'}</span>
+            <span className="font-medium">{row.classroom?.name || classrooms.find(c => c.id === row.classroomId)?.name || 'Unknown Class'}</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <BookOpen size={14} className="text-gray-400" />
-            <span>{row.subject?.name || 'Unknown Subject'}</span>
+            <span>{row.subject?.name || subjects.find(s => s.id === row.subjectId)?.name || 'Unknown Subject'}</span>
           </div>
         </div>
       )
@@ -267,6 +276,10 @@ export const Exams: React.FC = () => {
     (!form.classroomId || c.classroomId === form.classroomId) &&
     (!form.subjectId || c.subjectId === form.subjectId)
   );
+
+  // Pagination Logic
+  const totalPages = Math.ceil(exams.length / itemsPerPage);
+  const paginatedExams = exams.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
@@ -326,7 +339,26 @@ export const Exams: React.FC = () => {
       </div>
 
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden mb-6">
-        <DataTable columns={columns} data={exams} loading={loading} emptyMessage="Belum ada agenda penilaian yang sesuai dengan kriteria filter." />
+        <DataTable 
+          columns={columns} 
+          data={paginatedExams} 
+          loading={loading} 
+          emptyMessage="Belum ada agenda penilaian yang sesuai dengan kriteria filter." 
+          hasPagination={exams.length > 0} 
+        />
+        {exams.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={exams.length}
+            itemsPerPage={itemsPerPage}
+            onItemsPerPageChange={(limit) => {
+              setItemsPerPage(limit);
+              setCurrentPage(1);
+            }}
+          />
+        )}
       </div>
 
       <Modal open={modal.open} onClose={handleCloseModal} title={modal.editId ? 'Edit Agenda Penilaian' : 'Buat Agenda Penilaian'}>
@@ -334,18 +366,18 @@ export const Exams: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Tahun Ajaran" required>
-              <select className="input-std disabled:bg-slate-50" value={form.academicYearId} onChange={setField('academicYearId')} required disabled={!!modal.editId}>
+              <select className="input-std bg-white" value={form.academicYearId} onChange={setField('academicYearId')} required>
                 <option value="">Pilih Tahun Ajaran...</option>
                 {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}</option>)}
               </select>
             </FormField>
             <FormField label="Semester" required>
               <select 
-              className="input-std disabled:bg-slate-50 disabled:cursor-not-allowed" 
+              className="input-std bg-white disabled:opacity-50 disabled:cursor-not-allowed" 
               value={form.semesterId} 
               onChange={setField('semesterId')} 
               required 
-              disabled={!!modal.editId || !form.academicYearId}
+              disabled={!form.academicYearId}
             >
               <option value="">Pilih Semester...</option>
               {semesters.filter(s => s.academicYearId === form.academicYearId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -354,24 +386,22 @@ export const Exams: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {!modal.editId && (
-              <FormField label="Tingkat Kelas" required>
-                <select className="input-std" value={form.gradeId} onChange={setField('gradeId')} required>
-                  <option value="">Pilih Tingkat Kelas...</option>
-                  {grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                </select>
-              </FormField>
-            )}
+            <FormField label="Tingkat Kelas" required>
+              <select className="input-std bg-white" value={form.gradeId} onChange={setField('gradeId')} required>
+                <option value="">Pilih Tingkat Kelas...</option>
+                {grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </FormField>
             <FormField label="Rombel / Kelas" required>
-              <select className="input-std disabled:bg-slate-50" value={form.classroomId} onChange={setField('classroomId')} required disabled={!!modal.editId || !form.gradeId}>
+              <select className="input-std bg-white disabled:opacity-50 disabled:cursor-not-allowed" value={form.classroomId} onChange={setField('classroomId')} required disabled={!form.gradeId}>
                 <option value="">Pilih Rombel / Kelas...</option>
-                {modal.editId ? classrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>) : modalClassrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {modalClassrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </FormField>
           </div>
 
           <FormField label="Mata Pelajaran" required>
-            <select className="input-std disabled:bg-slate-50" value={form.subjectId} onChange={setField('subjectId')} required disabled={!!modal.editId}>
+            <select className="input-std bg-white" value={form.subjectId} onChange={setField('subjectId')} required>
               <option value="">Pilih Mata Pelajaran...</option>
               {subjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
             </select>
@@ -385,13 +415,13 @@ export const Exams: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Jenis Penilaian" required>
-              <select className="input-std disabled:bg-slate-50" value={form.typeId} onChange={setField('typeId')} required disabled={!!modal.editId}>
+              <select className="input-std bg-white" value={form.typeId} onChange={setField('typeId')} required>
                 <option value="">Pilih Jenis Penilaian...</option>
                 {types.map(t => <option key={t.id} value={t.id}>{t.name} ({t.code})</option>)}
               </select>
             </FormField>
             <FormField label="Komponen Bobot" required>
-              <select className="input-std disabled:bg-slate-50" value={form.componentId} onChange={setField('componentId')} required disabled={!!modal.editId || !form.classroomId || !form.subjectId}>
+              <select className="input-std bg-white disabled:opacity-50 disabled:cursor-not-allowed" value={form.componentId} onChange={setField('componentId')} required disabled={!form.classroomId || !form.subjectId}>
                 <option value="">Pilih Komponen Bobot...</option>
                 {filteredComponents.map(c => <option key={c.id} value={c.id}>{c.type?.name} ({c.weight}%)</option>)}
               </select>

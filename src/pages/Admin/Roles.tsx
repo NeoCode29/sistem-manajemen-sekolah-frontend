@@ -60,7 +60,6 @@ export const Roles: React.FC = () => {
 
   const handleDeleteRole = async (role: Role) => {
     showConfirm(
-      'Hapus Peran',
       `Apakah Anda yakin ingin menghapus peran "${role.name}"?`,
       async () => {
         try {
@@ -70,7 +69,8 @@ export const Roles: React.FC = () => {
         } catch (error: any) {
           showAlert(error.response?.data?.message || 'Gagal menghapus peran', 'Gagal');
         }
-      }
+      },
+      'Hapus Peran'
     );
   };
 

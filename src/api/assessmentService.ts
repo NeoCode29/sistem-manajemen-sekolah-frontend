@@ -34,6 +34,10 @@ export interface AssessmentComponent {
   classroom?: any;
   academicYear?: any;
   semester?: any;
+  typeId?: string;
+  componentId?: string;
+  type?: any;
+  component?: any;
 }
 
 export interface ExamScore {

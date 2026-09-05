@@ -7,7 +7,7 @@ export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 export interface ModalProps {
   open: boolean;
   onClose: () => void;
-  title: string;
+  title: React.ReactNode;
   size?: ModalSize;
   children: React.ReactNode;
   footer?: React.ReactNode;

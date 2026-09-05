@@ -71,13 +71,13 @@ export const HardwareLogs: React.FC = () => {
       <div className="flex flex-col">
         <span className="font-semibold text-gray-900 flex items-center gap-1.5">
           <Clock size={14} className="text-indigo-400" />
-          {new Date(log.scanTimestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          {new Date(log.scanTimestamp || log.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </span>
         <span className="text-xs text-gray-500 mt-1 flex items-center gap-1.5">
           <Monitor size={12} /> {log.deviceId}
         </span>
         <span className="text-[10px] text-gray-400 mt-0.5">
-          {new Date(log.scanTimestamp).toLocaleDateString('id-ID')}
+          {new Date(log.scanTimestamp || log.createdAt).toLocaleDateString('id-ID')}
         </span>
       </div>
     )},

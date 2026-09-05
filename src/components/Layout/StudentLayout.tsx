@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { StudentSidebar } from '../Sidebar/StudentSidebar';
-import { Bell } from 'lucide-react';
+
 import { useAuth } from '../../context/AuthContext';
 import { getAcademicYears, getSemesters, type AcademicYear, type Semester } from '../../api/academicService';
 
@@ -37,11 +37,7 @@ export const StudentLayout: React.FC = () => {
                 TA {activeAy.name} - {activeSem.name}
               </div>
             )}
-            
-            <div className="relative cursor-pointer hover:bg-gray-50 p-2 rounded-full transition-colors">
-              <Bell size={20} className="text-gray-500 hover:text-indigo-600 transition-colors" />
-              <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </div>
+
             
             <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
               <div className="text-right hidden sm:block">
