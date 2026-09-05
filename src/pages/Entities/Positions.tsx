@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Search } from 'lucide-react';
+import { generateUniqueCode } from '../../utils/codeGenerator';
 import { usePositions } from '../../hooks/usePositions';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
@@ -29,7 +30,7 @@ export const Positions: React.FC = () => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const openAdd = () => { setForm(DEFAULT_FORM); setModal({ open: true, editId: null }); };
+  const openAdd = () => { setForm({ ...DEFAULT_FORM, code: generateUniqueCode('JAB') }); setModal({ open: true, editId: null }); };
   const openEdit = (item: Position) => {
     setForm({ code: item.code, name: item.name, description: item.description || '', isActive: item.isActive });
     setModal({ open: true, editId: item.id });
@@ -106,7 +107,17 @@ export const Positions: React.FC = () => {
       >
         <form id="position-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
           <FormField label="Kode Jabatan" required>
-            <input type="text" className="input-std" value={form.code} onChange={setField('code')} required />
+            <div className="flex gap-2">
+              <input type="text" className="input-std flex-1" value={form.code} onChange={setField('code')} required />
+              <button 
+                type="button" 
+                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors whitespace-nowrap"
+                onClick={() => setForm(prev => ({ ...prev, code: generateUniqueCode('JAB') }))}
+                title="Buat kode acak otomatis"
+              >
+                Buat Otomatis
+              </button>
+            </div>
           </FormField>
           <FormField label="Nama Jabatan" required>
             <input type="text" className="input-std" value={form.name} onChange={setField('name')} required />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, GraduationCap, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { generateUniqueCode } from '../../utils/codeGenerator';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useMajors } from '../../hooks/useMajors';
@@ -124,7 +125,7 @@ export const Majors: React.FC = () => {
       <PageHeader
         title="Jurusan"
         subtitle="Kelola master data Jurusan (Program Keahlian)"
-        action={<button onClick={() => setShowModal(true)} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+        action={<button onClick={() => { setCode(generateUniqueCode('JUR')); setShowModal(true); }} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
       />
 
       {error && (
@@ -156,7 +157,17 @@ export const Majors: React.FC = () => {
       >
         <form id="major-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
           <FormField label="Kode" required>
-            <input type="text" className="input-std" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: IPA" required />
+            <div className="flex gap-2">
+              <input type="text" className="input-std flex-1" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: IPA" required />
+              <button 
+                type="button" 
+                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors whitespace-nowrap"
+                onClick={() => setCode(generateUniqueCode('JUR'))}
+                title="Buat kode acak otomatis"
+              >
+                Buat Otomatis
+              </button>
+            </div>
           </FormField>
           <FormField label="Nama Jurusan" required>
             <input type="text" className="input-std" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Ilmu Pengetahuan Alam" required />
