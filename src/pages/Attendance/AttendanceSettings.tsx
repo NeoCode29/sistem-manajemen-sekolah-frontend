@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getAttendanceSetting, updateAttendanceSetting } from '../../api/attendanceService';
-import { Clock, Save, MapPin } from 'lucide-react';
+import { Clock, Save, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
 
 export const AttendanceSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -84,13 +84,27 @@ export const AttendanceSettings: React.FC = () => {
         </div>
       </div>
 
-      {error && <div className="error-message mb-4 p-3 bg-red-100 text-red-700 rounded-md border border-red-200">{error}</div>}
-      {success && <div className="success-message mb-4 p-3 bg-green-100 text-green-700 rounded-md border border-green-200">{success}</div>}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
+          <AlertCircle size={18} />
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="mb-6 p-4 bg-green-50 text-green-700 border border-green-200 rounded-xl flex items-center gap-2">
+          <CheckCircle size={18} />
+          {success}
+        </div>
+      )}
 
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-5">
-        <div className="flex items-center gap-2 mb-4 text-blue-600 border-b pb-2">
-          <Clock size={20} />
-          <h2 className="text-lg font-semibold">Konfigurasi Waktu (Format 24-Jam HH:mm)</h2>
+      <div className="bg-white/80 backdrop-blur-xl border border-white shadow-xl shadow-slate-200/40 rounded-3xl p-6 md:p-8 mb-8 transition-all duration-300 hover:shadow-2xl hover:shadow-slate-200/50">
+        <div className="flex items-center gap-3 mb-6 text-indigo-600 border-b border-indigo-100/50 pb-4">
+          <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600 shadow-sm border border-indigo-100/50">
+            <Clock size={22} className="stroke-[2.5]" />
+          </div>
+          <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-blue-600">
+            Konfigurasi Waktu Absensi
+          </h2>
         </div>
 
         {loading ? (
@@ -100,14 +114,15 @@ export const AttendanceSettings: React.FC = () => {
             <div className="grid grid-cols-2 gap-6">
 
               {/* Check-in Section */}
-              <div className="bg-blue-50/50 p-5 rounded-xl border border-blue-100">
-                <h3 className="font-bold text-blue-800 mb-4 flex items-center gap-1">
-                  <span className="px-2 py-0.5 rounded-full bg-blue-200 text-blue-700">
+              <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/80 p-6 rounded-2xl border border-blue-100/50 shadow-inner hover:shadow-md transition-all duration-300 group">
+                <div className="flex items-center gap-3 mb-5">
+                  <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-bold text-sm shadow-sm border border-blue-200/50">
                     Masuk
                   </span>
-                  Waktu Kedatangan
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
+                  <h3 className="font-bold text-blue-900 text-lg group-hover:text-blue-700 transition-colors">Waktu Kedatangan</h3>
+                </div>
+                <div className="grid grid-cols-1 gap-5 relative">
+                  <div className="absolute left-4 top-0 bottom-0 w-px bg-blue-200/50 -z-10 hidden sm:block"></div>
                   <div className="form-group">
                     <label className="text-sm font-medium text-gray-700">Mulai Check-in Masuk</label>
                     <input
@@ -147,14 +162,15 @@ export const AttendanceSettings: React.FC = () => {
               </div>
 
               {/* Check-out Section */}
-              <div className="bg-green-50/50 p-5 rounded-xl border border-green-100">
-                <h3 className="font-bold text-green-800 mb-4 flex items-center gap-1">
-                  <span className="px-2 py-0.5 rounded-full bg-green-200 text-green-700">
+              <div className="bg-gradient-to-br from-emerald-50/80 to-teal-50/80 p-6 rounded-2xl border border-emerald-100/50 shadow-inner hover:shadow-md transition-all duration-300 group">
+                <div className="flex items-center gap-3 mb-5">
+                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-sm shadow-sm border border-emerald-200/50">
                     Pulang
                   </span>
-                  Waktu Kepulangan
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
+                  <h3 className="font-bold text-emerald-900 text-lg group-hover:text-emerald-700 transition-colors">Waktu Kepulangan</h3>
+                </div>
+                <div className="grid grid-cols-1 gap-5 relative">
+                  <div className="absolute left-4 top-0 bottom-0 w-px bg-emerald-200/50 -z-10 hidden sm:block"></div>
                   <div className="form-group">
                     <label className="text-sm font-medium text-gray-700">Mulai Check-out Pulang</label>
                     <input
@@ -183,14 +199,22 @@ export const AttendanceSettings: React.FC = () => {
             </div>
 
             {/* Geofencing Section */}
-            <div className="mt-6 border-t pt-6">
-              <div className="flex items-center gap-2 mb-4 text-purple-600 border-b pb-2">
-                <MapPin size={20} />
-                <h2 className="text-lg font-semibold">Pengaturan Lokasi (Geofencing)</h2>
+            <div className="mt-8 pt-8 relative">
+              <div className="absolute top-0 left-10 right-10 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+              
+              <div className="flex items-center gap-3 mb-6 text-purple-600">
+                <div className="p-2.5 bg-purple-50 rounded-xl text-purple-600 shadow-sm border border-purple-100/50">
+                  <MapPin size={22} className="stroke-[2.5]" />
+                </div>
+                <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-pink-600">
+                  Pengaturan Lokasi (Geofencing)
+                </h2>
               </div>
               
-              <div className="bg-purple-50/50 p-5 rounded-xl border border-purple-100">
-                <p className="text-sm text-purple-800 mb-4">Fitur ini membatasi area di mana siswa atau pegawai dapat melakukan absensi melalui GPS.</p>
+              <div className="bg-gradient-to-br from-purple-50/80 to-fuchsia-50/80 p-6 rounded-2xl border border-purple-100/50 shadow-inner hover:shadow-md transition-all duration-300">
+                <p className="text-sm text-purple-800/80 font-medium mb-5 bg-white/50 p-3 rounded-xl inline-block border border-purple-100">
+                  <span className="mr-2">📍</span> Fitur ini membatasi area di mana siswa atau pegawai dapat melakukan absensi melalui GPS.
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="form-group">
                     <label className="text-sm font-medium text-gray-700">Latitude</label>
@@ -228,28 +252,35 @@ export const AttendanceSettings: React.FC = () => {
               </div>
             </div>
 
-            <div className="form-group mt-6 pt-4 border-t">
-              <label className="flex items-center gap-3 cursor-pointer font-medium text-gray-700">
-                <input
-                  type="checkbox"
-                  className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                />
-                Aktifkan Aturan Ini
-              </label>
-              <p className="text-xs text-gray-500 ml-8 mt-1">Jika tidak diaktifkan, maka sistem tidak akan menerapkan validasi jam pada saat absen.</p>
-            </div>
-
-            <div className="mt-6 pt-4 border-t flex justify-end">
-              <button
-                type="submit"
-                className="btn-std-primary flex items-center gap-2"
-                disabled={saving}
-              >
-                <Save size={18} />
-                {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
-              </button>
+            <div className="mt-8 pt-6 relative">
+              <div className="absolute top-0 left-10 right-10 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+              
+              <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <label className="flex items-center gap-3 cursor-pointer font-bold text-gray-800 group">
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 rounded-md text-indigo-600 border-gray-300 focus:ring-indigo-500/30 transition-all peer"
+                        checked={isActive}
+                        onChange={(e) => setIsActive(e.target.checked)}
+                      />
+                      <div className="absolute w-8 h-8 rounded-full bg-indigo-100/50 opacity-0 peer-hover:opacity-100 transition-opacity -z-10 scale-0 peer-hover:scale-100 duration-300"></div>
+                    </div>
+                    <span className="group-hover:text-indigo-700 transition-colors">Aktifkan Aturan Jam Absensi</span>
+                  </label>
+                  <p className="text-sm text-gray-500 ml-8 mt-1.5 font-medium">Sistem akan memvalidasi absensi berdasarkan jam masuk & pulang ini.</p>
+                </div>
+                
+                <button
+                  type="submit"
+                  className="btn-std-primary flex items-center gap-2 px-6 py-2.5 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 transition-all duration-300 w-full sm:w-auto justify-center"
+                  disabled={saving}
+                >
+                  <Save size={18} className={saving ? 'animate-pulse' : ''} />
+                  <span className="font-semibold">{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
+                </button>
+              </div>
             </div>
           </form>
         )}
