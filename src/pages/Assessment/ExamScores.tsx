@@ -45,8 +45,7 @@ export const ExamScores: React.FC = () => {
           classroomId: examData.classroomId, 
           academicYearId: examData.academicYearId,
           semesterId: examData.semesterId,
-          status: 'ACTIVE', 
-          enrollmentStatus: 'ENROLLED' 
+          limit: 1000
         }),
         getExamScores(examId!)
       ]);
