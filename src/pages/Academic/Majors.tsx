@@ -130,11 +130,11 @@ export const Majors: React.FC = () => {
       <PageHeader
         title="Jurusan"
         subtitle="Kelola master data Jurusan (Program Keahlian)"
-{canManageAcademic && (
-  <button className="btn-std-primary" onClick={() => { setCode(generateUniqueCode('JUR')); setShowModal(true); }}>
-    <Plus size={18} /> Tambah Data
-  </button>
-)}
+        action={canManageAcademic ? (
+          <button className="btn-std-primary" onClick={() => { setCode(generateUniqueCode('JUR')); setShowModal(true); }}>
+            <Plus size={18} /> Tambah Data
+          </button>
+        ) : undefined}
       />
 
       {error && (

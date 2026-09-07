@@ -114,11 +114,11 @@ export const Grades: React.FC = () => {
       <PageHeader
         title="Tingkat Kelas"
         subtitle="Kelola master data Tingkat/Level Kelas (misal: Kelas 10, 11, 12)"
-{canManageAcademic && (
-  <button className="btn-std-primary" onClick={() => { setCode(generateUniqueCode('TK')); setShowModal(true); }}>
-    <Plus size={18} /> Tambah Data
-  </button>
-)}
+        action={canManageAcademic ? (
+          <button className="btn-std-primary" onClick={() => { setCode(generateUniqueCode('TK')); setShowModal(true); }}>
+            <Plus size={18} /> Tambah Data
+          </button>
+        ) : undefined}
       />
 
       {error && (
