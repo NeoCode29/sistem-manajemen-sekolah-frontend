@@ -6,6 +6,7 @@ import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface ComponentForm {
   typeId: string;
@@ -37,6 +38,7 @@ export const AssessmentComponents: React.FC = () => {
   const [types, setTypes] = useState<AssessmentType[]>([]);
   
   const [loading, setLoading] = useState(false);
+  const { canManageAssessment } = usePermissions();
   const { showConfirm, showAlert } = useDialog();
 
   // Filters
@@ -238,13 +240,16 @@ export const AssessmentComponents: React.FC = () => {
       render: (row) => (
         <div className="text-lg font-extrabold text-slate-900 text-center">{row.weight}%</div>
       )
-    },
-    {
+    }
+  ];
+
+  if (canManageAssessment) {
+    columns.push({
       key: 'actions',
       header: 'Aksi',
       render: (row) => <ActionButtons onEdit={() => handleOpenModal(row)} onDelete={() => handleDelete(row.id)} />
-    }
-  ];
+    });
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
@@ -252,9 +257,11 @@ export const AssessmentComponents: React.FC = () => {
         title="Komponen Penilaian"
         subtitle="Atur struktur penilaian, jenis ujian, dan proporsi bobot untuk perhitungan nilai akhir."
         action={
-          <button className="btn-std-primary" onClick={() => handleOpenModal()}>
-            <Plus size={20} /> Tambah Komponen
-          </button>
+          canManageAssessment ? (
+            <button className="btn-std-primary" onClick={() => handleOpenModal()}>
+              <Plus size={20} /> Tambah Komponen
+            </button>
+          ) : undefined
         }
       />
 

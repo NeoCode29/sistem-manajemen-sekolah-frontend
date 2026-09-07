@@ -6,6 +6,7 @@ import { Pagination } from '../../components/Common/Pagination';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useClassrooms } from '../../hooks/useClassrooms';
+import { usePermissions } from '../../hooks/usePermissions';
 import type { Classroom } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField } from '../../components/ui';
@@ -25,6 +26,7 @@ export const Classrooms: React.FC = () => {
     updateClassroom,
     deleteClassroom
   } = useClassrooms(filterGradeId);
+  const { canManageAcademic } = usePermissions();
 
   // Modal & Form State
   const [showModal, setShowModal] = useState(false);
@@ -123,23 +125,26 @@ export const Classrooms: React.FC = () => {
           {row.capacity || 0} Siswa
         </span>
       ) 
-    },
-    { key: 'actions', header: 'Aksi', render: (row) => (
+    }
+  ];
+
+  if (canManageAcademic) {
+    classroomColumns.push({ key: 'actions', header: 'Aksi', render: (row) => (
         <ActionButtons 
           onView={() => navigate(`/academic/classrooms/${row.id}`)}
           onEdit={() => handleEdit(row)}
           onDelete={() => handleDelete(row.id)}
         />
       )
-    }
-  ];
+    });
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
       <PageHeader
         title="Rombongan Belajar (Kelas)"
         subtitle="Kelola master data Rombel/Ruang Kelas"
-        action={<button onClick={openAddModal} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+        action={canManageAcademic ? <button onClick={openAddModal} className="btn-std-primary"><Plus size={18} /> Tambah Data</button> : undefined}
       />
 
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mt-6 mb-6 p-4 flex flex-col md:flex-row gap-4">

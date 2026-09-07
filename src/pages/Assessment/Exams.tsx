@@ -8,6 +8,7 @@ import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { Pagination } from '../../components/Common/Pagination';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface ExamForm {
   academicYearId: string;
@@ -48,6 +49,7 @@ export const Exams: React.FC = () => {
   const [components, setComponents] = useState<AssessmentComponent[]>([]);
   
   const [loading, setLoading] = useState(false);
+  const { canManageAssessment } = usePermissions();
   const { showConfirm, showAlert } = useDialog();
   
   // Filters
@@ -254,8 +256,11 @@ export const Exams: React.FC = () => {
           </div>
         </div>
       )
-    },
-    {
+    }
+  ];
+
+  if (canManageAssessment) {
+    columns.push({
       key: 'actions',
       header: 'Aksi',
       render: (row) => (
@@ -269,8 +274,8 @@ export const Exams: React.FC = () => {
           <ActionButtons onEdit={() => handleOpenModal(row)} onDelete={() => handleDelete(row.id)} />
         </div>
       )
-    }
-  ];
+    });
+  }
 
   const filteredComponents = components.filter(c => 
     (!form.classroomId || c.classroomId === form.classroomId) &&
@@ -287,9 +292,11 @@ export const Exams: React.FC = () => {
         title="Agenda Penilaian"
         subtitle="Kelola agenda penilaian, ujian, dan tugas untuk setiap kelas dan mata pelajaran."
         action={
-          <button className="btn-std-primary" onClick={() => handleOpenModal()}>
-            <Plus size={20} /> Buat Agenda Baru
-          </button>
+          canManageAssessment ? (
+            <button className="btn-std-primary" onClick={() => handleOpenModal()}>
+              <Plus size={20} /> Buat Agenda Baru
+            </button>
+          ) : undefined
         }
       />
 

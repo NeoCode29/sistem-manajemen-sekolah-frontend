@@ -6,6 +6,7 @@ import { DataTable, type Column } from '../../components/Common/DataTable';
 import { useGraduations } from '../../hooks/useGraduations';
 import { useDialog } from '../../contexts/DialogContext';
 import { Badge } from '../../components/ui/Badge';
+import { Can } from '../../components/Common/Can';
 
 export const Graduations: React.FC = () => {
   const {
@@ -124,14 +125,16 @@ export const Graduations: React.FC = () => {
       )
     )},
     { key: 'actions', header: 'Aksi', render: (row) => (
-      <button
-        onClick={() => handleCancelGraduation(row.id)}
-        className="action-btn"
-        style={{ color: '#ea580c' }}
-        title="Batalkan Kelulusan"
-      >
-        <Undo2 size={16} /> Batal Lulus
-      </button>
+      <Can permission="graduations.delete">
+        <button
+          onClick={() => handleCancelGraduation(row.id)}
+          className="action-btn"
+          style={{ color: '#ea580c' }}
+          title="Batalkan Kelulusan"
+        >
+          <Undo2 size={16} /> Batal Lulus
+        </button>
+      </Can>
     )}
   ];
 
@@ -143,10 +146,12 @@ export const Graduations: React.FC = () => {
           <p className="text-gray-500 mt-1">Daftar alumni dan proses pelepasan siswa (Lulus)</p>
         </div>
         <div className="header-actions">
-          <button className="btn-std-primary" onClick={() => setIsModalOpen(true)}>
-            <Award size={18} />
-            <span>Proses Kelulusan Baru</span>
-          </button>
+          <Can permission="graduations.write">
+            <button className="btn-std-primary" onClick={() => setIsModalOpen(true)}>
+              <Award size={18} />
+              <span>Proses Kelulusan Baru</span>
+            </button>
+          </Can>
         </div>
       </div>
 

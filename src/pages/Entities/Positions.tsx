@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { generateUniqueCode } from '../../utils/codeGenerator';
 import { usePositions } from '../../hooks/usePositions';
+import { usePermissions } from '../../hooks/usePermissions';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
@@ -19,6 +20,7 @@ const DEFAULT_FORM: PositionForm = { code: '', name: '', description: '', isActi
 
 export const Positions: React.FC = () => {
   const { items, loading, create, update, remove } = usePositions();
+  const { canManagePositions } = usePermissions();
   const { showConfirm, showAlert } = useDialog();
 
   const [modal, setModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
@@ -67,20 +69,23 @@ export const Positions: React.FC = () => {
     { key: 'name', header: 'Nama' },
     { key: 'description', header: 'Deskripsi', render: row => row.description || '-' },
     { key: 'isActive', header: 'Status', render: row => (
-        <button onClick={() => handleToggleActive(row)}>
+        <button onClick={() => canManagePositions ? handleToggleActive(row) : undefined} className={!canManagePositions ? "cursor-default" : ""}>
           <Badge variant={row.isActive ? 'success' : 'danger'}>{row.isActive ? 'Aktif' : 'Nonaktif'}</Badge>
         </button>
       )
-    },
-    { key: 'actions', header: 'Aksi', render: row => <ActionButtons onEdit={() => openEdit(row)} onDelete={() => handleDelete(row.id)} /> },
+    }
   ];
+
+  if (canManagePositions) {
+    columns.push({ key: 'actions', header: 'Aksi', render: row => <ActionButtons onEdit={() => openEdit(row)} onDelete={() => handleDelete(row.id)} /> });
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
       <PageHeader
         title="Data Jabatan"
         subtitle="Manajemen master data jabatan untuk pegawai"
-        action={<button onClick={openAdd} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+        action={canManagePositions ? <button onClick={openAdd} className="btn-std-primary"><Plus size={18} /> Tambah Data</button> : undefined}
       />
 
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex flex-col md:flex-row gap-4">

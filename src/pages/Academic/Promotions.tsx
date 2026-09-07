@@ -6,6 +6,7 @@ import { DataTable, type Column } from '../../components/Common/DataTable';
 import { usePromotions } from '../../hooks/usePromotions';
 import { useDialog } from '../../contexts/DialogContext';
 import { Badge } from '../../components/ui/Badge';
+import { Can } from '../../components/Common/Can';
 
 export const Promotions: React.FC = () => {
   const navigate = useNavigate();
@@ -60,13 +61,15 @@ export const Promotions: React.FC = () => {
     { key: 'status', header: 'Status', render: (row) => getStatusBadge(row.status) },
     { key: 'date', header: 'Tanggal Proses', render: (row) => new Date(row.promotionDate || row.createdAt).toLocaleDateString('id-ID') },
     { key: 'actions', header: 'Aksi', render: (row) => (
-      <button
-        onClick={() => handleCancelPromotion(row.id)}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
-        title="Batalkan Kenaikan Kelas"
-      >
-        <Undo2 size={16} /> Batal
-      </button>
+      <Can permission="promotions.delete">
+        <button
+          onClick={() => handleCancelPromotion(row.id)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+          title="Batalkan Kenaikan Kelas"
+        >
+          <Undo2 size={16} /> Batal
+        </button>
+      </Can>
     )}
   ];
 
@@ -78,10 +81,12 @@ export const Promotions: React.FC = () => {
           <p className="text-gray-500 mt-1">Riwayat dan pemrosesan kenaikan kelas siswa</p>
         </div>
         <div className="header-actions">
-          <button className="btn-std-primary" onClick={() => navigate('/academic/promotions/batch')}>
-            <TrendingUp size={18} />
-            <span>Proses Kenaikan Kelas</span>
-          </button>
+          <Can permission="promotions.write">
+            <button className="btn-std-primary" onClick={() => navigate('/academic/promotions/batch')}>
+              <TrendingUp size={18} />
+              <span>Proses Kenaikan Kelas</span>
+            </button>
+          </Can>
         </div>
       </div>
 

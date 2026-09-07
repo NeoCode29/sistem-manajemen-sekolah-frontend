@@ -5,6 +5,7 @@ import { generateUniqueCode } from '../../utils/codeGenerator';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useGrades } from '../../hooks/useGrades';
+import { usePermissions } from '../../hooks/usePermissions';
 import type { Grade } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField } from '../../components/ui';
@@ -18,6 +19,7 @@ export const Grades: React.FC = () => {
     updateGrade,
     deleteGrade
   } = useGrades();
+  const { canManageAcademic } = usePermissions();
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -95,21 +97,28 @@ export const Grades: React.FC = () => {
       <span className="text-gray-700">
         {row.educationLevel}
       </span>
-    )},
-    { key: 'actions', header: 'Aksi', render: (row) => (
+    )}
+  ];
+
+  if (canManageAcademic) {
+    columns.push({ key: 'actions', header: 'Aksi', render: (row) => (
       <ActionButtons 
         onEdit={() => handleEdit(row)}
         onDelete={() => handleDelete(row.id)}
       />
-    )}
-  ];
+    )});
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
       <PageHeader
         title="Tingkat Kelas"
         subtitle="Kelola master data Tingkat/Level Kelas (misal: Kelas 10, 11, 12)"
-        action={<button onClick={() => { setCode(generateUniqueCode('TK')); setShowModal(true); }} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+{canManageAcademic && (
+  <button className="btn-std-primary" onClick={() => { setCode(generateUniqueCode('TK')); setShowModal(true); }}>
+    <Plus size={18} /> Tambah Data
+  </button>
+)}
       />
 
       {error && (

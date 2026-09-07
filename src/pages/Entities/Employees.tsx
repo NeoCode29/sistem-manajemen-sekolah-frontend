@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { type Employee, getPositions, type Position } from '../../api/employeeService';
 import { getRoles, type Role } from '../../api/rbacService';
 import { useEmployees } from '../../hooks/useEmployees';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Plus, CheckCircle, XCircle, Search, Filter, ChevronDown } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { useDialog } from '../../contexts/DialogContext';
@@ -40,6 +41,7 @@ export const Employees: React.FC = () => {
   const { items, meta, loading, create, update, remove } = useEmployees({
     page: currentPage, limit: itemsPerPage, search: searchTerm, positionId: filterPosition || undefined
   });
+  const { canManageEmployees } = usePermissions();
 
   const [positions, setPositions] = useState<Position[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -146,8 +148,11 @@ export const Employees: React.FC = () => {
     ) },
     { key: 'isActive', header: 'Status Akun', render: (emp) => (
       <Badge variant={emp.isActive ? 'success' : 'default'}>{emp.isActive ? 'Aktif' : 'Tidak Aktif'}</Badge>
-    ) },
-    { key: 'actions', header: 'Aksi', render: (emp) => (
+    ) }
+  ];
+
+  if (canManageEmployees) {
+    columns.push({ key: 'actions', header: 'Aksi', render: (emp) => (
       <div className="flex items-center gap-1 justify-end">
         <button 
           className={`p-1.5 rounded-lg transition-colors ${emp.isActive ? 'text-red-500 hover:bg-red-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
@@ -158,16 +163,18 @@ export const Employees: React.FC = () => {
         </button>
         <ActionButtons onEdit={() => openEdit(emp)} onDelete={() => handleDelete(emp.id)} />
       </div>
-    ) },
-  ];
+    ) });
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <PageHeader title="Pegawai & Guru" subtitle="Manajemen data pegawai dan tenaga pendidik" />
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={openAdd}>
-          <Plus size={18} /> Tambah Data
-        </button>
+        {canManageEmployees && (
+          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={openAdd}>
+            <Plus size={18} /> Tambah Data
+          </button>
+        )}
       </div>
 
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex flex-col md:flex-row gap-4">

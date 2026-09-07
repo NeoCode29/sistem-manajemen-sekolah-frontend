@@ -4,6 +4,7 @@ import { Plus, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useAcademicYears } from '../../hooks/useAcademicYears';
+import { usePermission } from '../../components/Common/Can';
 import type { AcademicYear } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
@@ -18,6 +19,7 @@ export const AcademicYears: React.FC = () => {
     deleteAcademicYear,
     toggleAcademicYearActive
   } = useAcademicYears();
+  const canManageAcademic = usePermission('academic.write');
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -85,8 +87,11 @@ export const AcademicYears: React.FC = () => {
       <Badge variant={row.isActive ? 'success' : 'default'}>
         {row.isActive ? 'Aktif' : 'Nonaktif'}
       </Badge>
-    )},
-    { key: 'actions', header: 'Aksi', render: (row) => (
+    )}
+  ];
+
+  if (canManageAcademic) {
+    columns.push({ key: 'actions', header: 'Aksi', render: (row) => (
       <div className="flex items-center gap-2">
         <button 
           className={`action-btn ${row.isActive ? 'text-red-400' : 'text-green-400'}`}
@@ -100,15 +105,15 @@ export const AcademicYears: React.FC = () => {
           onDelete={() => handleDelete(row.id)}
         />
       </div>
-    )}
-  ];
+    )});
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
       <PageHeader
         title="Tahun Ajaran"
         subtitle="Kelola master data Tahun Ajaran akademik"
-        action={<button onClick={() => setShowModal(true)} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+        action={canManageAcademic ? <button onClick={() => setShowModal(true)} className="btn-std-primary"><Plus size={18} /> Tambah Data</button> : undefined}
       />
 
       {error && (

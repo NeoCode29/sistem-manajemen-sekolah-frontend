@@ -7,6 +7,7 @@ import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge } from '../../components/ui/Badge';
 import { useClassPeriods } from '../../hooks/useClassPeriods';
+import { usePermissions } from '../../hooks/usePermissions';
 import type { ClassPeriod } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
 
@@ -19,6 +20,7 @@ export const ClassPeriods: React.FC = () => {
     updateClassPeriod,
     deleteClassPeriod
   } = useClassPeriods();
+  const { canManageAcademic } = usePermissions();
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -106,14 +108,17 @@ export const ClassPeriods: React.FC = () => {
       ) : (
         <Badge variant="success">Pelajaran</Badge>
       )
-    )},
-    { key: 'actions', header: 'Aksi', render: (row) => (
+    )}
+  ];
+
+  if (canManageAcademic) {
+    columns.push({ key: 'actions', header: 'Aksi', render: (row) => (
       <ActionButtons 
         onEdit={() => handleEdit(row)}
         onDelete={() => handleDelete(row.id)}
       />
-    )}
-  ];
+    )});
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
@@ -122,9 +127,11 @@ export const ClassPeriods: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Jam Pelajaran</h1>
           <p className="text-gray-500 mt-1">Kelola master data Waktu / Jam Pelajaran</p>
         </div>
-        <button className="btn-std-primary" onClick={() => { setCode(generateUniqueCode('JAM')); setShowModal(true); }}>
-          <Plus size={18} /> Tambah Data
-        </button>
+{canManageAcademic && (
+  <button className="btn-std-primary" onClick={() => { setCode(generateUniqueCode('JAM')); setShowModal(true); }}>
+    <Plus size={18} /> Tambah Data
+  </button>
+)}
       </div>
 
       {error && !showModal && (

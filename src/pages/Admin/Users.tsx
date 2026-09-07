@@ -8,11 +8,13 @@ import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge } from '../../components/ui/Badge';
 import { Pagination } from '../../components/Common/Pagination';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [allRoles, setAllRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
+  const { canManageUsers } = usePermissions();
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -147,8 +149,11 @@ export const Users: React.FC = () => {
           <span className="text-gray-400 text-xs italic">Belum ada peran</span>
         )}
       </div>
-    )},
-    { key: 'actions', header: 'Aksi', render: (user) => (
+    )}
+  ];
+
+  if (canManageUsers) {
+    columns.push({ key: 'actions', header: 'Aksi', render: (user) => (
       <div className="flex items-center gap-2 justify-end">
         <button
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
@@ -164,8 +169,8 @@ export const Users: React.FC = () => {
           <Edit size={16} />
         </button>
       </div>
-    )}
-  ];
+    ) });
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
@@ -174,9 +179,11 @@ export const Users: React.FC = () => {
           title="Pengguna (Users)" 
           subtitle="Kelola akun pengguna dan peran (Role) mereka"
         />
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => setShowModal(true)}>
-          <Plus size={18} /> Tambah Akun
-        </button>
+        {canManageUsers && (
+          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => setShowModal(true)}>
+            <Plus size={18} /> Tambah Akun
+          </button>
+        )}
       </div>
 
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 flex flex-col">

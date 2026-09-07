@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
+import { AuthorizedRoute } from './AuthorizedRoute';
 import { AuthProvider } from '../context/AuthContext';
 import { Login } from '../pages/Login/Login';
 import { Dashboard } from '../pages/Dashboard/Dashboard';
@@ -43,6 +44,7 @@ import { HardwareLogs } from '../pages/Hardware/HardwareLogs';
 import { IdentityRegistration } from '../pages/Hardware/IdentityRegistration';
 import { AccountSettings } from '../pages/Settings/AccountSettings';
 import { HomeroomDashboard } from '../pages/Homeroom/HomeroomDashboard';
+import { Forbidden } from '../pages/Error/Forbidden';
 
 import { StudentLayout } from '../components/Layout/StudentLayout';
 import { StudentDashboard } from '../pages/Student/StudentDashboard';
@@ -60,36 +62,70 @@ export const AppRoutes: React.FC = () => {
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/homeroom/dashboard" element={<HomeroomDashboard />} />
-              <Route path="/academic/years" element={<AcademicYears />} />
-              <Route path="/academic/semesters" element={<Semesters />} />
-              <Route path="/academic/grades" element={<Grades />} />
-              <Route path="/academic/majors" element={<Majors />} />
-              <Route path="/academic/classrooms" element={<Classrooms />} />
-              <Route path="/academic/classrooms/:id" element={<ClassroomDetail />} />
-              <Route path="/academic/subjects" element={<Subjects />} />
-              <Route path="/academic/class-periods" element={<ClassPeriods />} />
-              <Route path="/admin/permissions" element={<Permissions />} />
-              <Route path="/admin/roles" element={<Roles />} />
-              <Route path="/admin/users" element={<Users />} />
-              <Route path="/entities/positions" element={<Positions />} />
-              <Route path="/entities/employees" element={<Employees />} />
-              <Route path="/entities/students" element={<Students />} />
-              <Route path="/entities/students/:id" element={<StudentDetail />} />
-              <Route path="/attendance/settings" element={<AttendanceSettings />} />
-              <Route path="/attendance/students" element={<StudentAttendancePage />} />
-              <Route path="/attendance/employees" element={<EmployeeAttendancePage />} />
+              <Route path="/403" element={<Forbidden />} />
+              
+              <Route element={<AuthorizedRoute requiredPermissions={['academic.read']} />}>
+                <Route path="/academic/years" element={<AcademicYears />} />
+                <Route path="/academic/semesters" element={<Semesters />} />
+                <Route path="/academic/grades" element={<Grades />} />
+                <Route path="/academic/majors" element={<Majors />} />
+                <Route path="/academic/classrooms" element={<Classrooms />} />
+                <Route path="/academic/classrooms/:id" element={<ClassroomDetail />} />
+                <Route path="/academic/subjects" element={<Subjects />} />
+                <Route path="/academic/class-periods" element={<ClassPeriods />} />
+                <Route path="/academic/schedules" element={<Schedules />} />
+              </Route>
+              
+              <Route element={<AuthorizedRoute requiredPermissions={['promotions.read']} />}>
+                <Route path="/academic/promotions" element={<Promotions />} />
+              </Route>
+              
+              <Route element={<AuthorizedRoute requiredPermissions={['promotions.write']} />}>
+                <Route path="/academic/promotions/batch" element={<BatchPromote />} />
+              </Route>
+              
+              <Route element={<AuthorizedRoute requiredPermissions={['graduations.read']} />}>
+                <Route path="/academic/graduations" element={<Graduations />} />
+              </Route>
 
-              <Route path="/assessment/components" element={<AssessmentComponents />} />
-              <Route path="/assessment/exams" element={<Exams />} />
-              <Route path="/assessment/exams/:examId/scores" element={<ExamScores />} />
-              <Route path="/assessment/report-cards" element={<ReportCards />} />
+              <Route element={<AuthorizedRoute requiredPermissions={['rbac.read']} />}>
+                <Route path="/admin/permissions" element={<Permissions />} />
+                <Route path="/admin/roles" element={<Roles />} />
+              </Route>
+              
+              <Route element={<AuthorizedRoute requiredPermissions={['users.read']} />}>
+                <Route path="/admin/users" element={<Users />} />
+              </Route>
+
+              <Route element={<AuthorizedRoute requiredPermissions={['positions.read']} />}>
+                <Route path="/entities/positions" element={<Positions />} />
+              </Route>
+              
+              <Route element={<AuthorizedRoute requiredPermissions={['employees.read']} />}>
+                <Route path="/entities/employees" element={<Employees />} />
+              </Route>
+
+              <Route element={<AuthorizedRoute requiredPermissions={['students.read']} />}>
+                <Route path="/entities/students" element={<Students />} />
+                <Route path="/entities/students/:id" element={<StudentDetail />} />
+              </Route>
+
+              <Route element={<AuthorizedRoute requiredPermissions={['attendance.read']} />}>
+                <Route path="/attendance/settings" element={<AttendanceSettings />} />
+                <Route path="/attendance/students" element={<StudentAttendancePage />} />
+                <Route path="/attendance/employees" element={<EmployeeAttendancePage />} />
+              </Route>
+
+              <Route element={<AuthorizedRoute requiredPermissions={['assessment.read']} />}>
+                <Route path="/assessment/components" element={<AssessmentComponents />} />
+                <Route path="/assessment/exams" element={<Exams />} />
+                <Route path="/assessment/exams/:examId/scores" element={<ExamScores />} />
+                <Route path="/assessment/report-cards" element={<ReportCards />} />
+              </Route>
+
               <Route path="/student-affairs/achievements" element={<Achievements />} />
               <Route path="/student-affairs/violations" element={<Violations />} />
 
-              <Route path="/academic/schedules" element={<Schedules />} />
-              <Route path="/academic/promotions" element={<Promotions />} />
-              <Route path="/academic/promotions/batch" element={<BatchPromote />} />
-              <Route path="/academic/graduations" element={<Graduations />} />
               <Route path="/profile/school" element={<SchoolProfilePage />} />
               <Route path="/announcements" element={<Announcements />} />
               <Route path="/letters/incoming" element={<IncomingLetters />} />

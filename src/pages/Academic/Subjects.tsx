@@ -6,6 +6,7 @@ import { ActionButtons } from '../../components/Common/ActionButtons';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { useSubjects } from '../../hooks/useSubjects';
+import { usePermissions } from '../../hooks/usePermissions';
 import type { Subject } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
 
@@ -18,6 +19,7 @@ export const Subjects: React.FC = () => {
     updateSubject,
     deleteSubject
   } = useSubjects();
+  const { canManageAcademic } = usePermissions();
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -92,14 +94,17 @@ export const Subjects: React.FC = () => {
       <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-700">
         {row.minimumPassingGrade || '-'}
       </span>
-    )},
-    { key: 'actions', header: 'Aksi', render: (row) => (
+    )}
+  ];
+
+  if (canManageAcademic) {
+    columns.push({ key: 'actions', header: 'Aksi', render: (row) => (
       <ActionButtons 
         onEdit={() => handleEdit(row)}
         onDelete={() => handleDelete(row.id)}
       />
-    )}
-  ];
+    )});
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
@@ -108,9 +113,11 @@ export const Subjects: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Mata Pelajaran</h1>
           <p className="text-gray-500 mt-1">Kelola master data Mata Pelajaran</p>
         </div>
-        <button className="btn-std-primary" onClick={() => { setCode(generateUniqueCode('MAPEL')); setShowModal(true); }}>
-          <Plus size={18} /> Tambah Data
-        </button>
+{canManageAcademic && (
+  <button className="btn-std-primary" onClick={() => { setCode(generateUniqueCode('MAPEL')); setShowModal(true); }}>
+    <Plus size={18} /> Tambah Data
+  </button>
+)}
       </div>
 
       {error && (

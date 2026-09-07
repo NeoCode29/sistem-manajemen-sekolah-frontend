@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAttendanceSetting, updateAttendanceSetting } from '../../api/attendanceService';
 import { Clock, Save, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
+import { Can } from '../../components/Common/Can';
 
 export const AttendanceSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -252,6 +253,7 @@ export const AttendanceSettings: React.FC = () => {
               </div>
             </div>
 
+
             <div className="mt-8 pt-6 relative">
               <div className="absolute top-0 left-10 right-10 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
               
@@ -272,6 +274,7 @@ export const AttendanceSettings: React.FC = () => {
                   <p className="text-sm text-gray-500 ml-8 mt-1.5 font-medium">Sistem akan memvalidasi absensi berdasarkan jam masuk & pulang ini.</p>
                 </div>
                 
+                <Can permission="attendance.write">
                 <button
                   type="submit"
                   className="btn-std-primary flex items-center gap-2 px-6 py-2.5 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 transition-all duration-300 w-full sm:w-auto justify-center"
@@ -280,6 +283,7 @@ export const AttendanceSettings: React.FC = () => {
                   <Save size={18} className={saving ? 'animate-pulse' : ''} />
                   <span className="font-semibold">{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
                 </button>
+                </Can>
               </div>
             </div>
           </form>

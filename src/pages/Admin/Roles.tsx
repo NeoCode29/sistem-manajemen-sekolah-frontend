@@ -6,11 +6,13 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export const Roles: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
+  const { canManageRbac } = usePermissions();
   const { showConfirm, showAlert } = useDialog();
   
   const [showModal, setShowModal] = useState(false);
@@ -122,8 +124,11 @@ export const Roles: React.FC = () => {
           <span className="text-gray-400 text-xs italic">Belum ada izin</span>
         )}
       </div>
-    )},
-    { key: 'actions', header: 'Aksi', render: (role) => {
+    )}
+  ];
+
+  if (canManageRbac) {
+    columns.push({ key: 'actions', header: 'Aksi', render: (role) => {
       const SYSTEM_ROLES = [
         'Super Admin',
         'Admin Sekolah',
@@ -152,8 +157,8 @@ export const Roles: React.FC = () => {
           )}
         </div>
       );
-    }}
-  ];
+    } });
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
@@ -162,9 +167,11 @@ export const Roles: React.FC = () => {
           title="Peran (Roles)" 
           subtitle="Kelola daftar Peran dan Hak Aksesnya"
         />
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => setShowModal(true)}>
-          <Plus size={18} /> Tambah Data
-        </button>
+        {canManageRbac && (
+          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => setShowModal(true)}>
+            <Plus size={18} /> Tambah Data
+          </button>
+        )}
       </div>
 
       <DataTable 

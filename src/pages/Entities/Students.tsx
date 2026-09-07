@@ -4,6 +4,7 @@ import { Plus, Trash2, Search, Filter, ChevronLeft, ChevronRight, FileUp, Refres
 import { Pagination } from '../../components/Common/Pagination';
 import { ImportStudentModal } from './ImportStudentModal';
 import { useStudents } from '../../hooks/useStudents';
+import { usePermissions } from '../../hooks/usePermissions';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Modal } from '../../components/ui/Modal';
@@ -48,6 +49,7 @@ export const Students: React.FC = () => {
     page: currentPage, limit: itemsPerPage, search: searchTerm, 
     status: filterStatus || undefined, isDeleted: activeTab === 'deleted'
   });
+  const { canManageStudents } = usePermissions();
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [wizardModal, setWizardModal] = useState({ open: false, step: 1 });
@@ -187,15 +189,17 @@ export const Students: React.FC = () => {
             <button className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" onClick={() => navigate(`/entities/students/${student.id}`)} title="Lihat Detail Siswa">
               <ChevronRight size={18} />
             </button>
-            <button className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" onClick={() => handleDelete(student.id)} title="Hapus">
-              <Trash2 size={18} />
-            </button>
+            {canManageStudents && (
+              <button className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" onClick={() => handleDelete(student.id)} title="Hapus">
+                <Trash2 size={18} />
+              </button>
+            )}
           </>
-        ) : (
+        ) : canManageStudents ? (
           <button className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" onClick={() => handleRestore(student.id)} title="Restore Siswa">
             <RefreshCw size={18} />
           </button>
-        )}
+        ) : null}
       </div>
     )}
   ];
@@ -205,14 +209,18 @@ export const Students: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <PageHeader title="Siswa & Wali Murid" subtitle="Pendaftaran dan manajemen riwayat siswa terpadu" />
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors shadow-sm" onClick={() => setIsImportModalOpen(true)}>
-            <FileUp size={18} className="text-gray-500" /> 
-            <span>Import Excel</span>
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => setWizardModal({ open: true, step: 1 })}>
-            <Plus size={18} /> 
-            <span>Pendaftaran Siswa Baru</span>
-          </button>
+          {canManageStudents && (
+            <>
+              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors shadow-sm" onClick={() => setIsImportModalOpen(true)}>
+                <FileUp size={18} className="text-gray-500" /> 
+                <span>Import Excel</span>
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => setWizardModal({ open: true, step: 1 })}>
+                <Plus size={18} /> 
+                <span>Pendaftaran Siswa Baru</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { Plus, CheckCircle, XCircle, Library, AlertCircle } from 'lucide-react';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useSemesters } from '../../hooks/useSemesters';
+import { usePermissions } from '../../hooks/usePermissions';
 import type { Semester } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
@@ -19,6 +20,7 @@ export const Semesters: React.FC = () => {
     deleteSemester,
     toggleSemesterActive
   } = useSemesters();
+  const { canManageAcademic } = usePermissions();
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -104,8 +106,11 @@ export const Semesters: React.FC = () => {
       <Badge variant={row.isActive ? 'success' : 'default'}>
         {row.isActive ? 'Aktif' : 'Nonaktif'}
       </Badge>
-    )},
-    { key: 'actions', header: 'Aksi', render: (row) => {
+    )}
+  ];
+
+  if (canManageAcademic) {
+    columns.push({ key: 'actions', header: 'Aksi', render: (row) => {
       const activeYearId = academicYears.find(y => y.isActive)?.id;
       const isParentYearActive = row.academicYearId === activeYearId || row.academicYear?.isActive;
 
@@ -126,15 +131,15 @@ export const Semesters: React.FC = () => {
         />
       </div>
       );
-    }}
-  ];
+    }});
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
       <PageHeader
         title="Semester"
         subtitle="Kelola data Semester dan Tahun Ajaran"
-        action={<button onClick={openAddModal} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+        action={canManageAcademic ? <button onClick={openAddModal} className="btn-std-primary"><Plus size={18} /> Tambah Data</button> : undefined}
       />
 
       {error && (
