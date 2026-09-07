@@ -8,6 +8,7 @@ import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
+import toast from 'react-hot-toast';
 
 interface EmployeeForm {
   positionId: string;
@@ -86,13 +87,19 @@ export const Employees: React.FC = () => {
   const closeModal = () => setModal({ open: false, editId: null });
 
   const handleToggle = async (emp: Employee) => {
-    try { await update(emp.id, { isActive: !emp.isActive }); } 
-    catch (err: any) { showAlert(err.response?.data?.message || 'Gagal merubah status pegawai', 'Error'); }
+    try { 
+      await update(emp.id, { isActive: !emp.isActive }); 
+      toast.success('Status pegawai berhasil diubah');
+    } 
+    catch (err: any) { toast.error(err.response?.data?.message || 'Gagal merubah status pegawai'); }
   };
 
   const handleDelete = (id: string) => {
     showConfirm('Apakah Anda yakin ingin menghapus pegawai ini?', async () => {
-      try { await remove(id); } catch (err: any) { showAlert(err.response?.data?.message || 'Gagal menghapus pegawai', 'Error'); }
+      try { 
+        await remove(id); 
+        toast.success('Pegawai berhasil dihapus');
+      } catch (err: any) { toast.error(err.response?.data?.message || 'Gagal menghapus pegawai'); }
     });
   };
 
@@ -120,12 +127,14 @@ export const Employees: React.FC = () => {
 
       if (modal.editId) {
         await update(modal.editId, payload);
+        toast.success('Berhasil memperbarui data pegawai');
       } else {
         await create(payload);
+        toast.success('Berhasil menambahkan pegawai');
       }
       closeModal();
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data', 'Error');
+      toast.error(err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
     }
   };
 

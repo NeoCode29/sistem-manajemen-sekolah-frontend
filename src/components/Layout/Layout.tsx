@@ -4,6 +4,8 @@ import { Sidebar } from '../Sidebar/Sidebar';
 import { Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getAcademicYears, getSemesters, type AcademicYear, type Semester } from '../../api/academicService';
+import { Toaster } from 'react-hot-toast';
+import { searchMenus } from '../../utils/constants';
 
 export const Layout: React.FC = () => {
   const { user } = useAuth();
@@ -16,37 +18,6 @@ export const Layout: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
-
-  // Daftar menu untuk pencarian
-  const searchMenus = [
-    { title: 'Dashboard', path: '/dashboard' },
-    { title: 'Profil Sekolah', path: '/profile/school' },
-    { title: 'Jabatan', path: '/entities/positions' },
-    { title: 'Rombel / Kelas', path: '/academic/classrooms' },
-    { title: 'Tingkat Kelas', path: '/academic/grades' },
-    { title: 'Jurusan', path: '/academic/majors' },
-    { title: 'Tahun Ajaran', path: '/academic/years' },
-    { title: 'Semester', path: '/academic/semesters' },
-    { title: 'Siswa & Wali', path: '/entities/students' },
-    { title: 'Pegawai / Guru', path: '/entities/employees' },
-    { title: 'Mata Pelajaran', path: '/academic/subjects' },
-    { title: 'Jam Pelajaran', path: '/academic/class-periods' },
-    { title: 'Jadwal Pelajaran', path: '/academic/schedules' },
-    { title: 'Kenaikan Kelas', path: '/academic/promotions' },
-    { title: 'Kelulusan', path: '/academic/graduations' },
-    { title: 'Pengaturan Absensi', path: '/attendance/settings' },
-    { title: 'Absensi Siswa', path: '/attendance/students' },
-    { title: 'Absensi Pegawai', path: '/attendance/employees' },
-    { title: 'Komponen Penilaian', path: '/assessment/components' },
-    { title: 'Agenda Penilaian', path: '/assessment/exams' },
-    { title: 'Cetak Rapor', path: '/assessment/report-cards' },
-    { title: 'Prestasi Siswa', path: '/student-affairs/achievements' },
-    { title: 'Pelanggaran (Kasus)', path: '/student-affairs/violations' },
-    { title: 'Pengumuman', path: '/announcements' },
-    { title: 'Pengguna', path: '/admin/users' },
-    { title: 'Peran (Roles)', path: '/admin/roles' },
-    { title: 'Pengaturan', path: '/settings' }
-  ];
 
   const filteredMenus = searchMenus.filter(menu => 
     menu.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -84,23 +55,13 @@ export const Layout: React.FC = () => {
   }, [location.pathname]);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+    <div className="flex min-h-screen bg-slate-50">
+      <Toaster position="top-right" />
       <Sidebar />
-      <div style={{ flex: 1, marginLeft: '260px', display: 'flex', flexDirection: 'column' }}>
-        <header style={{
-          height: '72px',
-          background: '#ffffff',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 2rem',
-          position: 'sticky',
-          top: 0,
-          zIndex: 30
-        }}>
-          <div ref={searchRef} style={{ position: 'relative', width: '400px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+      <div className="flex-1 ml-[260px] flex flex-col">
+        <header className="h-[72px] bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-30">
+          <div ref={searchRef} className="relative w-[400px]">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input 
               type="text" 
               placeholder="Cari menu halaman (Contoh: Absensi)..." 
@@ -110,36 +71,12 @@ export const Layout: React.FC = () => {
                 setIsSearchOpen(true);
               }}
               onFocus={() => setIsSearchOpen(true)}
-              style={{
-                width: '100%',
-                padding: '0.625rem 1rem 0.625rem 2.5rem',
-                borderRadius: '0.5rem',
-                border: '1px solid #e5e7eb',
-                backgroundColor: '#f9fafb',
-                color: '#111827',
-                fontSize: '0.875rem',
-                outline: 'none',
-                transition: 'all 0.2s',
-                boxShadow: isSearchOpen ? '0 0 0 2px rgba(59, 130, 246, 0.5)' : 'none'
-              }}
+              className="w-full py-2.5 pr-4 pl-10 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 text-sm outline-none transition-all focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:bg-white"
             />
             {isSearchOpen && searchQuery && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                marginTop: '0.5rem',
-                backgroundColor: 'white',
-                borderRadius: '0.5rem',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                border: '1px solid #e5e7eb',
-                maxHeight: '300px',
-                overflowY: 'auto',
-                zIndex: 50
-              }}>
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 max-h-[300px] overflow-y-auto z-50">
                 {filteredMenus.length > 0 ? (
-                  <ul style={{ listStyle: 'none', margin: 0, padding: '0.5rem 0' }}>
+                  <ul className="list-none m-0 py-2">
                     {filteredMenus.map((menu, index) => (
                       <li key={index}>
                         <button
@@ -148,19 +85,7 @@ export const Layout: React.FC = () => {
                             setIsSearchOpen(false);
                             setSearchQuery('');
                           }}
-                          style={{
-                            width: '100%',
-                            textAlign: 'left',
-                            padding: '0.5rem 1rem',
-                            fontSize: '0.875rem',
-                            color: '#374151',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'block'
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors block"
                         >
                           {menu.title}
                         </button>
@@ -168,40 +93,32 @@ export const Layout: React.FC = () => {
                     ))}
                   </ul>
                 ) : (
-                  <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.875rem', color: '#6b7280' }}>
+                  <div className="p-4 text-center text-sm text-gray-500">
                     Menu tidak ditemukan.
                   </div>
                 )}
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div className="flex items-center gap-6">
             {activeAy && activeSem && (
-              <div style={{ 
-                backgroundColor: '#eff6ff', 
-                color: '#1d4ed8', 
-                padding: '0.25rem 0.75rem', 
-                borderRadius: '9999px', 
-                fontSize: '0.75rem', 
-                fontWeight: 600,
-                border: '1px solid #bfdbfe'
-              }}>
+              <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold border border-blue-200">
                 TA {activeAy.name} - {activeSem.name}
               </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingLeft: '1.5rem', borderLeft: '1px solid #e5e7eb' }}>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.875rem' }}>{user?.name || 'Admin Utama'}</div>
-                <div style={{ fontSize: '0.65rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{user?.roles && user.roles.length > 0 ? user.roles.map(r => r.name).join(', ') : 'SUPER ADMINISTRATOR'}</div>
+            <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
+              <div className="text-right">
+                <div className="font-semibold text-gray-900 text-sm">{user?.name || 'Admin Utama'}</div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider">{user?.roles && user.roles.length > 0 ? user.roles.map(r => r.name).join(', ') : 'SUPER ADMINISTRATOR'}</div>
               </div>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1d4ed8', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+              <div className="w-9 h-9 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold">
                 {user?.name?.charAt(0) || 'A'}
               </div>
             </div>
           </div>
         </header>
-        <main style={{ flex: 1, padding: '2rem' }}>
+        <main className="flex-1 p-8">
           <Outlet />
         </main>
       </div>
