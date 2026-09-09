@@ -218,11 +218,11 @@ export const Students: React.FC = () => {
 
       <div className="flex gap-6 mb-6 border-b border-gray-200">
         <button className={`pb-3 px-1 text-sm font-semibold transition-colors relative ${activeTab === 'active' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => { setActiveTab('active'); setCurrentPage(1); }}>
-          Siswa Terdaftar
+          Daftar Siswa
           {activeTab === 'active' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
         </button>
         <button className={`pb-3 px-1 text-sm font-semibold transition-colors relative ${activeTab === 'deleted' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => { setActiveTab('deleted'); setCurrentPage(1); }}>
-          Tempat Sampah
+          Arsip Siswa
           {activeTab === 'deleted' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
         </button>
       </div>
