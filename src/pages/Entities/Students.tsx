@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Search, Filter, ChevronLeft, ChevronRight, FileUp, RefreshCw, User, GraduationCap, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Search, Filter, ChevronLeft, ChevronRight, FileUp, RefreshCw, User, GraduationCap, ChevronDown, Archive } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { ImportStudentModal } from './ImportStudentModal';
 import { useStudents } from '../../hooks/useStudents';
@@ -95,16 +95,34 @@ export const Students: React.FC = () => {
     fetchMasterData();
   }, []);
 
-  const handleRestore = async (id: string) => {
-    showConfirm('Apakah Anda yakin ingin me-restore siswa ini?', async () => {
-      try { await restore(id); } catch (err: any) { showAlert(err.response?.data?.message || 'Gagal merestore siswa', 'Error'); }
-    });
+  const handleRestore = (id: string) => {
+    showConfirm(
+      'Apakah Anda yakin ingin memulihkan (restore) data siswa ini dari Archive?',
+      async () => {
+        try {
+          await restore(id);
+          showAlert('Data siswa berhasil dipulihkan dari Archive.', 'Berhasil', 'success');
+        } catch (err: any) {
+          showAlert(err.response?.data?.message || 'Gagal memulihkan data siswa.', 'Gagal Memulihkan', 'error');
+        }
+      },
+      'Konfirmasi Pemulihan'
+    );
   };
 
-  const handleDelete = async (id: string) => {
-    showConfirm('Apakah Anda yakin ingin menghapus siswa ini?', async () => {
-      try { await remove(id); } catch (err: any) { showAlert(err.response?.data?.message || 'Gagal menghapus siswa', 'Error'); }
-    });
+  const handleDelete = (id: string) => {
+    showConfirm(
+      'Apakah Anda yakin ingin memindahkan data siswa ini ke dalam Archive?',
+      async () => {
+        try {
+          await remove(id);
+          showAlert('Data siswa berhasil dipindahkan ke Archive.', 'Berhasil', 'success');
+        } catch (err: any) {
+          showAlert(err.response?.data?.message || 'Gagal mengarsipkan siswa. Silakan periksa kembali data terkait.', 'Peringatan Penghapusan', 'error');
+        }
+      },
+      'Konfirmasi Hapus'
+    );
   };
 
   const closeWizard = () => {
@@ -196,8 +214,13 @@ export const Students: React.FC = () => {
             )}
           </>
         ) : canManageStudents ? (
-          <button className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" onClick={() => handleRestore(student.id)} title="Restore Siswa">
-            <RefreshCw size={18} />
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-semibold transition-colors shadow-sm"
+            onClick={() => handleRestore(student.id)}
+            title="Pulihkan Siswa dari Archive"
+          >
+            <RefreshCw size={14} />
+            <span>Pulihkan</span>
           </button>
         ) : null}
       </div>
@@ -206,10 +229,10 @@ export const Students: React.FC = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <PageHeader title="Siswa & Wali Murid" subtitle="Pendaftaran dan manajemen riwayat siswa terpadu" />
         <div className="flex gap-3">
-          {canManageStudents && (
+          {canManageStudents && activeTab === 'active' && (
             <>
               <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors shadow-sm" onClick={() => setIsImportModalOpen(true)}>
                 <FileUp size={18} className="text-gray-500" /> 
@@ -225,12 +248,22 @@ export const Students: React.FC = () => {
       </div>
 
       <div className="flex gap-6 mb-6 border-b border-gray-200">
-        <button className={`pb-3 px-1 text-sm font-semibold transition-colors relative ${activeTab === 'active' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => { setActiveTab('active'); setCurrentPage(1); }}>
-          Siswa Terdaftar
+        <button
+          type="button"
+          className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 ${activeTab === 'active' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => { setActiveTab('active'); setCurrentPage(1); }}
+        >
+          <User size={16} />
+          <span>Siswa Aktif</span>
           {activeTab === 'active' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
         </button>
-        <button className={`pb-3 px-1 text-sm font-semibold transition-colors relative ${activeTab === 'deleted' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => { setActiveTab('deleted'); setCurrentPage(1); }}>
-          Tempat Sampah
+        <button
+          type="button"
+          className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 ${activeTab === 'deleted' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => { setActiveTab('deleted'); setCurrentPage(1); }}
+        >
+          <Archive size={16} />
+          <span>Archive</span>
           {activeTab === 'deleted' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
         </button>
       </div>
@@ -256,8 +289,14 @@ export const Students: React.FC = () => {
       </div>
 
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 flex flex-col">
-        <DataTable containerClassName="w-full overflow-x-auto" columns={columns} data={items} loading={loading} emptyMessage={activeTab === 'deleted' ? "Tidak ada siswa di tempat sampah." : "Belum ada data siswa ditemukan."} />
-        
+        <DataTable
+          containerClassName="w-full overflow-x-auto"
+          columns={columns}
+          data={items}
+          loading={loading}
+          emptyMessage={activeTab === 'deleted' ? 'Tidak ada data siswa dalam archive.' : 'Belum ada data siswa ditemukan.'}
+        />
+
         {!loading && meta?.totalPages > 0 && (
           <Pagination currentPage={currentPage} totalPages={meta.totalPages} totalItems={meta.total} itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={(limit) => { setItemsPerPage(limit); setCurrentPage(1); }} />
         )}

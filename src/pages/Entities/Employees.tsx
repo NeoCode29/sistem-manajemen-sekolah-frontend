@@ -3,7 +3,7 @@ import { type Employee, getPositions, type Position } from '../../api/employeeSe
 import { getRoles, type Role } from '../../api/rbacService';
 import { useEmployees } from '../../hooks/useEmployees';
 import { usePermissions } from '../../hooks/usePermissions';
-import { Plus, CheckCircle, XCircle, Search, Filter, ChevronDown, RefreshCw } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, Search, Filter, ChevronDown, RefreshCw, Archive, UserCheck } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
@@ -94,18 +94,18 @@ export const Employees: React.FC = () => {
 
   const handleToggle = async (emp: Employee) => {
     try { await update(emp.id, { isActive: !emp.isActive }); } 
-    catch (err: any) { showAlert(err.response?.data?.message || 'Gagal merubah status pegawai', 'Error'); }
+    catch (err: any) { showAlert(err.response?.data?.message || 'Gagal merubah status pegawai', 'Error', 'error'); }
   };
 
   const handleRestore = (id: string) => {
     showConfirm(
-      'Apakah Anda yakin ingin memulihkan (restore) data pegawai ini?',
+      'Apakah Anda yakin ingin memulihkan (restore) data pegawai/guru ini dari Archive?',
       async () => {
         try {
           await restore(id);
-          showAlert('Pegawai berhasil dipulihkan', 'Sukses');
+          showAlert('Data pegawai berhasil dipulihkan dari Archive.', 'Berhasil', 'success');
         } catch (err: any) {
-          showAlert(err.response?.data?.message || 'Gagal memulihkan pegawai', 'Error');
+          showAlert(err.response?.data?.message || 'Gagal memulihkan data pegawai.', 'Gagal Memulihkan', 'error');
         }
       },
       'Konfirmasi Pemulihan'
@@ -114,13 +114,13 @@ export const Employees: React.FC = () => {
 
   const handleDelete = (id: string) => {
     showConfirm(
-      'Apakah Anda yakin ingin memindahkan data pegawai ini ke tempat sampah?',
+      'Apakah Anda yakin ingin memindahkan data pegawai/guru ini ke dalam Archive?',
       async () => {
         try {
           await remove(id);
-          showAlert('Pegawai berhasil dipindahkan ke tempat sampah', 'Sukses');
+          showAlert('Data pegawai berhasil dipindahkan ke Archive.', 'Berhasil', 'success');
         } catch (err: any) {
-          showAlert(err.response?.data?.message || 'Gagal menghapus pegawai', 'Peringatan');
+          showAlert(err.response?.data?.message || 'Gagal mengarsipkan data pegawai.', 'Peringatan Penghapusan', 'error');
         }
       },
       'Konfirmasi Hapus'
@@ -198,7 +198,7 @@ export const Employees: React.FC = () => {
           <button
             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-semibold transition-colors shadow-sm"
             onClick={() => handleRestore(emp.id)}
-            title="Pulihkan Pegawai"
+            title="Pulihkan Pegawai dari Archive"
           >
             <RefreshCw size={14} />
             <span>Pulihkan</span>
@@ -214,33 +214,37 @@ export const Employees: React.FC = () => {
         <PageHeader title="Pegawai & Guru" subtitle="Manajemen data pegawai dan tenaga pendidik" />
         {canManageEmployees && activeTab === 'active' && (
           <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={openAdd}>
-            <Plus size={18} /> Tambah Data
+            <Plus size={18} /> Tambah Pegawai Baru
           </button>
         )}
       </div>
 
-      <div className="flex gap-4 mb-6 border-b border-gray-100">
+      <div className="flex gap-6 mb-6 border-b border-gray-200">
         <button
           type="button"
-          className={`pb-3 px-1 font-semibold text-sm transition-colors relative ${
+          className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 ${
             activeTab === 'active'
-              ? 'text-indigo-600 border-b-2 border-indigo-600'
+              ? 'text-indigo-600'
               : 'text-gray-500 hover:text-gray-700'
           }`}
           onClick={() => { setActiveTab('active'); setCurrentPage(1); }}
         >
-          Pegawai Aktif
+          <UserCheck size={16} />
+          <span>Pegawai Aktif</span>
+          {activeTab === 'active' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
         </button>
         <button
           type="button"
-          className={`pb-3 px-1 font-semibold text-sm transition-colors relative ${
+          className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 ${
             activeTab === 'deleted'
-              ? 'text-indigo-600 border-b-2 border-indigo-600'
+              ? 'text-indigo-600'
               : 'text-gray-500 hover:text-gray-700'
           }`}
           onClick={() => { setActiveTab('deleted'); setCurrentPage(1); }}
         >
-          Tempat Sampah
+          <Archive size={16} />
+          <span>Archive</span>
+          {activeTab === 'deleted' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
         </button>
       </div>
 
@@ -249,14 +253,16 @@ export const Employees: React.FC = () => {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
           <input type="text" className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" placeholder="Cari NIP, NIK, atau Nama Pegawai..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
-        <div className="w-full md:w-64 relative group">
-          <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors z-10" size={18} />
-          <select className="w-full pl-10 pr-10 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer relative z-0" value={filterPosition} onChange={(e) => setFilterPosition(e.target.value)}>
-            <option value="">Semua Jabatan</option>
-            {positions.map(pos => <option key={pos.id} value={pos.id}>{pos.name}</option>)}
-          </select>
-          <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
-        </div>
+        {activeTab === 'active' && (
+          <div className="w-full md:w-64 relative group">
+            <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors z-10" size={18} />
+            <select className="w-full pl-10 pr-10 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer relative z-0" value={filterPosition} onChange={(e) => setFilterPosition(e.target.value)}>
+              <option value="">Semua Jabatan</option>
+              {positions.map(pos => <option key={pos.id} value={pos.id}>{pos.name}</option>)}
+            </select>
+            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+          </div>
+        )}
       </div>
 
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 flex flex-col">
@@ -265,7 +271,7 @@ export const Employees: React.FC = () => {
           columns={columns}
           data={items}
           loading={loading}
-          emptyMessage={activeTab === 'active' ? 'Belum ada data pegawai.' : 'Tidak ada data pegawai di tempat sampah.'}
+          emptyMessage={activeTab === 'active' ? 'Belum ada data pegawai.' : 'Tidak ada data pegawai dalam archive.'}
         />
 
         {!loading && meta?.totalPages > 0 && (
