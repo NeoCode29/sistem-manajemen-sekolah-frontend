@@ -94,6 +94,16 @@ export const deleteEmployee = async (id: string): Promise<void> => {
   await api.delete(`/employees/${id}`);
 };
 
+export const getDeletedEmployees = async (params?: Record<string, any>): Promise<{ data: Employee[], meta: any }> => {
+  const response = await api.get('/employees/trash', { params });
+  return response.data;
+};
+
+export const restoreEmployee = async (id: string): Promise<{ message: string }> => {
+  const response = await api.post(`/employees/${id}/restore`);
+  return response.data;
+};
+
 export const uploadSignature = async (id: string, file: File): Promise<Employee> => {
   const formData = new FormData();
   formData.append('file', file);
