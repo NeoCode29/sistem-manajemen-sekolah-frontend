@@ -185,10 +185,13 @@ export const AssessmentComponents: React.FC = () => {
       };
 
       if (modal.editId) {
-        await updateAssessmentComponent(modal.editId, payload);
+        await updateAssessmentComponent(modal.editId, {
+          weight: Number(form.weight)
+        });
       } else {
         await createAssessmentComponent(payload);
       }
+
       
       await fetchComponents();
       handleCloseModal();
@@ -493,9 +496,9 @@ export const AssessmentComponents: React.FC = () => {
             <input 
               type="number" 
               className="input-std text-lg font-bold" 
-              value={form.weight || ''} 
+              value={form.weight ?? ''} 
               onChange={setField('weight')} 
-              min={1} 
+              min={0} 
               max={100}
               step="0.01"
               required 
