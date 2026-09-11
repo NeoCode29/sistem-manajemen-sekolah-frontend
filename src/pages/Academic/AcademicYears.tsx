@@ -42,6 +42,7 @@ export const AcademicYears: React.FC = () => {
     setIsEditing(true);
     setEditId(year.id);
     setName(year.name);
+    setFormError('');
     setShowModal(true);
   };
 
@@ -113,11 +114,11 @@ export const AcademicYears: React.FC = () => {
       <PageHeader
         title="Tahun Ajaran"
         subtitle="Kelola master data Tahun Ajaran akademik"
-        action={canManageAcademic ? <button onClick={() => setShowModal(true)} className="btn-std-primary"><Plus size={18} /> Tambah Data</button> : undefined}
+        action={canManageAcademic ? <button onClick={() => { setFormError(''); setShowModal(true); }} className="btn-std-primary"><Plus size={18} /> Tambah Data</button> : undefined}
       />
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-3 mb-4 flex items-center gap-2">
+      {error && !showModal && (
+        <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
         </div>
@@ -144,6 +145,12 @@ export const AcademicYears: React.FC = () => {
         }
       >
         <form id="ay-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+          {error && showModal && (
+            <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2 text-sm font-medium">
+              <AlertCircle size={18} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
           <FormField label="Nama Tahun Ajaran" required>
             <input type="text" className="input-std" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: 2026/2027" required />
           </FormField>

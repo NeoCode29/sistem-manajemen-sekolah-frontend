@@ -10,6 +10,7 @@ import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge } from '../../components/ui/Badge';
+import { generateLetterTemplateCode } from '../../utils/codeGenerator';
 
 export const LetterTemplates: React.FC = () => {
   const { user } = useAuth();
@@ -327,6 +328,7 @@ export const LetterTemplates: React.FC = () => {
         open={isModalOpen}
         onClose={closeModal}
         title={editingId ? 'Edit Template Surat' : 'Upload Template Baru'}
+        size="lg"
       >
         <div className="p-6">
           <form id="template-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -345,17 +347,6 @@ export const LetterTemplates: React.FC = () => {
             </FormField>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField label="Kode Unik" required>
-                <input
-                  type="text"
-                  name="code"
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all uppercase font-mono font-semibold"
-                  value={formData.code}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="Misal: SK-AKTIF-01"
-                />
-              </FormField>
               <FormField label="Kategori">
                 <select
                   name="category"
@@ -368,6 +359,28 @@ export const LetterTemplates: React.FC = () => {
                   <option value="UNDANGAN">UNDANGAN</option>
                   <option value="KETERANGAN">KETERANGAN</option>
                 </select>
+              </FormField>
+
+              <FormField label="Kode Unik" required>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="code"
+                    className="flex-1 min-w-0 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all uppercase font-mono font-semibold"
+                    value={formData.code}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="Misal: SK-AKTIF-01"
+                  />
+                  <button
+                    type="button"
+                    className="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors whitespace-nowrap shrink-0"
+                    onClick={() => setFormData(prev => ({ ...prev, code: generateLetterTemplateCode(prev.category, prev.name) }))}
+                    title="Buat kode acak otomatis"
+                  >
+                    Buat Otomatis
+                  </button>
+                </div>
               </FormField>
             </div>
 

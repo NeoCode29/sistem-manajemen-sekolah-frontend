@@ -1,5 +1,6 @@
 import React from 'react';
 import { Archive } from 'lucide-react';
+import { TableSkeleton } from './TableSkeleton';
 
 export interface Column<T> {
   key: string;
@@ -30,10 +31,20 @@ export function DataTable<T extends { id: string | number }>({
   if (loading) {
     return (
       <div className={finalContainerClass}>
-        <div className="text-center p-12 text-gray-500 flex flex-col items-center justify-center gap-4">
-          <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-          <div className="font-medium text-sm">Memuat data...</div>
-        </div>
+        <table className="w-full text-left text-sm whitespace-nowrap">
+          <thead>
+            <tr className="bg-gray-50/80 border-b border-gray-100 text-gray-500">
+              {columns.map((col) => (
+                <th key={col.key} className="px-6 py-4 font-semibold tracking-wide">
+                  {col.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            <TableSkeleton columns={columns.length} rows={5} />
+          </tbody>
+        </table>
       </div>
     );
   }

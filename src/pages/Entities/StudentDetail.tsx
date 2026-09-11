@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getStudentById, updateStudent, createGuardian, updateGuardian, deleteGuardian, createEnrollment, updateEnrollment, deleteEnrollment, type Student, type StudentGuardian, type StudentEnrollment } from '../../api/studentService';
 import { getAcademicYears, getSemesters, getClassrooms, getMajors, type AcademicYear, type Semester, type Classroom, type Major } from '../../api/academicService';
-import { ArrowLeft, User, BookOpen, CreditCard, Award, Pencil, Plus, Trash2, MapPin, Calendar, Phone, Briefcase, GraduationCap, Users } from 'lucide-react';
+import { ArrowLeft, User, BookOpen, Award, Pencil, Plus, Trash2, MapPin, Calendar, Phone, Briefcase, GraduationCap, Users } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge } from '../../components/ui/Badge';
@@ -290,7 +290,6 @@ export const StudentDetail: React.FC = () => {
         {[
           { id: 'profil', icon: User, label: 'Profil & Wali' },
           { id: 'akademik', icon: BookOpen, label: 'Akademik' },
-          { id: 'keuangan', icon: CreditCard, label: 'Keuangan' },
           { id: 'catatan', icon: Award, label: 'Catatan' },
         ].map(tab => (
           <button 
@@ -435,15 +434,6 @@ export const StudentDetail: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'keuangan' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
-            <div className="w-16 h-16 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <CreditCard size={32} />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Fitur Keuangan</h3>
-            <p className="text-gray-500 max-w-md mx-auto">Data tagihan SPP dan riwayat pembayaran siswa sedang dalam tahap pengembangan dan akan segera hadir.</p>
-          </div>
-        )}
 
         {activeTab === 'catatan' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { getEmployees } from '../../api/employeeService';
 import { getEmployeeAttendances, upsertEmployeeAttendanceBatch, type EmployeeAttendance, type EmployeeAttendanceBatchItem } from '../../api/attendanceService';
-import { Save, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
+import { Save, Calendar } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { TableSkeleton } from '../../components/Common/TableSkeleton';
 
 interface AttendanceRow {
   employeeId: string;
@@ -18,8 +20,6 @@ export const EmployeeAttendancePage: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   
   const [rows, setRows] = useState<AttendanceRow[]>([]);
 
@@ -32,7 +32,6 @@ export const EmployeeAttendancePage: React.FC = () => {
   const fetchAttendanceData = async () => {
     try {
       setLoading(true);
-      setError('');
       
       const [employeesData, attendancesData] = await Promise.all([
         getEmployees(),
@@ -62,7 +61,7 @@ export const EmployeeAttendancePage: React.FC = () => {
       
       setRows(newRows);
     } catch (err: any) {
-      setError('Gagal memuat data absensi pegawai');
+      toast.error('Gagal memuat data absensi pegawai');
       setRows([]);
     } finally {
       setLoading(false);
@@ -84,14 +83,12 @@ export const EmployeeAttendancePage: React.FC = () => {
 
   const handleSave = async () => {
     if (!date) {
-      setError('Harap pilih tanggal.');
+      toast.error('Harap pilih tanggal.');
       return;
     }
     
     try {
       setSaving(true);
-      setError('');
-      setSuccess('');
       
       const attendances: EmployeeAttendanceBatchItem[] = rows.map(r => {
         const isPresent = r.status === 'Hadir' || r.status === 'Terlambat';
@@ -105,13 +102,12 @@ export const EmployeeAttendancePage: React.FC = () => {
       });
       
       await upsertEmployeeAttendanceBatch(date, attendances);
-      setSuccess('Data absensi pegawai berhasil disimpan!');
-      setTimeout(() => setSuccess(''), 3000);
+      toast.success('Data absensi pegawai berhasil disimpan!');
       
       // Refresh to get potentially auto-updated statuses (like Terlambat)
       await fetchAttendanceData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan absensi');
+      toast.error(err.response?.data?.message || 'Gagal menyimpan absensi');
     } finally {
       setSaving(false);
     }
@@ -125,19 +121,6 @@ export const EmployeeAttendancePage: React.FC = () => {
           <p className="text-gray-500 mt-1">Kelola kehadiran harian staf dan pengajar</p>
         </div>
       </div>
-
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
-          <AlertCircle size={18} />
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="mb-6 p-4 bg-green-50 text-green-700 border border-green-200 rounded-xl flex items-center gap-2">
-          <CheckCircle size={18} />
-          {success}
-        </div>
-      )}
 
       <div className="bg-white/90 backdrop-blur-xl border border-white shadow-lg shadow-slate-200/40 rounded-3xl p-6 md:p-8 mb-8 transition-all duration-300 hover:shadow-xl">
         <div className="flex items-center gap-3 mb-6 text-indigo-600 border-b border-indigo-100/50 pb-4">
@@ -174,7 +157,24 @@ export const EmployeeAttendancePage: React.FC = () => {
         </div>
         
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Memuat data absensi...</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-gray-50/50 text-gray-600 font-medium border-b border-gray-100">
+                <tr>
+                  <th className="w-12 text-center py-4">No</th>
+                  <th className="py-4 px-2">NIP</th>
+                  <th className="py-4 px-2">Nama Pegawai</th>
+                  <th className="w-48 py-4 px-2">Status</th>
+                  <th className="w-36 py-4 px-2">Check In</th>
+                  <th className="w-36 py-4 px-2">Check Out</th>
+                  <th className="py-4 px-4">Catatan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                <TableSkeleton columns={7} rows={5} />
+              </tbody>
+            </table>
+          </div>
         ) : rows.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             Tidak ada data pegawai aktif.

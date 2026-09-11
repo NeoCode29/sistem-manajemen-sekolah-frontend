@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, GraduationCap, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
-import { generateUniqueCode } from '../../utils/codeGenerator';
+import { generateMajorCode } from '../../utils/codeGenerator';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useMajors } from '../../hooks/useMajors';
@@ -50,6 +50,7 @@ export const Majors: React.FC = () => {
     setCode(major.code);
     setName(major.name);
     setDescription(major.description || '');
+    setFormError('');
     setShowModal(true);
   };
 
@@ -131,14 +132,14 @@ export const Majors: React.FC = () => {
         title="Jurusan"
         subtitle="Kelola master data Jurusan (Program Keahlian)"
         action={canManageAcademic ? (
-          <button className="btn-std-primary" onClick={() => { setCode(generateUniqueCode('JUR')); setShowModal(true); }}>
+          <button onClick={() => { setFormError(''); setCode(generateMajorCode()); setShowModal(true); }} className="btn-std-primary">
             <Plus size={18} /> Tambah Data
           </button>
         ) : undefined}
       />
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-3 mb-4 flex items-center gap-2">
+      {error && !showModal && (
+        <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
         </div>
@@ -165,13 +166,19 @@ export const Majors: React.FC = () => {
         }
       >
         <form id="major-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+          {error && showModal && (
+            <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2 text-sm font-medium">
+              <AlertCircle size={18} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
           <FormField label="Kode" required>
             <div className="flex gap-2">
               <input type="text" className="input-std flex-1" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: IPA" required />
               <button 
                 type="button" 
                 className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors whitespace-nowrap"
-                onClick={() => setCode(generateUniqueCode('JUR'))}
+                onClick={() => setCode(generateMajorCode(name))}
                 title="Buat kode acak otomatis"
               >
                 Buat Otomatis

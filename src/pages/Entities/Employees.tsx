@@ -9,6 +9,7 @@ import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
+import toast from 'react-hot-toast';
 
 interface EmployeeForm {
   positionId: string;
@@ -93,8 +94,13 @@ export const Employees: React.FC = () => {
   const closeModal = () => setModal({ open: false, editId: null });
 
   const handleToggle = async (emp: Employee) => {
-    try { await update(emp.id, { isActive: !emp.isActive }); } 
-    catch (err: any) { showAlert(err.response?.data?.message || 'Gagal merubah status pegawai', 'Error', 'error'); }
+    try { 
+      await update(emp.id, { isActive: !emp.isActive }); 
+      toast.success('Status pegawai berhasil diubah');
+    } 
+    catch (err: any) { 
+      showAlert(err.response?.data?.message || 'Gagal merubah status pegawai', 'Error', 'error'); 
+    }
   };
 
   const handleRestore = (id: string) => {
@@ -103,6 +109,7 @@ export const Employees: React.FC = () => {
       async () => {
         try {
           await restore(id);
+          toast.success('Data pegawai berhasil dipulihkan dari Archive');
           showAlert('Data pegawai berhasil dipulihkan dari Archive.', 'Berhasil', 'success');
         } catch (err: any) {
           showAlert(err.response?.data?.message || 'Gagal memulihkan data pegawai.', 'Gagal Memulihkan', 'error');
@@ -118,6 +125,7 @@ export const Employees: React.FC = () => {
       async () => {
         try {
           await remove(id);
+          toast.success('Pegawai berhasil dipindahkan ke Archive');
           showAlert('Data pegawai berhasil dipindahkan ke Archive.', 'Berhasil', 'success');
         } catch (err: any) {
           showAlert(err.response?.data?.message || 'Gagal mengarsipkan data pegawai.', 'Peringatan Penghapusan', 'error');
@@ -151,12 +159,14 @@ export const Employees: React.FC = () => {
 
       if (modal.editId) {
         await update(modal.editId, payload);
+        toast.success('Berhasil memperbarui data pegawai');
       } else {
         await create(payload);
+        toast.success('Berhasil menambahkan pegawai');
       }
       closeModal();
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data', 'Error');
+      toast.error(err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
     }
   };
 
