@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, GraduationCap, AlertCircle } from 'lucide-react';
-import { generateUniqueCode } from '../../utils/codeGenerator';
+import { generateGradeCode } from '../../utils/codeGenerator';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useGrades } from '../../hooks/useGrades';
@@ -109,7 +109,7 @@ export const Grades: React.FC = () => {
       <PageHeader
         title="Tingkat Kelas"
         subtitle="Kelola master data Tingkat/Level Kelas (misal: Kelas 10, 11, 12)"
-        action={<button onClick={() => { setCode(generateUniqueCode('TK')); setShowModal(true); }} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+        action={<button onClick={() => { setCode(generateGradeCode(educationLevel, level, name)); setShowModal(true); }} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
       />
 
       {error && (
@@ -146,7 +146,7 @@ export const Grades: React.FC = () => {
               <button 
                 type="button" 
                 className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors whitespace-nowrap"
-                onClick={() => setCode(generateUniqueCode('TK'))}
+                onClick={() => setCode(generateGradeCode(educationLevel, level, name))}
                 title="Buat kode acak otomatis"
               >
                 Buat Otomatis

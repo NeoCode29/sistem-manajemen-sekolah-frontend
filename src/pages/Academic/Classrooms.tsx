@@ -9,6 +9,7 @@ import { useClassrooms } from '../../hooks/useClassrooms';
 import type { Classroom } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField } from '../../components/ui';
+import { generateUniqueCode } from '../../utils/codeGenerator';
 
 export const Classrooms: React.FC = () => {
   const navigate = useNavigate();
@@ -51,6 +52,17 @@ export const Classrooms: React.FC = () => {
     setCode('');
     setName('');
     setCapacity(30);
+  };
+
+  const handleGenerateCode = () => {
+    const selectedGrade = grades.find(g => String(g.id) === String(gradeId));
+    const selectedMajor = majors.find(m => String(m.id) === String(majorId));
+
+    const gradePart = selectedGrade ? (selectedGrade.code || selectedGrade.name).replace(/\s+/g, '') : 'KLS';
+    const majorPart = selectedMajor ? `-${(selectedMajor.code || selectedMajor.name).replace(/\s+/g, '').toUpperCase()}` : '';
+    const prefix = `${gradePart}${majorPart}`;
+
+    setCode(generateUniqueCode(prefix));
   };
 
   const handleEdit = (classroom: Classroom) => {
@@ -211,7 +223,24 @@ export const Classrooms: React.FC = () => {
             </select>
           </FormField>
           <FormField label="Kode" required>
-            <input type="text" className="input-std" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: 10-IPA-1" required />
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                className="input-std flex-1" 
+                value={code} 
+                onChange={(e) => setCode(e.target.value)} 
+                placeholder="Contoh: 10-IPA-1" 
+                required 
+              />
+              <button 
+                type="button" 
+                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors whitespace-nowrap"
+                onClick={handleGenerateCode}
+                title="Buat kode acak otomatis"
+              >
+                Buat Otomatis
+              </button>
+            </div>
           </FormField>
           <FormField label="Nama Rombel" required>
             <input type="text" className="input-std" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: X MIPA 1" required />

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Search } from 'lucide-react';
-import { generateUniqueCode } from '../../utils/codeGenerator';
+import { generatePositionCode } from '../../utils/codeGenerator';
 import { usePositions } from '../../hooks/usePositions';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
@@ -30,7 +30,7 @@ export const Positions: React.FC = () => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const openAdd = () => { setForm({ ...DEFAULT_FORM, code: generateUniqueCode('JAB') }); setModal({ open: true, editId: null }); };
+  const openAdd = () => { setForm({ ...DEFAULT_FORM, code: generatePositionCode() }); setModal({ open: true, editId: null }); };
   const openEdit = (item: Position) => {
     setForm({ code: item.code, name: item.name, description: item.description || '', isActive: item.isActive });
     setModal({ open: true, editId: item.id });
@@ -112,7 +112,7 @@ export const Positions: React.FC = () => {
               <button 
                 type="button" 
                 className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors whitespace-nowrap"
-                onClick={() => setForm(prev => ({ ...prev, code: generateUniqueCode('JAB') }))}
+                onClick={() => setForm(prev => ({ ...prev, code: generatePositionCode(prev.name) }))}
                 title="Buat kode acak otomatis"
               >
                 Buat Otomatis

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, AlertCircle } from 'lucide-react';
-import { generateUniqueCode } from '../../utils/codeGenerator';
+import { generatePeriodCode } from '../../utils/codeGenerator';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { Modal } from '../../components/ui/Modal';
@@ -122,7 +122,7 @@ export const ClassPeriods: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Jam Pelajaran</h1>
           <p className="text-gray-500 mt-1">Kelola master data Waktu / Jam Pelajaran</p>
         </div>
-        <button className="btn-std-primary" onClick={() => { setCode(generateUniqueCode('JAM')); setShowModal(true); }}>
+        <button className="btn-std-primary" onClick={() => { setCode(generatePeriodCode(periods.length + 1, false)); setShowModal(true); }}>
           <Plus size={18} /> Tambah Data
         </button>
       </div>
@@ -169,7 +169,7 @@ export const ClassPeriods: React.FC = () => {
                 <button 
                   type="button" 
                   className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors whitespace-nowrap"
-                  onClick={() => setCode(generateUniqueCode('JAM'))}
+                  onClick={() => setCode(generatePeriodCode(periodNumber, isBreak))}
                   title="Buat kode acak otomatis"
                 >
                   Buat Otomatis

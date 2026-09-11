@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, AlertCircle } from 'lucide-react';
-import { generateUniqueCode } from '../../utils/codeGenerator';
+import { generateSubjectCode } from '../../utils/codeGenerator';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { Modal } from '../../components/ui/Modal';
@@ -108,7 +108,7 @@ export const Subjects: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Mata Pelajaran</h1>
           <p className="text-gray-500 mt-1">Kelola master data Mata Pelajaran</p>
         </div>
-        <button className="btn-std-primary" onClick={() => { setCode(generateUniqueCode('MAPEL')); setShowModal(true); }}>
+        <button className="btn-std-primary" onClick={() => { setCode(generateSubjectCode()); setShowModal(true); }}>
           <Plus size={18} /> Tambah Data
         </button>
       </div>
@@ -148,7 +148,7 @@ export const Subjects: React.FC = () => {
                 <button 
                   type="button" 
                   className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors whitespace-nowrap"
-                  onClick={() => setCode(generateUniqueCode('MAPEL'))}
+                  onClick={() => setCode(generateSubjectCode(name))}
                   title="Buat kode acak otomatis"
                 >
                   Buat Otomatis
