@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getExamById, getExamScores, upsertExamScoresBatch, type Exam, type ExamScore } from '../../api/assessmentService';
+import { 
+  getExamById, 
+  getExamScores, 
+  upsertExamScoresBatch, 
+  getAssessmentLockStatus,
+  type Exam, 
+  type ExamScore,
+  type AssessmentLockStatus
+} from '../../api/assessmentService';
 import { getStudents } from '../../api/studentService';
-import { Save, ArrowLeft, Award, FileEdit, Users, BookOpen, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Save, ArrowLeft, Award, Users, BookOpen, Calendar, CheckCircle2, AlertCircle, Lock, AlertTriangle } from 'lucide-react';
 
 interface ScoreRow {
   studentId: string;
@@ -18,6 +26,7 @@ export const ExamScores: React.FC = () => {
 
   const [exam, setExam] = useState<Exam | null>(null);
   const [rows, setRows] = useState<ScoreRow[]>([]);
+  const [lockStatus, setLockStatus] = useState<AssessmentLockStatus | null>(null);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,16 +48,24 @@ export const ExamScores: React.FC = () => {
       const examData = await getExamById(examId!);
       setExam(examData);
       
-      // 2. Fetch Students in that classroom & existing scores
-      const [studentsData, scoresData] = await Promise.all([
+      // 2. Fetch Students in that classroom, existing scores & lock status
+      const [studentsData, scoresData, lockData] = await Promise.all([
         getStudents({ 
           classroomId: examData.classroomId, 
           academicYearId: examData.academicYearId,
           semesterId: examData.semesterId,
           limit: 1000
         }),
-        getExamScores(examId!)
+        getExamScores(examId!),
+        getAssessmentLockStatus({
+          classroomId: examData.classroomId,
+          subjectId: examData.subjectId,
+          academicYearId: examData.academicYearId,
+          semesterId: examData.semesterId
+        }).catch(() => null)
       ]);
+      
+      setLockStatus(lockData);
       
       const scoreMap = new Map<string, ExamScore>();
       scoresData.forEach(s => scoreMap.set(s.studentId, s));
@@ -73,6 +90,7 @@ export const ExamScores: React.FC = () => {
   };
 
   const handleRowChange = (index: number, field: keyof ScoreRow, value: string) => {
+    if (lockStatus?.isLocked) return;
     const updatedRows = [...rows];
     
     if (field === 'score') {
@@ -93,7 +111,7 @@ export const ExamScores: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!examId) return;
+    if (!examId || lockStatus?.isLocked) return;
     
     try {
       setSaving(true);
@@ -138,11 +156,14 @@ export const ExamScores: React.FC = () => {
     );
   }
 
-  const completedCount = rows.filter(r => r.score !== '').length;
+  const totalStudents = rows.length;
+  const completedCount = rows.filter(r => r.score !== '' && r.score !== null && r.score !== undefined).length;
+  const missingCount = totalStudents - completedCount;
+  const isLocked = lockStatus?.isLocked ?? false;
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8" style={{ marginBottom: '2.5rem' }}>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8" style={{ marginBottom: '2rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <button 
@@ -156,21 +177,76 @@ export const ExamScores: React.FC = () => {
             <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>/</span>
             <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>Input Nilai</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight" style={{ fontSize: '2rem' }}>{exam.title}</h1>
-          <p className="page-description" style={{ fontSize: '1rem', marginTop: '0.25rem' }}>Masukkan skor pencapaian siswa untuk agenda ini.</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight" style={{ fontSize: '2rem' }}>{exam.title}</h1>
+            {isLocked && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                <Lock size={13} /> Terkunci
+              </span>
+            )}
+          </div>
+          <p className="page-description" style={{ fontSize: '1rem', marginTop: '0.25rem' }}>
+            {isLocked ? 'Agenda penilaian telah divalidasi/disahkan. Formulir dalam mode hanya-baca.' : 'Masukkan skor pencapaian siswa untuk agenda ini.'}
+          </p>
         </div>
         <div className="header-actions">
           <button 
             className="btn-std-primary" 
             onClick={handleSave}
-            disabled={saving || rows.length === 0}
-            style={{ padding: '0.875rem 1.75rem', borderRadius: '12px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: (saving || rows.length === 0) ? 0.7 : 1 }}
+            disabled={saving || rows.length === 0 || isLocked}
+            style={{ 
+              padding: '0.875rem 1.75rem', 
+              borderRadius: '12px', 
+              fontSize: '0.95rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              opacity: (saving || rows.length === 0 || isLocked) ? 0.6 : 1,
+              cursor: isLocked ? 'not-allowed' : 'pointer',
+              backgroundColor: isLocked ? '#94a3b8' : undefined
+            }}
+            title={isLocked ? 'Agenda terkunci karena sudah divalidasi atau disahkan' : undefined}
           >
-            <Save size={18} />
-            {saving ? 'Menyimpan...' : 'Simpan Semua Nilai'}
+            {isLocked ? (
+              <>
+                <Lock size={18} />
+                Terkunci (Hanya-Baca)
+              </>
+            ) : (
+              <>
+                <Save size={18} />
+                {saving ? 'Menyimpan...' : 'Simpan Semua Nilai'}
+              </>
+            )}
           </button>
         </div>
       </div>
+
+      {/* Lock Banner if locked */}
+      {isLocked && (
+        <div className="mb-6 p-4 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-900 flex items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-amber-700">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-amber-900 text-sm sm:text-base">Penilaian Terkunci (Mode Hanya-Baca)</h4>
+              <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+                {lockStatus?.validation?.status === 'VALIDATED' && (
+                  <span>Divalidasi oleh Wali Kelas ({lockStatus.validation.validatedBy?.fullName || 'Wali Kelas'}). </span>
+                )}
+                {lockStatus?.approval?.status === 'APPROVED' && (
+                  <span>Disahkan oleh Kepala Sekolah ({lockStatus.approval.approvedBy?.fullName || 'Kepala Sekolah'}). </span>
+                )}
+                Nilai agenda ini tidak dapat diedit kecuali dibuka revisi dari daftar agenda penilaian oleh pihak yang berwenang.
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-200/80 text-amber-900 shrink-0">
+            Read Only
+          </span>
+        </div>
+      )}
 
       {error && (
         <div className="alert flex items-center gap-3" style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '1.5rem', fontWeight: 500 }}>
@@ -232,17 +308,49 @@ export const ExamScores: React.FC = () => {
       </div>
 
       {/* Table Section */}
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6" style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.8)' }}>
-        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.4)' }}>
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 overflow-hidden" style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.8)' }}>
+        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.4)', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Daftar Siswa</h3>
             <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0.2rem 0 0 0' }}>Data nilai yang belum disimpan tidak akan hilang saat Anda mengubah angka di baris lain.</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: 'white', padding: '0.5rem 1rem', borderRadius: '99px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>Progres Pengisian:</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: completedCount === rows.length ? '#10b981' : '#4f46e5' }}>{completedCount} / {rows.length}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#f8fafc', padding: '0.4rem 0.8rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', color: '#475569' }}>
+              <span>Total:</span>
+              <strong style={{ color: '#0f172a' }}>{totalStudents} Siswa</strong>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#ecfdf5', padding: '0.4rem 0.8rem', borderRadius: '10px', border: '1px solid #a7f3d0', fontSize: '0.8rem', color: '#065f46' }}>
+              <CheckCircle2 size={14} className="text-emerald-600" />
+              <span>Dinilai:</span>
+              <strong style={{ color: '#065f46' }}>{completedCount}</strong>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.4rem', 
+              backgroundColor: missingCount > 0 ? '#fffbeb' : '#f8fafc', 
+              padding: '0.4rem 0.8rem', 
+              borderRadius: '10px', 
+              border: missingCount > 0 ? '1px solid #fde68a' : '1px solid #e2e8f0', 
+              fontSize: '0.8rem', 
+              color: missingCount > 0 ? '#92400e' : '#64748b' 
+            }}>
+              {missingCount > 0 && <AlertTriangle size={14} className="text-amber-600" />}
+              <span>Belum Dinilai:</span>
+              <strong style={{ color: missingCount > 0 ? '#b45309' : '#64748b' }}>{missingCount}</strong>
+            </div>
           </div>
         </div>
+
+        {/* Missing score notice banner */}
+        {missingCount > 0 && (
+          <div style={{ margin: '1rem 2rem', padding: '0.75rem 1rem', borderRadius: '12px', backgroundColor: '#fffbeb', border: '1px solid #fef3c7', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.825rem', color: '#92400e' }}>
+            <AlertTriangle size={18} className="text-amber-600 shrink-0" />
+            <span>
+              <strong>Perhatian:</strong> Terdapat <strong>{missingCount} siswa</strong> yang belum memiliki nilai. Siswa yang belum dinilai ditandai dengan label kuning di bawah.
+            </span>
+          </div>
+        )}
         
         {rows.length === 0 ? (
           <div style={{ padding: '6rem 2rem', textAlign: 'center' }}>
@@ -256,58 +364,97 @@ export const ExamScores: React.FC = () => {
                   <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', width: '60px', textAlign: 'center' }}>No</th>
                   <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', width: '120px' }}>NIS</th>
                   <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nama Lengkap Siswa</th>
-                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', width: '160px', textAlign: 'center' }}>Skor (Max: {exam.maxScore})</th>
+                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', width: '170px', textAlign: 'center' }}>Skor (Max: {exam.maxScore})</th>
                   <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', width: '300px' }}>Catatan Khusus (Opsional)</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, index) => (
-                  <tr key={row.studentId} style={{ borderBottom: '1px solid #f1f5f9', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                    <td style={{ padding: '1.25rem 2rem', color: '#64748b', fontWeight: 500, textAlign: 'center', verticalAlign: 'middle' }}>{index + 1}</td>
-                    
-                    <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
-                      <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#475569', backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '6px', display: 'inline-block' }}>
-                        {row.nis}
-                      </div>
-                    </td>
+                {rows.map((row, index) => {
+                  const isMissing = row.score === '' || row.score === null || row.score === undefined;
+                  const isBelowPassing = row.score !== '' && Number(row.score) < (exam.maxScore * 0.6);
 
-                    <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
-                      <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.95rem' }}>{row.studentName}</div>
-                    </td>
-                    
-                    <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
-                      <input 
-                        type="number" 
-                        className={`input-std`}
-                        style={{ 
-                          textAlign: 'center', 
-                          fontWeight: 800, 
-                          fontSize: '1.1rem',
-                          height: '46px',
-                          color: (row.score !== '' && Number(row.score) < (exam.maxScore * 0.6)) ? '#dc2626' : '#0f172a',
-                          backgroundColor: (row.score !== '' && Number(row.score) < (exam.maxScore * 0.6)) ? '#fef2f2' : '#f8fafc',
-                          borderColor: (row.score !== '' && Number(row.score) < (exam.maxScore * 0.6)) ? '#fca5a5' : '#e2e8f0',
-                        }}
-                        value={row.score}
-                        onChange={(e) => handleRowChange(index, 'score', e.target.value)}
-                        placeholder="-"
-                        min={0}
-                        max={exam.maxScore}
-                      />
-                    </td>
+                  return (
+                    <tr 
+                      key={row.studentId} 
+                      style={{ 
+                        borderBottom: '1px solid #f1f5f9', 
+                        transition: 'all 0.2s',
+                        backgroundColor: isMissing ? 'rgba(254, 243, 199, 0.25)' : undefined
+                      }} 
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isMissing ? 'rgba(254, 243, 199, 0.45)' : '#f8fafc'} 
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isMissing ? 'rgba(254, 243, 199, 0.25)' : 'transparent'}
+                    >
+                      <td style={{ padding: '1.25rem 2rem', color: '#64748b', fontWeight: 500, textAlign: 'center', verticalAlign: 'middle' }}>{index + 1}</td>
+                      
+                      <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
+                        <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#475569', backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '6px', display: 'inline-block' }}>
+                          {row.nis}
+                        </div>
+                      </td>
 
-                    <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
-                      <input 
-                        type="text" 
-                        className="input-std"
-                        style={{ height: '46px', backgroundColor: '#f8fafc', fontSize: '0.9rem' }}
-                        value={row.notes}
-                        onChange={(e) => handleRowChange(index, 'notes', e.target.value)}
-                        placeholder="Tuliskan catatan..."
-                      />
-                    </td>
-                  </tr>
-                ))}
+                      <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.95rem' }}>{row.studentName}</span>
+                          {isMissing && (
+                            <span style={{ 
+                              fontSize: '0.68rem', 
+                              fontWeight: 700, 
+                              padding: '0.15rem 0.5rem', 
+                              borderRadius: '99px', 
+                              backgroundColor: '#fef3c7', 
+                              color: '#92400e', 
+                              border: '1px solid #fde68a' 
+                            }}>
+                              Belum Dinilai
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      
+                      <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
+                        <input 
+                          type="number" 
+                          className="input-std"
+                          disabled={isLocked}
+                          style={{ 
+                            textAlign: 'center', 
+                            fontWeight: 800, 
+                            fontSize: '1.1rem',
+                            height: '46px',
+                            color: isLocked ? '#64748b' : (isBelowPassing ? '#dc2626' : '#0f172a'),
+                            backgroundColor: isLocked ? '#f1f5f9' : (isMissing ? '#fffbeb' : (isBelowPassing ? '#fef2f2' : '#f8fafc')),
+                            borderColor: isLocked ? '#cbd5e1' : (isMissing ? '#fcd34d' : (isBelowPassing ? '#fca5a5' : '#e2e8f0')),
+                            cursor: isLocked ? 'not-allowed' : 'text',
+                          }}
+                          value={row.score}
+                          onChange={(e) => handleRowChange(index, 'score', e.target.value)}
+                          placeholder="-"
+                          min={0}
+                          max={exam.maxScore}
+                        />
+                      </td>
+
+                      <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
+                        <input 
+                          type="text" 
+                          className="input-std"
+                          disabled={isLocked}
+                          style={{ 
+                            height: '46px', 
+                            backgroundColor: isLocked ? '#f1f5f9' : '#f8fafc', 
+                            borderColor: isLocked ? '#cbd5e1' : '#e2e8f0',
+                            fontSize: '0.9rem',
+                            cursor: isLocked ? 'not-allowed' : 'text',
+                            color: isLocked ? '#64748b' : undefined
+                          }}
+                          value={row.notes}
+                          onChange={(e) => handleRowChange(index, 'notes', e.target.value)}
+                          placeholder={isLocked ? '-' : "Tuliskan catatan..."}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
