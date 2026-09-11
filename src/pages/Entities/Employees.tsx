@@ -3,7 +3,7 @@ import { type Employee, getPositions, type Position } from '../../api/employeeSe
 import { getRoles, type Role } from '../../api/rbacService';
 import { useEmployees } from '../../hooks/useEmployees';
 import { usePermissions } from '../../hooks/usePermissions';
-import { Plus, CheckCircle, XCircle, Search, Filter, ChevronDown } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, Search, Filter, ChevronDown, RefreshCw } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
@@ -33,13 +33,18 @@ const DEFAULT_FORM: EmployeeForm = {
 };
 
 export const Employees: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPosition, setFilterPosition] = useState('');
 
-  const { items, meta, loading, create, update, remove } = useEmployees({
-    page: currentPage, limit: itemsPerPage, search: searchTerm, positionId: filterPosition || undefined
+  const { items, meta, loading, create, update, remove, restore } = useEmployees({
+    page: currentPage,
+    limit: itemsPerPage,
+    search: searchTerm,
+    positionId: filterPosition || undefined,
+    isDeleted: activeTab === 'deleted'
   });
   const { canManageEmployees } = usePermissions();
 
@@ -92,10 +97,34 @@ export const Employees: React.FC = () => {
     catch (err: any) { showAlert(err.response?.data?.message || 'Gagal merubah status pegawai', 'Error'); }
   };
 
+  const handleRestore = (id: string) => {
+    showConfirm(
+      'Apakah Anda yakin ingin memulihkan (restore) data pegawai ini?',
+      async () => {
+        try {
+          await restore(id);
+          showAlert('Pegawai berhasil dipulihkan', 'Sukses');
+        } catch (err: any) {
+          showAlert(err.response?.data?.message || 'Gagal memulihkan pegawai', 'Error');
+        }
+      },
+      'Konfirmasi Pemulihan'
+    );
+  };
+
   const handleDelete = (id: string) => {
-    showConfirm('Apakah Anda yakin ingin menghapus pegawai ini?', async () => {
-      try { await remove(id); } catch (err: any) { showAlert(err.response?.data?.message || 'Gagal menghapus pegawai', 'Error'); }
-    });
+    showConfirm(
+      'Apakah Anda yakin ingin memindahkan data pegawai ini ke tempat sampah?',
+      async () => {
+        try {
+          await remove(id);
+          showAlert('Pegawai berhasil dipindahkan ke tempat sampah', 'Sukses');
+        } catch (err: any) {
+          showAlert(err.response?.data?.message || 'Gagal menghapus pegawai', 'Peringatan');
+        }
+      },
+      'Konfirmasi Hapus'
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,27 +183,65 @@ export const Employees: React.FC = () => {
   if (canManageEmployees) {
     columns.push({ key: 'actions', header: 'Aksi', render: (emp) => (
       <div className="flex items-center gap-1 justify-end">
-        <button 
-          className={`p-1.5 rounded-lg transition-colors ${emp.isActive ? 'text-red-500 hover:bg-red-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
-          onClick={() => handleToggle(emp)}
-          title={emp.isActive ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
-        >
-          {emp.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
-        </button>
-        <ActionButtons onEdit={() => openEdit(emp)} onDelete={() => handleDelete(emp.id)} />
+        {activeTab === 'active' ? (
+          <>
+            <button 
+              className={`p-1.5 rounded-lg transition-colors ${emp.isActive ? 'text-red-500 hover:bg-red-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
+              onClick={() => handleToggle(emp)}
+              title={emp.isActive ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+            >
+              {emp.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
+            </button>
+            <ActionButtons onEdit={() => openEdit(emp)} onDelete={() => handleDelete(emp.id)} />
+          </>
+        ) : (
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-semibold transition-colors shadow-sm"
+            onClick={() => handleRestore(emp.id)}
+            title="Pulihkan Pegawai"
+          >
+            <RefreshCw size={14} />
+            <span>Pulihkan</span>
+          </button>
+        )}
       </div>
     ) });
   }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <PageHeader title="Pegawai & Guru" subtitle="Manajemen data pegawai dan tenaga pendidik" />
-        {canManageEmployees && (
+        {canManageEmployees && activeTab === 'active' && (
           <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={openAdd}>
             <Plus size={18} /> Tambah Data
           </button>
         )}
+      </div>
+
+      <div className="flex gap-4 mb-6 border-b border-gray-100">
+        <button
+          type="button"
+          className={`pb-3 px-1 font-semibold text-sm transition-colors relative ${
+            activeTab === 'active'
+              ? 'text-indigo-600 border-b-2 border-indigo-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          onClick={() => { setActiveTab('active'); setCurrentPage(1); }}
+        >
+          Pegawai Aktif
+        </button>
+        <button
+          type="button"
+          className={`pb-3 px-1 font-semibold text-sm transition-colors relative ${
+            activeTab === 'deleted'
+              ? 'text-indigo-600 border-b-2 border-indigo-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          onClick={() => { setActiveTab('deleted'); setCurrentPage(1); }}
+        >
+          Tempat Sampah
+        </button>
       </div>
 
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex flex-col md:flex-row gap-4">
@@ -193,7 +260,13 @@ export const Employees: React.FC = () => {
       </div>
 
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 flex flex-col">
-        <DataTable containerClassName="w-full overflow-x-auto" columns={columns} data={items} loading={loading} emptyMessage="Belum ada data pegawai." />
+        <DataTable
+          containerClassName="w-full overflow-x-auto"
+          columns={columns}
+          data={items}
+          loading={loading}
+          emptyMessage={activeTab === 'active' ? 'Belum ada data pegawai.' : 'Tidak ada data pegawai di tempat sampah.'}
+        />
 
         {!loading && meta?.totalPages > 0 && (
           <Pagination currentPage={currentPage} totalPages={meta.totalPages} totalItems={meta.total} itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={(limit) => { setItemsPerPage(limit); setCurrentPage(1); }} />
