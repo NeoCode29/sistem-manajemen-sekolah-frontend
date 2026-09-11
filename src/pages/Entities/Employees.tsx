@@ -9,6 +9,7 @@ import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 interface EmployeeForm {
   positionId: string;
@@ -91,15 +92,15 @@ export const Employees: React.FC = () => {
       await update(emp.id, { isActive: !emp.isActive }); 
       toast.success('Status pegawai berhasil diubah');
     } 
-    catch (err: any) { toast.error(err.response?.data?.message || 'Gagal merubah status pegawai'); }
+    catch (err: any) { toast.error(getErrorMessage(err, 'Gagal mengubah status pegawai')); }
   };
 
   const handleDelete = (id: string) => {
-    showConfirm('Apakah Anda yakin ingin menghapus pegawai ini?', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus pegawai ini? Data yang terhubung dengan akun pengguna, presensi, atau jadwal mungkin ikut terpengaruh.', async () => {
       try { 
         await remove(id); 
         toast.success('Pegawai berhasil dihapus');
-      } catch (err: any) { toast.error(err.response?.data?.message || 'Gagal menghapus pegawai'); }
+      } catch (err: any) { toast.error(getErrorMessage(err, 'Gagal menghapus data pegawai. Pegawai tidak dapat dihapus jika masih terkait dengan jadwal mengajar, presensi, atau akun pengguna.')); }
     });
   };
 
@@ -134,7 +135,7 @@ export const Employees: React.FC = () => {
       }
       closeModal();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
+      showAlert(getErrorMessage(err, 'Terjadi kesalahan saat menyimpan data pegawai. Pastikan NIP/NIK dan email belum pernah digunakan sebelumnya.'), 'Gagal');
     }
   };
 

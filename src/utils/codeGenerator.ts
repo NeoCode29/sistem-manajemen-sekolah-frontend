@@ -115,3 +115,15 @@ export const generateLetterTemplateCode = (category?: string, name?: string): st
   }
   return generateUniqueCode(catPrefix);
 };
+
+/**
+ * Smart code generator for Rombel / Kelas (Classrooms)
+ * Example: grade="X", major="RPL" -> "X-RPL-A1B2" or "10-IPA-A1B2"
+ */
+export const generateClassroomCode = (gradeNameOrCode?: string, majorNameOrCode?: string): string => {
+  const gradePart = gradeNameOrCode ? gradeNameOrCode.replace(/\s+/g, '').toUpperCase() : 'KLS';
+  const majorPart = majorNameOrCode ? `-${getAcronymOrSlug(majorNameOrCode, majorNameOrCode).replace(/\s+/g, '').toUpperCase()}` : '';
+  const prefix = `${gradePart}${majorPart}`;
+  return generateUniqueCode(prefix);
+};
+

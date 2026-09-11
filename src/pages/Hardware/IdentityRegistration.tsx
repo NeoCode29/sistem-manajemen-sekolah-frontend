@@ -8,6 +8,7 @@ import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const IdentityRegistration: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'STUDENT' | 'EMPLOYEE'>('STUDENT');
@@ -120,7 +121,7 @@ export const IdentityRegistration: React.FC = () => {
       closeModal();
       fetchData(); 
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Gagal menyimpan registrasi', 'Gagal');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan registrasi identitas kartu/sidik jari. Pastikan nomor kartu (RFID) atau ID sidik jari belum pernah digunakan sebelumnya.'), 'Gagal');
     }
   };
 

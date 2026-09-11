@@ -4,6 +4,7 @@ import { generatePositionCode } from '../../utils/codeGenerator';
 import { usePositions } from '../../hooks/usePositions';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import { getErrorMessage } from '../../utils/errorHandler';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import type { Position } from '../../api/employeeService';
@@ -38,9 +39,9 @@ export const Positions: React.FC = () => {
   const closeModal = () => setModal({ open: false, editId: null });
 
   const handleDelete = (id: string) => {
-    showConfirm('Hapus data ini?', async () => {
-      try { await remove(id); } catch { showAlert('Gagal menghapus data', 'Error'); }
-    });
+    showConfirm('Apakah Anda yakin ingin menghapus data jabatan ini?', async () => {
+      try { await remove(id); } catch (err: any) { showAlert(getErrorMessage(err, 'Gagal menghapus data jabatan. Data tidak dapat dihapus jika masih terhubung dengan pegawai.'), 'Gagal'); }
+    }, 'Hapus Jabatan');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,7 +51,7 @@ export const Positions: React.FC = () => {
       else { await create(form); }
       closeModal();
     } catch (err: any) {
-      showAlert(err.message || 'Gagal menyimpan data', 'Error');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan data jabatan'), 'Gagal');
     }
   };
 
@@ -58,7 +59,7 @@ export const Positions: React.FC = () => {
     try {
       await update(item.id, { isActive: !item.isActive });
     } catch (err: any) {
-      showAlert(err.message || 'Gagal merubah status', 'Error');
+      showAlert(getErrorMessage(err, 'Gagal mengubah status aktif jabatan'), 'Gagal');
     }
   };
 

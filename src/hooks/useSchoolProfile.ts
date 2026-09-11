@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import * as api from '../api/schoolProfileService';
 import type { SchoolProfile } from '../api/schoolProfileService';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export function useSchoolProfile() {
   const [profile, setProfile] = useState<Partial<SchoolProfile>>({});
@@ -25,7 +26,7 @@ export function useSchoolProfile() {
       }
     } catch (err: any) {
       if (err.response?.status !== 404) {
-        setError(err.response?.data?.message || 'Gagal memuat profil sekolah');
+        setError(getErrorMessage(err, 'Gagal memuat profil sekolah'));
       }
     } finally {
       setLoading(false);
@@ -45,7 +46,7 @@ export function useSchoolProfile() {
       setTimeout(() => setSuccess(''), 3000);
       return true;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan profil');
+      setError(getErrorMessage(err, 'Gagal menyimpan profil sekolah'));
       return false;
     } finally {
       setSaving(false);
@@ -64,7 +65,7 @@ export function useSchoolProfile() {
         return response.logoUrl;
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal mengunggah logo');
+      setError(getErrorMessage(err, 'Gagal mengunggah logo sekolah'));
     } finally {
       setSaving(false);
     }

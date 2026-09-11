@@ -7,6 +7,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { DataTable, type Column } from '../../components/Common/DataTable';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 interface ViolationForm {
   studentId: string;
@@ -55,7 +56,7 @@ export const Violations: React.FC = () => {
       const data = await getViolations(params);
       setViolations(data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat data pelanggaran');
+      setError(getErrorMessage(err, 'Gagal memuat data pelanggaran'));
     } finally {
       setLoading(false);
     }
@@ -123,7 +124,7 @@ export const Violations: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.studentId) {
-      setError('Siswa harus dipilih');
+      showAlert('Siswa harus dipilih', 'Peringatan');
       return;
     }
 
@@ -148,21 +149,21 @@ export const Violations: React.FC = () => {
       handleCloseModal();
       fetchViolations();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan data');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan data pelanggaran. Pastikan siswa dipilih dan data terisi lengkap.'), 'Gagal');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Yakin ingin menghapus data pelanggaran ini?', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus data catatan pelanggaran ini?', async () => {
       try {
         await deleteViolation(id);
         setSuccess('Data pelanggaran berhasil dihapus!');
         fetchViolations();
         setTimeout(() => setSuccess(''), 3000);
       } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus data');
+        showAlert(getErrorMessage(err, 'Gagal menghapus data pelanggaran siswa.'), 'Gagal');
       }
     });
   };

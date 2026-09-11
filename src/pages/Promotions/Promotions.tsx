@@ -9,6 +9,7 @@ import {
   getStudentsByClass, processPromotion, processGraduation, 
   type Student 
 } from '../../api/promotionGraduationService';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const Promotions: React.FC = () => {
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -124,7 +125,7 @@ export const Promotions: React.FC = () => {
       fetchStudents();
       setTimeout(() => setSuccess(''), 5000);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memproses kenaikan kelas.');
+      setError(getErrorMessage(err, 'Gagal memproses kenaikan kelas.'));
     } finally {
       setSubmitting(false);
     }
@@ -153,7 +154,7 @@ export const Promotions: React.FC = () => {
       fetchStudents();
       setTimeout(() => setSuccess(''), 5000);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memproses kelulusan.');
+      setError(getErrorMessage(err, 'Gagal memproses kelulusan siswa.'));
     } finally {
       setSubmitting(false);
     }

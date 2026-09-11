@@ -9,6 +9,7 @@ import { Badge } from '../../components/ui/Badge';
 import { useClassPeriods } from '../../hooks/useClassPeriods';
 import type { ClassPeriod } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const ClassPeriods: React.FC = () => {
   const {
@@ -29,10 +30,9 @@ export const ClassPeriods: React.FC = () => {
   const [startTime, setStartTime] = useState('07:00');
   const [endTime, setEndTime] = useState('07:45');
   const [isBreak, setIsBreak] = useState(false);
-  const [formError, setFormError] = useState('');
   const { showConfirm, showAlert } = useDialog();
 
-  const error = formError || fetchError;
+  const error = fetchError;
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -43,7 +43,6 @@ export const ClassPeriods: React.FC = () => {
     setStartTime('07:00');
     setEndTime('07:45');
     setIsBreak(false);
-    setFormError('');
   };
 
   const handleEdit = (period: ClassPeriod) => {
@@ -58,19 +57,17 @@ export const ClassPeriods: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Are you sure you want to delete this class period?', async () => {
-      setFormError('');
+    showConfirm('Apakah Anda yakin ingin menghapus jam pelajaran ini?', async () => {
       try {
         await deleteClassPeriod(id);
       } catch (err: any) {
-        setFormError(err.message || 'Gagal menghapus jam pelajaran');
+        showAlert(getErrorMessage(err, 'Gagal menghapus jam pelajaran. Data tidak dapat dihapus jika masih digunakan dalam jadwal pelajaran.'), 'Gagal');
       }
-    });
+    }, 'Hapus Jam Pelajaran');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
     try {
       const payload = {
         code,
@@ -88,7 +85,7 @@ export const ClassPeriods: React.FC = () => {
       
       handleCloseModal();
     } catch (err: any) {
-      setFormError(err.message || 'Gagal menyimpan jam pelajaran');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan data jam pelajaran'), 'Gagal');
     }
   };
 
@@ -127,7 +124,7 @@ export const ClassPeriods: React.FC = () => {
         </button>
       </div>
 
-      {error && !showModal && (
+      {error && (
         <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
@@ -156,13 +153,6 @@ export const ClassPeriods: React.FC = () => {
       >
         <form id="period-form" onSubmit={handleSubmit} className="p-6">
           <div className="flex flex-col gap-5">
-            {error && showModal && (
-              <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
-                <AlertCircle size={18} />
-                {error}
-              </div>
-            )}
-            
             <FormField label="Kode" required>
               <div className="flex gap-2">
                 <input type="text" className="input-std flex-1" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: JP-01" required />

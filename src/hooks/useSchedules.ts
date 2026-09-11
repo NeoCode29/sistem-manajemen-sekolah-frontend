@@ -5,6 +5,7 @@ import { getAcademicYears, getSemesters, getClassrooms, getSubjects, getClassPer
 import type { AcademicYear, Semester, Classroom, Subject, ClassPeriod } from '../api/academicService';
 import { getEmployees } from '../api/employeeService';
 import type { Employee } from '../api/employeeService';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export function useSchedules() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -54,7 +55,7 @@ export function useSchedules() {
       }
     } catch (err: any) {
       console.error(err);
-      setPageError(err.response?.data?.message || err.message || 'Gagal memuat data referensi');
+      setPageError(getErrorMessage(err, 'Gagal memuat data referensi jadwal'));
     }
   }, [filterClassroomId]);
 
@@ -71,7 +72,7 @@ export function useSchedules() {
       setSchedules(scheds.filter((s: any) => s.academicYearId === filterAcademicYearId && s.semesterId === filterSemesterId));
       setSubjectAssignments(assigns.filter((a: any) => a.academicYearId === filterAcademicYearId && a.semesterId === filterSemesterId));
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat data kelas');
+      setError(getErrorMessage(err, 'Gagal memuat data jadwal pelajaran kelas'));
     } finally {
       setLoading(false);
     }

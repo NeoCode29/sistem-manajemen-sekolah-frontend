@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAttendanceSetting, updateAttendanceSetting } from '../../api/attendanceService';
 import { Clock, Save, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const AttendanceSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -41,7 +42,7 @@ export const AttendanceSettings: React.FC = () => {
       setError('');
     } catch (err: any) {
       if (err.response?.status !== 404) {
-        setError(err.response?.data?.message || 'Gagal memuat pengaturan absensi');
+        setError(getErrorMessage(err, 'Gagal memuat pengaturan absensi'));
       }
     } finally {
       setLoading(false);
@@ -69,7 +70,7 @@ export const AttendanceSettings: React.FC = () => {
       setTimeout(() => setSuccess(''), 3000);
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan pengaturan');
+      setError(getErrorMessage(err, 'Gagal menyimpan pengaturan jam absensi. Pastikan format jam valid.'));
     } finally {
       setSaving(false);
     }

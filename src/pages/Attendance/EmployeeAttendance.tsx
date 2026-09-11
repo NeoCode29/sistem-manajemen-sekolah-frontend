@@ -4,6 +4,7 @@ import { getEmployeeAttendances, upsertEmployeeAttendanceBatch, type EmployeeAtt
 import { Save, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { TableSkeleton } from '../../components/Common/TableSkeleton';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 interface AttendanceRow {
   employeeId: string;
@@ -61,7 +62,7 @@ export const EmployeeAttendancePage: React.FC = () => {
       
       setRows(newRows);
     } catch (err: any) {
-      toast.error('Gagal memuat data absensi pegawai');
+      toast.error(getErrorMessage(err, 'Gagal memuat data absensi pegawai'));
       setRows([]);
     } finally {
       setLoading(false);
@@ -83,7 +84,7 @@ export const EmployeeAttendancePage: React.FC = () => {
 
   const handleSave = async () => {
     if (!date) {
-      toast.error('Harap pilih tanggal.');
+      toast.error('Pilih tanggal terlebih dahulu.');
       return;
     }
     
@@ -107,7 +108,7 @@ export const EmployeeAttendancePage: React.FC = () => {
       // Refresh to get potentially auto-updated statuses (like Terlambat)
       await fetchAttendanceData();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Gagal menyimpan absensi');
+      toast.error(getErrorMessage(err, 'Gagal menyimpan absensi pegawai. Pastikan format jam valid.'));
     } finally {
       setSaving(false);
     }

@@ -6,6 +6,7 @@ import {
   deleteClassPeriod as apiDeleteClassPeriod,
   type ClassPeriod 
 } from '../api/academicService';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export function useClassPeriods() {
   const [periods, setPeriods] = useState<ClassPeriod[]>([]);
@@ -21,7 +22,7 @@ export function useClassPeriods() {
       setPeriods(sorted);
     } catch (err: any) {
       console.error('Failed to fetch class periods:', err);
-      setError(err.response?.data?.message || 'Gagal memuat data jam pelajaran');
+      setError(getErrorMessage(err, 'Gagal memuat data jam pelajaran'));
     } finally {
       setLoading(false);
     }
@@ -36,7 +37,7 @@ export function useClassPeriods() {
       await apiCreateClassPeriod(payload);
       await fetchPeriods();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal menyimpan jam pelajaran');
+      throw new Error(getErrorMessage(err, 'Gagal menyimpan jam pelajaran'));
     }
   };
 
@@ -45,7 +46,7 @@ export function useClassPeriods() {
       await apiUpdateClassPeriod(id, payload);
       await fetchPeriods();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal memperbarui jam pelajaran');
+      throw new Error(getErrorMessage(err, 'Gagal memperbarui jam pelajaran'));
     }
   };
 
@@ -54,7 +55,7 @@ export function useClassPeriods() {
       await apiDeleteClassPeriod(id);
       await fetchPeriods();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal menghapus jam pelajaran');
+      throw new Error(getErrorMessage(err, 'Gagal menghapus jam pelajaran'));
     }
   };
 

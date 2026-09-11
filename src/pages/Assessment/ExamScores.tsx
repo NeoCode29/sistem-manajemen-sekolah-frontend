@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getExamById, getExamScores, upsertExamScoresBatch, type Exam, type ExamScore } from '../../api/assessmentService';
 import { getStudents } from '../../api/studentService';
 import { Save, ArrowLeft, Award, FileEdit, Users, BookOpen, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 interface ScoreRow {
   studentId: string;
@@ -115,7 +116,7 @@ export const ExamScores: React.FC = () => {
       setTimeout(() => setSuccess(''), 3000);
       
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan nilai');
+      setError(getErrorMessage(err, 'Gagal menyimpan nilai siswa. Pastikan rentang nilai valid (0 - Nilai Maksimum).'));
     } finally {
       setSaving(false);
     }

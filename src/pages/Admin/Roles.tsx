@@ -6,6 +6,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const Roles: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -54,7 +55,7 @@ export const Roles: React.FC = () => {
       fetchData();
       showAlert('Peran berhasil ditambahkan', 'Berhasil');
     } catch (error: any) {
-      showAlert(error.response?.data?.message || 'Failed to create role', 'Gagal');
+      showAlert(getErrorMessage(error, 'Gagal membuat peran baru. Pastikan nama peran belum terdaftar.'), 'Gagal');
     }
   };
 
@@ -67,7 +68,7 @@ export const Roles: React.FC = () => {
           fetchData();
           showAlert('Peran berhasil dihapus', 'Berhasil');
         } catch (error: any) {
-          showAlert(error.response?.data?.message || 'Gagal menghapus peran', 'Gagal');
+          showAlert(getErrorMessage(error, 'Gagal menghapus peran. Data tidak dapat dihapus jika masih digunakan oleh akun pengguna.'), 'Gagal');
         }
       },
       'Hapus Peran'
@@ -94,7 +95,7 @@ export const Roles: React.FC = () => {
       setShowPermModal(false);
       fetchData();
     } catch (error: any) {
-      showAlert(error.response?.data?.message || 'Failed to assign permissions', 'Gagal');
+      showAlert(getErrorMessage(error, 'Gagal menyimpan hak akses untuk peran ini'), 'Gagal');
     }
   };
 

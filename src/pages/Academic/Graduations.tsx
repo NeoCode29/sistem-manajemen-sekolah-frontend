@@ -6,6 +6,7 @@ import { DataTable, type Column } from '../../components/Common/DataTable';
 import { useGraduations } from '../../hooks/useGraduations';
 import { useDialog } from '../../contexts/DialogContext';
 import { Badge } from '../../components/ui/Badge';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const Graduations: React.FC = () => {
   const {
@@ -81,23 +82,19 @@ export const Graduations: React.FC = () => {
       setIsModalOpen(false);
       showAlert('Proses kelulusan berhasil. Siswa kini menjadi Alumni.', 'Berhasil');
     } catch (err: any) {
-      let errorMessage = err.message || 'Gagal memproses kelulusan';
-      if (Array.isArray(err.message)) {
-        errorMessage = err.message.join(', ');
-      } else if (err.response?.data?.message) {
-        errorMessage = Array.isArray(err.response.data.message) ? err.response.data.message.join(', ') : err.response.data.message;
-      }
-      showAlert(errorMessage, 'Gagal');
+      showAlert(getErrorMessage(err, 'Gagal memproses kelulusan siswa.'), 'Gagal');
     }
   };
 
   const handleCancelGraduation = async (id: string) => {
-    showConfirm('Yakin ingin membatalkan status kelulusan ini? Siswa akan dikembalikan menjadi siswa aktif.', async () => {
+    showConfirm('Apakah Anda yakin ingin membatalkan status kelulusan ini? Status siswa akan dikembalikan menjadi siswa aktif.', async () => {
       setActionError('');
       try {
         await cancelGraduation(id);
       } catch (err: any) {
-        setActionError(err.message || 'Gagal membatalkan kelulusan');
+        const msg = getErrorMessage(err, 'Gagal membatalkan status kelulusan siswa.');
+        setActionError(msg);
+        showAlert(msg, 'Gagal');
       }
     });
   };
@@ -243,7 +240,7 @@ export const Graduations: React.FC = () => {
                   }
                   loadStudents(e.target.value, selectedAcademicYear).then(students => {
                     setSelectedStudentIds(new Set(students.map((s: any) => s.id.toString())));
-                  }).catch(err => setActionError(err.message || 'Gagal memuat daftar siswa'));
+                  }).catch(err => setActionError(getErrorMessage(err, 'Gagal memuat daftar siswa')));
                 }}
               >
                 <option value="">-- Pilih --</option>

@@ -8,6 +8,7 @@ import { useMajors } from '../../hooks/useMajors';
 import type { Major } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const Majors: React.FC = () => {
   const {
@@ -27,10 +28,9 @@ export const Majors: React.FC = () => {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [formError, setFormError] = useState('');
-  const { showConfirm } = useDialog();
+  const { showConfirm, showAlert } = useDialog();
 
-  const error = formError || fetchError;
+  const error = fetchError;
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -39,7 +39,6 @@ export const Majors: React.FC = () => {
     setCode('');
     setName('');
     setDescription('');
-    setFormError('');
   };
 
   const handleEdit = (major: Major) => {
@@ -48,30 +47,27 @@ export const Majors: React.FC = () => {
     setCode(major.code);
     setName(major.name);
     setDescription(major.description || '');
-    setFormError('');
     setShowModal(true);
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Are you sure you want to delete this major?', async () => {
-      setFormError('');
+    showConfirm('Apakah Anda yakin ingin menghapus data jurusan ini?', async () => {
       try {
         await deleteMajor(id);
       } catch (err: any) {
-        setFormError(err.message || 'Gagal menghapus jurusan');
+        showAlert(getErrorMessage(err, 'Gagal menghapus jurusan. Data tidak dapat dihapus jika masih terhubung dengan rombel/kelas.'), 'Gagal');
       }
-    });
+    }, 'Hapus Jurusan');
   };
 
   const handleToggleStatus = async (id: string) => {
-    showConfirm('Are you sure you want to change the status of this major?', async () => {
+    showConfirm('Apakah Anda yakin ingin mengubah status aktif jurusan ini?', async () => {
       await toggleActive(id);
-    });
+    }, 'Ubah Status');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
     try {
       const payload = {
         code,
@@ -87,7 +83,7 @@ export const Majors: React.FC = () => {
       
       handleCloseModal();
     } catch (err: any) {
-      setFormError(err.message || 'Gagal menyimpan jurusan');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan data jurusan'), 'Gagal');
     }
   };
 
@@ -126,10 +122,10 @@ export const Majors: React.FC = () => {
       <PageHeader
         title="Jurusan"
         subtitle="Kelola master data Jurusan (Program Keahlian)"
-        action={<button onClick={() => { setFormError(''); setCode(generateMajorCode()); setShowModal(true); }} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+        action={<button onClick={() => { setCode(generateMajorCode()); setShowModal(true); }} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
       />
 
-      {error && !showModal && (
+      {error && (
         <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
@@ -157,12 +153,6 @@ export const Majors: React.FC = () => {
         }
       >
         <form id="major-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
-          {error && showModal && (
-            <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2 text-sm font-medium">
-              <AlertCircle size={18} className="shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
           <FormField label="Kode" required>
             <div className="flex gap-2">
               <input type="text" className="input-std flex-1" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: IPA" required />

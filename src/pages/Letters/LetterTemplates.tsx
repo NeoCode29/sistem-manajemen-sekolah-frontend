@@ -11,6 +11,7 @@ import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge } from '../../components/ui/Badge';
 import { generateLetterTemplateCode } from '../../utils/codeGenerator';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const LetterTemplates: React.FC = () => {
   const { user } = useAuth();
@@ -52,7 +53,7 @@ export const LetterTemplates: React.FC = () => {
         setTemplates(data);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat data');
+      setError(getErrorMessage(err, 'Gagal memuat data kop surat dan template'));
     } finally {
       setLoading(false);
     }
@@ -82,7 +83,7 @@ export const LetterTemplates: React.FC = () => {
       fetchData();
       setLogoFile(null);
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Gagal menyimpan profil', 'Gagal');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan profil kop surat sekolah.'), 'Gagal');
     } finally {
       setProfileSaving(false);
     }
@@ -144,7 +145,7 @@ export const LetterTemplates: React.FC = () => {
       closeModal();
       fetchData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan template surat');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan template surat. Pastikan kode template belum pernah digunakan.'), 'Gagal');
     }
   };
 
@@ -159,17 +160,17 @@ export const LetterTemplates: React.FC = () => {
       link.click();
       document.body.removeChild(link);
     } catch (error) {
-      showAlert('Gagal mengunduh template docx', 'Gagal');
+      showAlert('Gagal mengunduh template docx. File template belum tersedia di server.', 'Gagal');
     }
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Yakin ingin menghapus template ini?', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus template surat ini?', async () => {
       try {
         await deleteLetterTemplate(id);
         fetchData();
       } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus template');
+        showAlert(getErrorMessage(err, 'Gagal menghapus template surat.'), 'Gagal');
       }
     });
   };

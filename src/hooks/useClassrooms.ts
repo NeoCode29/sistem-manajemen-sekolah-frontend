@@ -10,6 +10,7 @@ import {
   type Grade,
   type Major
 } from '../api/academicService';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export function useClassrooms(filterGradeId?: string) {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
@@ -32,7 +33,7 @@ export function useClassrooms(filterGradeId?: string) {
       setMajors(majorsData);
     } catch (err: any) {
       console.error('Failed to fetch data:', err);
-      setError(err.message || 'Failed to fetch classrooms data');
+      setError(getErrorMessage(err, 'Gagal memuat data rombel/kelas'));
     } finally {
       setLoading(false);
     }
@@ -47,7 +48,7 @@ export function useClassrooms(filterGradeId?: string) {
       await apiCreateClassroom(payload);
       await fetchData();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Failed to create classroom');
+      throw new Error(getErrorMessage(err, 'Gagal menambahkan rombel/kelas'));
     }
   };
 
@@ -56,7 +57,7 @@ export function useClassrooms(filterGradeId?: string) {
       await apiUpdateClassroom(id, payload);
       await fetchData();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Failed to update classroom');
+      throw new Error(getErrorMessage(err, 'Gagal memperbarui rombel/kelas'));
     }
   };
 
@@ -65,7 +66,7 @@ export function useClassrooms(filterGradeId?: string) {
       await apiDeleteClassroom(id);
       await fetchData();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Failed to delete classroom');
+      throw new Error(getErrorMessage(err, 'Gagal menghapus rombel/kelas'));
     }
   };
 

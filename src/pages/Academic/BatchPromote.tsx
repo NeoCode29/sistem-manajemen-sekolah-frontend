@@ -8,6 +8,7 @@ import type { Student } from '../../api/studentService';
 import { TrendingUp, AlertTriangle, ChevronRight, ChevronLeft, ArrowLeft, CheckSquare } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
 import { FormField } from '../../components/ui/FormField';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const BatchPromote: React.FC = () => {
   const navigate = useNavigate();
@@ -167,7 +168,7 @@ export const BatchPromote: React.FC = () => {
     const studentIds = promotedStudents.map(s => s.id.toString());
     const retainedIds = sourceStudents.map(s => s.id.toString());
     
-    showConfirm(`Siswa Naik Kelas: ${studentIds.length} orang\nSiswa Tinggal Kelas: ${retainedIds.length} orang\n\nLanjutkan proses?`, async () => {
+    showConfirm(`Siswa Naik Kelas: ${studentIds.length} orang\nSiswa Tinggal Kelas: ${retainedIds.length} orang\n\nApakah Anda yakin ingin melanjutkan proses kenaikan kelas ini?`, async () => {
       const payload = {
         studentIds,
         retainedStudentIds: retainedIds,
@@ -190,7 +191,7 @@ export const BatchPromote: React.FC = () => {
         // Navigate back after success
         navigate('/academic/promotions');
       } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal memproses kenaikan kelas', 'Gagal');
+        showAlert(getErrorMessage(err, 'Gagal memproses kenaikan kelas batch.'), 'Gagal');
       }
     });
   };

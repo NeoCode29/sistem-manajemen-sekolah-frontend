@@ -9,6 +9,7 @@ import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge } from '../../components/ui/Badge';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const Announcements: React.FC = () => {
   const { user } = useAuth();
@@ -38,7 +39,7 @@ export const Announcements: React.FC = () => {
       const data = await getAnnouncements();
       setAnnouncements(data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat pengumuman');
+      setError(getErrorMessage(err, 'Gagal memuat daftar pengumuman'));
     } finally {
       setLoading(false);
     }
@@ -105,27 +106,19 @@ export const Announcements: React.FC = () => {
       fetchAnnouncements();
     } catch (err: any) {
       console.error("Save error:", err);
-      let errMsg = 'Gagal menyimpan pengumuman';
-      if (err.response?.data?.message) {
-        if (Array.isArray(err.response.data.message)) {
-          errMsg = err.response.data.message.join('\n');
-        } else {
-          errMsg = err.response.data.message;
-        }
-      } else if (err.message) {
-        errMsg = err.message;
-      }
+      const errMsg = getErrorMessage(err, 'Gagal menyimpan pengumuman. Pastikan judul dan konten telah diisi.');
       setError(errMsg);
+      showAlert(errMsg, 'Gagal');
     }
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Yakin ingin menghapus pengumuman ini?', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus pengumuman ini?', async () => {
       try {
         await deleteAnnouncement(id);
         fetchAnnouncements();
       } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus pengumuman', 'Gagal');
+        showAlert(getErrorMessage(err, 'Gagal menghapus pengumuman.'), 'Gagal');
       }
     });
   };

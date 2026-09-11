@@ -6,6 +6,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const Permissions: React.FC = () => {
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -42,7 +43,7 @@ export const Permissions: React.FC = () => {
       setGuardName('jwt');
       fetchPermissions();
     } catch (error: any) {
-      showAlert(error.response?.data?.message || 'Failed to create permission', 'Gagal');
+      showAlert(getErrorMessage(error, 'Gagal membuat hak akses baru. Pastikan nama hak akses belum pernah terdaftar.'), 'Gagal');
     }
   };
 

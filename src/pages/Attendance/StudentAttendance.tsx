@@ -3,6 +3,7 @@ import { getAcademicYears, getSemesters, getGrades, getClassrooms, type Academic
 import { getStudents } from '../../api/studentService';
 import { getStudentAttendances, upsertStudentAttendanceBatch, type StudentAttendance, type StudentAttendanceBatchItem } from '../../api/attendanceService';
 import { Save, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 interface AttendanceRow {
   studentId: string;
@@ -71,7 +72,7 @@ export const StudentAttendancePage: React.FC = () => {
       if (activeAy) setSelectedAcademicYearId(activeAy.id);
       if (activeSem) setSelectedSemesterId(activeSem.id);
     } catch (err: any) {
-      setError('Gagal memuat filter');
+      setError(getErrorMessage(err, 'Gagal memuat filter tahun ajaran dan kelas'));
     }
   };
 
@@ -128,7 +129,7 @@ export const StudentAttendancePage: React.FC = () => {
       if (err.response?.status === 403) {
         setError('Akses ditolak: Anda hanya bisa melihat/mengabsen kelas perwalian Anda sendiri.');
       } else {
-        setError('Gagal memuat data absensi');
+        setError(getErrorMessage(err, 'Gagal memuat data absensi siswa'));
       }
       setRows([]);
     } finally {
@@ -169,7 +170,7 @@ export const StudentAttendancePage: React.FC = () => {
       // Refresh to get potentially auto-updated statuses (like Terlambat)
       await fetchAttendanceData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan absensi');
+      setError(getErrorMessage(err, 'Gagal menyimpan absensi siswa. Pastikan kelas dan tanggal absensi valid.'));
     } finally {
       setSaving(false);
     }

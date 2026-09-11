@@ -9,6 +9,7 @@ import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge } from '../../components/ui/Badge';
 import { useDialog } from '../../contexts/DialogContext';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const StudentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -118,7 +119,7 @@ export const StudentDetail: React.FC = () => {
       setShowEditProfil(false);
       fetchStudent();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memperbarui profil');
+      showAlert(getErrorMessage(err, 'Gagal memperbarui profil siswa. Pastikan NIS/NISN tidak duplikat dan data sudah sesuai.'), 'Gagal');
     } finally {
       setProfilSaving(false);
     }
@@ -163,7 +164,7 @@ export const StudentDetail: React.FC = () => {
       setShowGuardianModal(false);
       fetchStudent();
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Gagal menyimpan data wali', 'Gagal');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan data wali siswa.'), 'Gagal');
     } finally {
       setGuardianSaving(false);
     }
@@ -171,13 +172,13 @@ export const StudentDetail: React.FC = () => {
 
   const handleDeleteGuardian = async (gId: string) => {
     if (!student) return;
-    showConfirm('Hapus data wali ini?', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus data wali siswa ini?', async () => {
       try {
         await deleteGuardian(student.id, gId);
         showSuccess('Data wali dihapus!');
         fetchStudent();
       } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus data wali', 'Gagal');
+        showAlert(getErrorMessage(err, 'Gagal menghapus data wali siswa.'), 'Gagal');
       }
     });
   };
@@ -220,7 +221,7 @@ export const StudentDetail: React.FC = () => {
       setShowEnrollmentModal(false);
       fetchStudent();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan riwayat kelas');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan riwayat penempatan kelas siswa.'), 'Gagal');
     } finally {
       setEnrollmentSaving(false);
     }
@@ -228,13 +229,13 @@ export const StudentDetail: React.FC = () => {
 
   const handleDeleteEnrollment = async (enrId: string) => {
     if (!student) return;
-    showConfirm('Hapus riwayat penempatan kelas ini?', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus riwayat penempatan kelas ini?', async () => {
       try {
         await deleteEnrollment(student.id, enrId);
         showSuccess('Riwayat kelas dihapus!');
         fetchStudent();
       } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus riwayat kelas', 'Gagal');
+        showAlert(getErrorMessage(err, 'Gagal menghapus riwayat kelas siswa.'), 'Gagal');
       }
     });
   };

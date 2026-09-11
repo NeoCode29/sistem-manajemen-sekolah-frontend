@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as academicService from '../api/academicService';
 import { useDialog } from '../contexts/DialogContext';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export const useMajors = () => {
   const [majors, setMajors] = useState<academicService.Major[]>([]);
@@ -15,8 +16,9 @@ export const useMajors = () => {
       setMajors(data);
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Gagal memuat data jurusan');
-      showAlert(err.message || 'Gagal memuat data jurusan', 'Gagal');
+      const msg = getErrorMessage(err, 'Gagal memuat data jurusan');
+      setError(msg);
+      showAlert(msg, 'Gagal');
     } finally {
       setLoading(false);
     }
@@ -52,7 +54,7 @@ export const useMajors = () => {
       await fetchMajors();
       showAlert('Status jurusan berhasil diubah', 'Sukses');
     } catch (err: any) {
-      showAlert(err.message || 'Gagal mengubah status jurusan', 'Gagal');
+      showAlert(getErrorMessage(err, 'Gagal mengubah status jurusan'), 'Gagal');
     }
   };
 

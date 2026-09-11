@@ -4,6 +4,7 @@ import { getAssessmentComponents, createAssessmentComponent, updateAssessmentCom
 import { Plus, Settings, Target, BookOpen, PieChart, CheckCircle2 } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField } from '../../components/ui';
+import { getErrorMessage } from '../../utils/errorHandler';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 
@@ -92,9 +93,9 @@ export const AssessmentComponents: React.FC = () => {
       const activeSem = semData.find(s => s.isActive);
       if (activeAy) setFilterAcademicYearId(activeAy.id);
       if (activeSem) setFilterSemesterId(activeSem.id);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      showAlert('Gagal memuat data referensi', 'Error');
+      showAlert(getErrorMessage(err, 'Gagal memuat data referensi (Tahun ajaran, kelas, atau mapel)'), 'Gagal');
     }
   };
 
@@ -118,7 +119,7 @@ export const AssessmentComponents: React.FC = () => {
       });
       setComponents(data);
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Gagal memuat komponen penilaian', 'Error');
+      showAlert(getErrorMessage(err, 'Gagal memuat komponen penilaian'), 'Gagal');
     } finally {
       setLoading(false);
     }
@@ -185,20 +186,19 @@ export const AssessmentComponents: React.FC = () => {
       await fetchComponents();
       handleCloseModal();
     } catch (err: any) {
-      const message = err.response?.data?.message;
-      showAlert(Array.isArray(message) ? message.join(', ') : (message || 'Gagal menyimpan komponen penilaian'), 'Error');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan komponen penilaian. Pastikan data terisi lengkap dan bobot penilaian valid.'), 'Gagal');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Yakin ingin menghapus komponen penilaian ini?', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus komponen penilaian ini? Tindakan ini tidak dapat dibatalkan.', async () => {
       try {
         await deleteAssessmentComponent(id);
         await fetchComponents();
       } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus komponen', 'Error');
+        showAlert(getErrorMessage(err, 'Gagal menghapus komponen penilaian. Komponen tidak dapat dihapus jika sudah memiliki data nilai ujian/tugas.'), 'Gagal');
       }
     });
   };

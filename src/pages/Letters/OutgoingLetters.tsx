@@ -9,6 +9,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const OutgoingLetters: React.FC = () => {
   const { user } = useAuth();
@@ -38,7 +39,7 @@ export const OutgoingLetters: React.FC = () => {
       const lettersData = await getOutgoingLetters();
       setLetters(lettersData);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat data surat keluar');
+      setError(getErrorMessage(err, 'Gagal memuat data surat keluar'));
     } finally {
       setLoading(false);
     }
@@ -104,17 +105,17 @@ export const OutgoingLetters: React.FC = () => {
       closeModal();
       fetchData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan surat keluar');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan surat keluar. Pastikan nomor surat, tujuan, dan perihal telah diisi.'), 'Gagal');
     }
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Yakin ingin menghapus surat keluar ini?', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus surat keluar ini? File lampiran terkait juga akan ikut terhapus.', async () => {
       try {
         await deleteOutgoingLetter(id);
         fetchData();
       } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus surat');
+        showAlert(getErrorMessage(err, 'Gagal menghapus surat keluar.'), 'Gagal');
       }
     });
   };

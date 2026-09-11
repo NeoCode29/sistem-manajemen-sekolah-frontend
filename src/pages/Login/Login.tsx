@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
 import { Lock, User, ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -29,7 +30,7 @@ export const Login: React.FC = () => {
         navigate('/dashboard');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      setError(getErrorMessage(err, 'Gagal masuk. Periksa kembali username dan password Anda.'));
     } finally {
       setIsSubmitting(false);
     }

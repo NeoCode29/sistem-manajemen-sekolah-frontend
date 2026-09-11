@@ -9,7 +9,8 @@ import { useClassrooms } from '../../hooks/useClassrooms';
 import type { Classroom } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField } from '../../components/ui';
-import { generateUniqueCode } from '../../utils/codeGenerator';
+import { generateClassroomCode } from '../../utils/codeGenerator';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const Classrooms: React.FC = () => {
   const navigate = useNavigate();
@@ -57,12 +58,10 @@ export const Classrooms: React.FC = () => {
   const handleGenerateCode = () => {
     const selectedGrade = grades.find(g => String(g.id) === String(gradeId));
     const selectedMajor = majors.find(m => String(m.id) === String(majorId));
-
-    const gradePart = selectedGrade ? (selectedGrade.code || selectedGrade.name).replace(/\s+/g, '') : 'KLS';
-    const majorPart = selectedMajor ? `-${(selectedMajor.code || selectedMajor.name).replace(/\s+/g, '').toUpperCase()}` : '';
-    const prefix = `${gradePart}${majorPart}`;
-
-    setCode(generateUniqueCode(prefix));
+    setCode(generateClassroomCode(
+      selectedGrade?.code || selectedGrade?.name,
+      selectedMajor?.code || selectedMajor?.name
+    ));
   };
 
   const handleEdit = (classroom: Classroom) => {
@@ -77,13 +76,13 @@ export const Classrooms: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Are you sure you want to delete this classroom?', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus data rombel/kelas ini?', async () => {
       try {
         await deleteClassroom(id);
-      } catch (error) {
-        showAlert('Failed to delete classroom', 'Gagal');
+      } catch (error: any) {
+        showAlert(getErrorMessage(error, 'Gagal menghapus rombel/kelas. Rombel tidak dapat dihapus jika masih terdapat data siswa atau jadwal di dalamnya.'), 'Gagal');
       }
-    });
+    }, 'Hapus Rombel');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,7 +104,7 @@ export const Classrooms: React.FC = () => {
       
       handleCloseModal();
     } catch (error: any) {
-      showAlert(error.message || 'Failed to save classroom', 'Gagal');
+      showAlert(getErrorMessage(error, 'Gagal menyimpan data rombel/kelas'), 'Gagal');
     }
   };
 

@@ -5,6 +5,7 @@ import api from '../../api/axios';
 import { uploadSignature } from '../../api/employeeService';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { FormField } from '../../components/ui/FormField';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const AccountSettings: React.FC = () => {
   const { user } = useAuth();
@@ -59,7 +60,7 @@ export const AccountSettings: React.FC = () => {
       setTimeout(() => setProfileSuccess(false), 3000);
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memperbarui profil');
+      setError(getErrorMessage(err, 'Gagal memperbarui profil akun. Pastikan username belum digunakan.'));
     }
   };
 
@@ -77,7 +78,7 @@ export const AccountSettings: React.FC = () => {
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal mengubah password');
+      setError(getErrorMessage(err, 'Gagal mengubah password. Pastikan password lama sesuai dan password baru memenuhi syarat.'));
     }
   };
 
@@ -102,7 +103,7 @@ export const AccountSettings: React.FC = () => {
       setSigFile(null); // Clear selection after successful upload
     } catch (error: any) {
       console.error('Upload failed:', error);
-      setSigMessage({ type: 'error', text: error.response?.data?.message || 'Gagal mengunggah tanda tangan' });
+      setSigMessage({ type: 'error', text: getErrorMessage(error, 'Gagal mengunggah tanda tangan') });
     } finally {
       setIsUploadingSig(false);
     }
@@ -354,7 +355,7 @@ export const AccountSettings: React.FC = () => {
                             setTimeout(() => setProfileSuccess(false), 3000);
                           }
                         } catch (err: any) {
-                          setError(err.response?.data?.message || 'Gagal mengunggah tanda tangan');
+                          setError(getErrorMessage(err, 'Gagal mengunggah tanda tangan kepala sekolah'));
                         } finally {
                           setIsUploadingPrincipalSig(false);
                           if (principalSigInputRef.current) {

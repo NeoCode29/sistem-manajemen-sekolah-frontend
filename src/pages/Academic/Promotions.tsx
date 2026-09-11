@@ -6,6 +6,7 @@ import { DataTable, type Column } from '../../components/Common/DataTable';
 import { usePromotions } from '../../hooks/usePromotions';
 import { useDialog } from '../../contexts/DialogContext';
 import { Badge } from '../../components/ui/Badge';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const Promotions: React.FC = () => {
   const navigate = useNavigate();
@@ -26,12 +27,14 @@ export const Promotions: React.FC = () => {
   const { showConfirm, showAlert } = useDialog();
 
   const handleCancelPromotion = async (id: string) => {
-    showConfirm('Yakin ingin membatalkan status kenaikan kelas ini?', async () => {
+    showConfirm('Apakah Anda yakin ingin membatalkan status kenaikan kelas untuk siswa ini?', async () => {
       setActionError('');
       try {
         await cancelPromotion(id);
       } catch (err: any) {
-        setActionError(err.message || 'Gagal membatalkan');
+        const msg = getErrorMessage(err, 'Gagal membatalkan status kenaikan kelas.');
+        setActionError(msg);
+        showAlert(msg, 'Gagal');
       }
     });
   };

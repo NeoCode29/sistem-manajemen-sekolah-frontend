@@ -7,6 +7,7 @@ import { useAcademicYears } from '../../hooks/useAcademicYears';
 import type { AcademicYear } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const AcademicYears: React.FC = () => {
   const {
@@ -23,50 +24,44 @@ export const AcademicYears: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState('');
   const [name, setName] = useState('');
-  const [formError, setFormError] = useState('');
   const { showConfirm, showAlert } = useDialog();
 
-  const error = formError || fetchError;
+  const error = fetchError;
 
   const handleCloseModal = () => {
     setShowModal(false);
     setIsEditing(false);
     setEditId('');
     setName('');
-    setFormError('');
   };
 
   const handleEdit = (year: AcademicYear) => {
     setIsEditing(true);
     setEditId(year.id);
     setName(year.name);
-    setFormError('');
     setShowModal(true);
   };
 
   const handleToggle = async (id: string) => {
-    setFormError('');
     try {
       await toggleAcademicYearActive(id);
     } catch (err: any) {
-      setFormError(err.message || 'Gagal mengubah status');
+      showAlert(getErrorMessage(err, 'Gagal mengubah status aktif tahun ajaran'), 'Gagal');
     }
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Are you sure you want to delete this academic year?', async () => {
-      setFormError('');
+    showConfirm('Apakah Anda yakin ingin menghapus tahun ajaran ini?', async () => {
       try {
         await deleteAcademicYear(id);
       } catch (err: any) {
-        setFormError(err.message || 'Gagal menghapus tahun ajaran');
+        showAlert(getErrorMessage(err, 'Gagal menghapus tahun ajaran. Data tidak dapat dihapus jika masih terhubung dengan data akademik lainnya.'), 'Gagal');
       }
-    });
+    }, 'Hapus Tahun Ajaran');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
     try {
       const payload = { name };
       if (isEditing) {
@@ -76,7 +71,7 @@ export const AcademicYears: React.FC = () => {
       }
       handleCloseModal();
     } catch (err: any) {
-      setFormError(err.message || 'Gagal menyimpan tahun ajaran');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan tahun ajaran'), 'Gagal');
     }
   };
 
@@ -109,10 +104,10 @@ export const AcademicYears: React.FC = () => {
       <PageHeader
         title="Tahun Ajaran"
         subtitle="Kelola master data Tahun Ajaran akademik"
-        action={<button onClick={() => { setFormError(''); setShowModal(true); }} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+        action={<button onClick={() => setShowModal(true)} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
       />
 
-      {error && !showModal && (
+      {error && (
         <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
@@ -140,12 +135,6 @@ export const AcademicYears: React.FC = () => {
         }
       >
         <form id="ay-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
-          {error && showModal && (
-            <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2 text-sm font-medium">
-              <AlertCircle size={18} className="shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
           <FormField label="Nama Tahun Ajaran" required>
             <input type="text" className="input-std" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: 2026/2027" required />
           </FormField>

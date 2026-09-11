@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import api from '../api/axios';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export interface ReportCard {
   id: string;
@@ -30,7 +31,7 @@ export const useReportCards = () => {
       const responseData = response.data;
       setReportCards(Array.isArray(responseData) ? responseData : responseData?.data || []);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch report cards');
+      setError(getErrorMessage(err, 'Gagal memuat data rapor'));
     } finally {
       setLoading(false);
     }
@@ -42,7 +43,7 @@ export const useReportCards = () => {
       await api.post('/assessment/report-cards/generate', data);
       await fetchReportCards({ classroomId: data.classroomId, academicYearId: data.academicYearId, semesterId: data.semesterId });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to generate report cards');
+      setError(getErrorMessage(err, 'Gagal memproses pembuatan rapor'));
       throw err;
     } finally {
       setLoading(false);
@@ -54,7 +55,7 @@ export const useReportCards = () => {
       await api.patch(`/assessment/report-cards/${id}/notes`, data);
       setReportCards(prev => prev.map(rc => rc.id === id ? { ...rc, ...data } : rc));
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update notes');
+      setError(getErrorMessage(err, 'Gagal memperbarui catatan dan kehadiran'));
       throw err;
     }
   };
@@ -65,7 +66,7 @@ export const useReportCards = () => {
       setReportCards(prev => prev.map(rc => rc.id === id ? { ...rc, validatedAt: response.data.validatedAt } : rc));
       return response.data;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to validate report card');
+      setError(getErrorMessage(err, 'Gagal memvalidasi rapor'));
       throw err;
     }
   };
@@ -84,7 +85,9 @@ export const useReportCards = () => {
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert('Gagal mengunduh PDF');
+      window.dispatchEvent(new CustomEvent('global-alert', { 
+        detail: { title: 'Gagal', message: getErrorMessage(err, 'Gagal mengunduh dokumen PDF rapor') } 
+      }));
     }
   };
 
@@ -93,7 +96,7 @@ export const useReportCards = () => {
       const response = await api.post('/assessment/validations/approvals', data);
       return response.data;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to approve classroom');
+      setError(getErrorMessage(err, 'Gagal mengesahkan rapor'));
       throw err;
     }
   };

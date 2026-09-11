@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getErrorMessage } from '../utils/errorHandler';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1',
@@ -95,6 +96,13 @@ api.interceptors.response.use(
         isRefreshing = false;
       }
     }
+
+    const friendly = getErrorMessage(error);
+    error.friendlyMessage = friendly;
+    if (!error.message || error.message.startsWith('Request failed with status code') || error.message === 'Network Error' || error.message.toLowerCase().startsWith('failed to')) {
+      error.message = friendly;
+    }
+
     return Promise.reject(error);
   }
 );

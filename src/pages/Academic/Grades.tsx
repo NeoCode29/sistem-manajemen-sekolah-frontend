@@ -8,6 +8,7 @@ import { useGrades } from '../../hooks/useGrades';
 import type { Grade } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField } from '../../components/ui';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const Grades: React.FC = () => {
   const {
@@ -27,10 +28,9 @@ export const Grades: React.FC = () => {
   const [name, setName] = useState('');
   const [level, setLevel] = useState(10);
   const [educationLevel, setEducationLevel] = useState('SMA');
-  const [formError, setFormError] = useState('');
   const { showConfirm, showAlert } = useDialog();
 
-  const error = formError || fetchError;
+  const error = fetchError;
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -40,7 +40,6 @@ export const Grades: React.FC = () => {
     setName('');
     setLevel(10);
     setEducationLevel('SMA');
-    setFormError('');
   };
 
   const handleEdit = (grade: Grade) => {
@@ -50,24 +49,21 @@ export const Grades: React.FC = () => {
     setName(grade.name);
     setLevel(grade.level);
     setEducationLevel(grade.educationLevel);
-    setFormError('');
     setShowModal(true);
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Are you sure you want to delete this grade level?', async () => {
-      setFormError('');
+    showConfirm('Apakah Anda yakin ingin menghapus data tingkat kelas ini?', async () => {
       try {
         await deleteGrade(id);
       } catch (err: any) {
-        setFormError(err.message || 'Gagal menghapus tingkat kelas');
+        showAlert(getErrorMessage(err, 'Gagal menghapus tingkat kelas. Data tidak dapat dihapus jika masih terhubung dengan rombel/kelas.'), 'Gagal');
       }
-    });
+    }, 'Hapus Tingkat Kelas');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
     try {
       const payload = {
         code,
@@ -84,7 +80,7 @@ export const Grades: React.FC = () => {
       
       handleCloseModal();
     } catch (err: any) {
-      setFormError(err.message || 'Gagal menyimpan tingkat kelas');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan data tingkat kelas'), 'Gagal');
     }
   };
 
@@ -110,10 +106,10 @@ export const Grades: React.FC = () => {
       <PageHeader
         title="Tingkat Kelas"
         subtitle="Kelola master data Tingkat/Level Kelas (misal: Kelas 10, 11, 12)"
-        action={<button onClick={() => { setFormError(''); setCode(generateGradeCode(educationLevel, level, name)); setShowModal(true); }} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
+        action={<button onClick={() => { setCode(generateGradeCode(educationLevel, level, name)); setShowModal(true); }} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
       />
 
-      {error && !showModal && (
+      {error && (
         <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
@@ -141,12 +137,6 @@ export const Grades: React.FC = () => {
         }
       >
         <form id="grade-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
-          {error && showModal && (
-            <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2 text-sm font-medium">
-              <AlertCircle size={18} className="shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
           <FormField label="Kode" required>
             <div className="flex gap-2">
               <input type="text" className="input-std flex-1" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: KLS-10" required />

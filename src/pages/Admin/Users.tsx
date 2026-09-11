@@ -7,6 +7,7 @@ import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge } from '../../components/ui/Badge';
+import { getErrorMessage } from '../../utils/errorHandler';
 import { Pagination } from '../../components/Common/Pagination';
 
 export const Users: React.FC = () => {
@@ -40,6 +41,16 @@ export const Users: React.FC = () => {
     setName('');
     setPassword('');
     setIsActive(true);
+  };
+
+  const handleOpenAdd = () => {
+    setIsEditing(false);
+    setEditId('');
+    setUsername('');
+    setName('');
+    setPassword('');
+    setIsActive(true);
+    setShowModal(true);
   };
 
   const handleEdit = (user: User) => {
@@ -92,7 +103,7 @@ export const Users: React.FC = () => {
       handleCloseModal();
       fetchData();
     } catch (error: any) {
-      showAlert(error.response?.data?.message || 'Failed to save user', 'Gagal');
+      showAlert(getErrorMessage(error, 'Gagal menyimpan data akun pengguna. Pastikan username belum pernah digunakan.'), 'Gagal');
     }
   };
 
@@ -117,7 +128,7 @@ export const Users: React.FC = () => {
       setShowRoleModal(false);
       fetchData();
     } catch (error: any) {
-      showAlert(error.response?.data?.message || 'Failed to assign roles', 'Gagal');
+      showAlert(getErrorMessage(error, 'Gagal menyimpan pengaturan peran pengguna'), 'Gagal');
     }
   };
 
@@ -174,7 +185,7 @@ export const Users: React.FC = () => {
           title="Pengguna (Users)" 
           subtitle="Kelola akun pengguna dan peran (Role) mereka"
         />
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => setShowModal(true)}>
+        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={handleOpenAdd}>
           <Plus size={18} /> Tambah Akun
         </button>
       </div>

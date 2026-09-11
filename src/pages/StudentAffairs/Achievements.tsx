@@ -7,6 +7,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { DataTable, type Column } from '../../components/Common/DataTable';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 interface AchievementForm {
   studentId: string;
@@ -78,7 +79,7 @@ export const Achievements: React.FC = () => {
       const data = await getAchievements(params);
       setAchievements(data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat data prestasi');
+      setError(getErrorMessage(err, 'Gagal memuat data prestasi siswa'));
     } finally {
       setLoading(false);
     }
@@ -126,7 +127,7 @@ export const Achievements: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.studentId) {
-      setError('Siswa harus dipilih');
+      showAlert('Siswa harus dipilih', 'Peringatan');
       return;
     }
 
@@ -152,21 +153,21 @@ export const Achievements: React.FC = () => {
       handleCloseModal();
       fetchAchievements();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan data');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan data prestasi siswa. Pastikan formulir terisi dengan lengkap dan benar.'), 'Gagal');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Yakin ingin menghapus data prestasi ini?', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus data catatan prestasi siswa ini?', async () => {
       try {
         await deleteAchievement(id);
         setSuccess('Data prestasi berhasil dihapus!');
         fetchAchievements();
         setTimeout(() => setSuccess(''), 3000);
       } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus data');
+        showAlert(getErrorMessage(err, 'Gagal menghapus data prestasi siswa.'), 'Gagal');
       }
     });
   };

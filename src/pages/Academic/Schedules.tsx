@@ -7,6 +7,7 @@ import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useSchedules } from '../../hooks/useSchedules';
 import { useDialog } from '../../contexts/DialogContext';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 const DAYS = [
   { id: 1, name: 'Senin' },
@@ -127,22 +128,9 @@ export const Schedules: React.FC = () => {
       setIsAssignmentModalOpen(false);
     } catch (err: any) {
       console.error("Save assignment error:", err);
-      let errMsg = 'Gagal menyimpan penugasan guru';
-      const resData = err.response?.data;
-      
-      if (resData) {
-        const errObj = resData.error;
-        if (errObj && errObj.message) {
-          errMsg = Array.isArray(errObj.message) ? errObj.message.join(', ') : errObj.message;
-        } else if (typeof errObj === 'string') {
-          errMsg = errObj;
-        } else if (resData.message) {
-          errMsg = Array.isArray(resData.message) ? resData.message.join(', ') : resData.message;
-        }
-      } else if (err.message) {
-        errMsg = err.message;
-      }
+      const errMsg = getErrorMessage(err, 'Gagal menyimpan penugasan guru. Pastikan guru dan mata pelajaran belum pernah ditugaskan pada periode yang sama.');
       setError(errMsg);
+      showAlert(errMsg, 'Gagal');
     } finally {
       setIsSubmitting(false);
     }
@@ -150,11 +138,11 @@ export const Schedules: React.FC = () => {
 
   const handleDeleteAssignment = async (id: string) => {
     if (!filterClassroomId) return;
-    showConfirm('Yakin ingin menghapus penugasan ini? Jadwal yang terkait mungkin akan error.', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus penugasan guru ini? Jadwal pelajaran yang terkait mungkin akan terpengaruh.', async () => {
       try {
         await deleteSubjectAssignment(id);
       } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus data', 'Gagal');
+        showAlert(getErrorMessage(err, 'Gagal menghapus penugasan guru. Penugasan tidak dapat dihapus jika masih terkait dengan jadwal pelajaran.'), 'Gagal');
       }
     });
   };
@@ -209,22 +197,9 @@ export const Schedules: React.FC = () => {
       setIsScheduleModalOpen(false);
     } catch (err: any) {
       console.error("Save schedule error:", err);
-      let errMsg = 'Gagal menyimpan jadwal';
-      const resData = err.response?.data;
-      
-      if (resData) {
-        const errObj = resData.error;
-        if (errObj && errObj.message) {
-          errMsg = Array.isArray(errObj.message) ? errObj.message.join(', ') : errObj.message;
-        } else if (typeof errObj === 'string') {
-          errMsg = errObj;
-        } else if (resData.message) {
-          errMsg = Array.isArray(resData.message) ? resData.message.join(', ') : resData.message;
-        }
-      } else if (err.message) {
-        errMsg = err.message;
-      }
+      const errMsg = getErrorMessage(err, 'Gagal menyimpan jadwal pelajaran. Pastikan tidak ada bentrok jam pelajaran, ruang, atau guru pada hari tersebut.');
       setError(errMsg);
+      showAlert(errMsg, 'Gagal');
     } finally {
       setIsSubmitting(false);
     }
@@ -232,11 +207,11 @@ export const Schedules: React.FC = () => {
 
   const handleDeleteSchedule = async (id: string) => {
     if (!filterClassroomId) return;
-    showConfirm('Yakin ingin menghapus jadwal ini?', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus jadwal pelajaran ini?', async () => {
       try {
         await deleteSchedule(id);
       } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus data', 'Gagal');
+        showAlert(getErrorMessage(err, 'Gagal menghapus jadwal pelajaran.'), 'Gagal');
       }
     });
   };

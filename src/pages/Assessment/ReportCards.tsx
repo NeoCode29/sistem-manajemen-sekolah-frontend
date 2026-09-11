@@ -7,8 +7,11 @@ import { FileText, Edit2, Printer, Loader2, AlertCircle, Settings, User, CheckCi
 import { useAuth } from '../../context/AuthContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
+import { useDialog } from '../../contexts/DialogContext';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const ReportCards: React.FC = () => {
+  const { showConfirm, showAlert } = useDialog();
   const { years: academicYears, refresh: fetchAcademicYears } = useAcademicYears();
   const { semesters, refresh: fetchSemesters } = useSemesters();
   const { classrooms, refresh: fetchClassrooms } = useClassrooms();
@@ -64,14 +67,18 @@ export const ReportCards: React.FC = () => {
 
   const handleGenerate = async () => {
     if (!selectedYear || !selectedSemester || !selectedClassroom) return;
-    if (window.confirm('Generate rapor untuk seluruh siswa di kelas ini? Nilai yang belum divalidasi mungkin tidak akan masuk.')) {
-      try {
-        await generateReportCards({ academicYearId: selectedYear, semesterId: selectedSemester, classroomId: selectedClassroom });
-        alert('Rapor berhasil di-generate!');
-      } catch (e: any) {
-        alert(e.message || 'Gagal generate rapor');
-      }
-    }
+    showConfirm(
+      'Generate rapor untuk seluruh siswa di kelas ini? Nilai yang belum divalidasi mungkin tidak akan masuk.',
+      async () => {
+        try {
+          await generateReportCards({ academicYearId: selectedYear, semesterId: selectedSemester, classroomId: selectedClassroom });
+          showAlert('Rapor berhasil di-generate!', 'Berhasil');
+        } catch (e: any) {
+          showAlert(getErrorMessage(e, 'Gagal generate rapor kelas'), 'Gagal');
+        }
+      },
+      'Generate Rapor'
+    );
   };
 
   const openEditModal = (card: ReportCard) => {
@@ -95,8 +102,9 @@ export const ReportCards: React.FC = () => {
         setIsSubmitting(true);
         await updateHomeroomNotes(modal.editCard.id, formData);
         closeEditModal();
+        showAlert('Catatan wali kelas berhasil disimpan', 'Berhasil');
       } catch (e: any) {
-        alert('Gagal menyimpan catatan: ' + (e.message || 'Error'));
+        showAlert(getErrorMessage(e, 'Gagal menyimpan catatan wali kelas'), 'Gagal');
       } finally {
         setIsSubmitting(false);
       }
@@ -155,14 +163,19 @@ export const ReportCards: React.FC = () => {
         <div className="flex justify-end items-center gap-2">
           {!row.validatedAt && (
             <button 
-              onClick={async () => {
-                if (window.confirm('Validasi rapor ini? Tindakan ini akan membubuhkan tanda tangan digital Anda.')) {
-                  try {
-                    await validateReportCard(row.id);
-                  } catch (e: any) {
-                    alert(e.message || 'Gagal memvalidasi rapor');
-                  }
-                }
+              onClick={() => {
+                showConfirm(
+                  'Validasi rapor ini? Tindakan ini akan membubuhkan tanda tangan digital Anda.',
+                  async () => {
+                    try {
+                      await validateReportCard(row.id);
+                      showAlert('Rapor berhasil divalidasi!', 'Berhasil');
+                    } catch (e: any) {
+                      showAlert(getErrorMessage(e, 'Gagal memvalidasi rapor siswa'), 'Gagal');
+                    }
+                  },
+                  'Validasi Rapor'
+                );
               }}
               className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent"
               title="Validasi & Tanda Tangani"
@@ -208,22 +221,26 @@ export const ReportCards: React.FC = () => {
             {isPrincipal && (
               <button 
                 className={`btn-std-primary flex items-center gap-2 disabled:opacity-70 ${isClassroomApproved ? 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500' : ''}`}
-                onClick={async () => {
-                  if (window.confirm('Sahkah rapor untuk kelas ini? Tanda tangan Anda akan dibubuhkan secara otomatis pada seluruh dokumen rapor di kelas ini.')) {
-                    try {
-                      await approveClassroom({
-                        classroomId: selectedClassroom,
-                        academicYearId: selectedYear,
-                        semesterId: selectedSemester,
-                        action: 'APPROVE',
-                        notes: ''
-                      });
-                      setIsClassroomApproved(true);
-                      alert('Berhasil Disahkan!');
-                    } catch (e: any) {
-                      alert(e.response?.data?.message || e.message || 'Gagal mengesahkan rapor');
-                    }
-                  }
+                onClick={() => {
+                  showConfirm(
+                    'Sahkah rapor untuk kelas ini? Tanda tangan Anda akan dibubuhkan secara otomatis pada seluruh dokumen rapor di kelas ini.',
+                    async () => {
+                      try {
+                        await approveClassroom({
+                          classroomId: selectedClassroom,
+                          academicYearId: selectedYear,
+                          semesterId: selectedSemester,
+                          action: 'APPROVE',
+                          notes: ''
+                        });
+                        setIsClassroomApproved(true);
+                        showAlert('Berhasil Disahkan!', 'Berhasil');
+                      } catch (e: any) {
+                        showAlert(getErrorMessage(e, 'Gagal mengesahkan rapor kelas'), 'Gagal');
+                      }
+                    },
+                    'Pengesahan Rapor'
+                  );
                 }}
                 disabled={loading || !selectedClassroom || isClassroomApproved}
               >

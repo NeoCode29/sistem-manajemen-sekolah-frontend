@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getPromotions, cancelPromotion as apiCancelPromotion } from '../api/promotionService';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export function usePromotions(initialPage = 1, initialLimit = 15) {
   const [promotionsHistory, setPromotionsHistory] = useState<any[]>([]);
@@ -35,7 +36,7 @@ export function usePromotions(initialPage = 1, initialLimit = 15) {
       await apiCancelPromotion(id);
       await fetchHistory(currentPage, itemsPerPage);
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal membatalkan kenaikan kelas');
+      throw new Error(getErrorMessage(err, 'Gagal membatalkan riwayat kenaikan kelas'));
     }
   };
 

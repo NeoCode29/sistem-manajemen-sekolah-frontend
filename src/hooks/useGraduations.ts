@@ -3,6 +3,7 @@ import { getGraduations, batchGraduate as apiBatchGraduate, cancelGraduation as 
 import { getClassrooms, getAcademicYears } from '../api/academicService';
 import { getStudents, type Student } from '../api/studentService';
 import type { Classroom as ClassType } from '../api/academicService';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export function useGraduations() {
   const [graduationsHistory, setGraduationsHistory] = useState<any[]>([]);
@@ -77,7 +78,7 @@ export function useGraduations() {
       await apiBatchGraduate(payload);
       await fetchHistory();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal memproses kelulusan');
+      throw new Error(getErrorMessage(err, 'Gagal memproses kelulusan siswa'));
     }
   };
 
@@ -86,7 +87,7 @@ export function useGraduations() {
       await apiCancelGraduation(id);
       await fetchHistory();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal membatalkan kelulusan');
+      throw new Error(getErrorMessage(err, 'Gagal membatalkan status kelulusan siswa'));
     }
   };
 

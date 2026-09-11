@@ -5,6 +5,7 @@ import { Plus, Search, Calendar, Users, BookOpen, Target, Settings } from 'lucid
 import { Link } from 'react-router-dom';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import { getErrorMessage } from '../../utils/errorHandler';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { Pagination } from '../../components/Common/Pagination';
@@ -105,9 +106,9 @@ export const Exams: React.FC = () => {
       const activeSem = semData.find(s => s.isActive);
       if (activeAy) setFilterAcademicYearId(activeAy.id);
       if (activeSem) setFilterSemesterId(activeSem.id);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      showAlert('Gagal memuat data referensi', 'Error');
+      showAlert(getErrorMessage(err, 'Gagal memuat data referensi (Tahun ajaran, semester, mapel, atau kelas)'), 'Gagal');
     }
   };
 
@@ -122,7 +123,7 @@ export const Exams: React.FC = () => {
       const data = await getExams(params);
       setExams(data);
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Gagal memuat agenda penilaian', 'Error');
+      showAlert(getErrorMessage(err, 'Gagal memuat agenda penilaian'), 'Gagal');
     } finally {
       setLoading(false);
     }
@@ -190,20 +191,19 @@ export const Exams: React.FC = () => {
       await fetchExams();
       handleCloseModal();
     } catch (err: any) {
-      const message = err.response?.data?.message;
-      showAlert(Array.isArray(message) ? message.join(', ') : (message || 'Gagal menyimpan agenda penilaian'), 'Error');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan agenda penilaian. Pastikan tanggal, bobot/skor maks, dan komponen penilaian valid.'), 'Gagal');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Yakin ingin menghapus agenda penilaian ini? Semua nilai yang sudah diinput akan ikut terhapus.', async () => {
+    showConfirm('Apakah Anda yakin ingin menghapus agenda penilaian ini? Semua nilai siswa yang sudah dimasukkan ke dalam agenda ini akan ikut terhapus secara permanen.', async () => {
       try {
         await deleteExam(id);
         await fetchExams();
       } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus agenda penilaian', 'Error');
+        showAlert(getErrorMessage(err, 'Gagal menghapus agenda penilaian.'), 'Gagal');
       }
     });
   };

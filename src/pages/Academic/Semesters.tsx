@@ -7,6 +7,7 @@ import { useSemesters } from '../../hooks/useSemesters';
 import type { Semester } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const Semesters: React.FC = () => {
   const {
@@ -26,17 +27,15 @@ export const Semesters: React.FC = () => {
   
   const [academicYearId, setAcademicYearId] = useState('');
   const [name, setName] = useState('');
-  const [formError, setFormError] = useState('');
   const { showConfirm, showAlert } = useDialog();
 
-  const error = formError || fetchError;
+  const error = fetchError;
 
   const handleCloseModal = () => {
     setShowModal(false);
     setIsEditing(false);
     setEditId('');
     setName('');
-    setFormError('');
   };
 
   const handleEdit = (semester: Semester) => {
@@ -44,33 +43,29 @@ export const Semesters: React.FC = () => {
     setEditId(semester.id);
     setAcademicYearId(semester.academicYearId);
     setName(semester.name);
-    setFormError('');
     setShowModal(true);
   };
 
   const handleToggle = async (id: string) => {
-    setFormError('');
     try {
       await toggleSemesterActive(id);
     } catch (err: any) {
-      setFormError(err.message || 'Gagal mengubah status');
+      showAlert(getErrorMessage(err, 'Gagal mengubah status aktif semester'), 'Gagal');
     }
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Are you sure you want to delete this semester?', async () => {
-      setFormError('');
+    showConfirm('Apakah Anda yakin ingin menghapus semester ini?', async () => {
       try {
         await deleteSemester(id);
       } catch (err: any) {
-        setFormError(err.message || 'Gagal menghapus semester');
+        showAlert(getErrorMessage(err, 'Gagal menghapus semester. Data tidak dapat dihapus jika masih terhubung dengan data akademik lainnya.'), 'Gagal');
       }
-    });
+    }, 'Hapus Semester');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
     try {
       const payload: any = {
         academicYearId: Number(academicYearId),
@@ -83,12 +78,11 @@ export const Semesters: React.FC = () => {
       }
       handleCloseModal();
     } catch (err: any) {
-      setFormError(err.message || 'Gagal menyimpan semester');
+      showAlert(getErrorMessage(err, 'Gagal menyimpan data semester'), 'Gagal');
     }
   };
 
   const openAddModal = () => {
-    setFormError('');
     if (academicYears.length > 0 && !academicYearId) {
       setAcademicYearId(academicYears.find(y => y.isActive)?.id || academicYears[0].id);
     }
@@ -139,7 +133,7 @@ export const Semesters: React.FC = () => {
         action={<button onClick={openAddModal} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
       />
 
-      {error && !showModal && (
+      {error && (
         <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
@@ -167,12 +161,6 @@ export const Semesters: React.FC = () => {
         }
       >
         <form id="semester-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
-          {error && showModal && (
-            <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2 text-sm font-medium">
-              <AlertCircle size={18} className="shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
           <FormField label="Tahun Ajaran Induk" required>
             <select className="input-std" value={academicYearId} onChange={(e) => setAcademicYearId(e.target.value)} required>
               {academicYears.map(year => (

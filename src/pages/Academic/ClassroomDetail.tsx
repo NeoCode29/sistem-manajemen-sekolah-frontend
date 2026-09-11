@@ -7,6 +7,7 @@ import { ArrowLeft, Info, Users, CheckCircle, GraduationCap } from 'lucide-react
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, FormField } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export const ClassroomDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -98,7 +99,7 @@ export const ClassroomDetail: React.FC = () => {
       });
       showAlert('Wali kelas berhasil ditugaskan!', 'Sukses');
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Gagal menugaskan wali kelas';
+      const msg = getErrorMessage(err, 'Gagal menugaskan wali kelas. Pastikan guru belum ditugaskan sebagai wali kelas di kelas lain pada periode yang sama.');
       showAlert(msg, 'Gagal');
     } finally {
       setSaving(false);
@@ -121,9 +122,9 @@ export const ClassroomDetail: React.FC = () => {
         limit: 1000
       });
       setStudents(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      showAlert('Gagal memuat daftar siswa', 'Gagal');
+      showAlert(getErrorMessage(err, 'Gagal memuat daftar siswa'), 'Gagal');
     } finally {
       setLoadingStudents(false);
     }

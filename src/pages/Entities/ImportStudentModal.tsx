@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, Upload, Download, AlertCircle, CheckCircle } from 'lucide-react';
 import { downloadImportTemplate, importStudents } from '../../api/studentService';
 import { Modal } from '../../components/ui/Modal';
+import { useDialog } from '../../contexts/DialogContext';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 interface ImportStudentModalProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface ImportStudentModalProps {
 }
 
 export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const { showAlert } = useDialog();
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -17,18 +20,26 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
 
   if (!isOpen) return null;
 
+  const handleClose = () => {
+    setFile(null);
+    setIsUploading(false);
+    setResult(null);
+    setError(null);
+    onClose();
+  };
+
   const handleDownloadTemplate = async () => {
     try {
       await downloadImportTemplate();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to download template', err);
-      setError('Gagal mengunduh template');
+      showAlert(getErrorMessage(err, 'Gagal mengunduh template Excel siswa'), 'Gagal');
     }
   };
 
   const handleUpload = async () => {
     if (!file) {
-      setError('Pilih file Excel terlebih dahulu');
+      showAlert('Pilih file Excel terlebih dahulu', 'Peringatan');
       return;
     }
 
@@ -42,7 +53,9 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
       }
     } catch (err: any) {
       console.error('Import error', err);
-      setError(err.response?.data?.message || 'Terjadi kesalahan saat mengimport data');
+      const errMsg = getErrorMessage(err, 'Terjadi kesalahan saat mengimpor data siswa. Pastikan format kolom sesuai dengan template.');
+      setError(errMsg);
+      showAlert(errMsg, 'Gagal');
     } finally {
       setIsUploading(false);
     }
@@ -51,7 +64,7 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
   return (
     <Modal
       open={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="Import Data Siswa (Excel)"
       size="lg"
       footer={
@@ -59,7 +72,7 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
           <button
             type="button"
             className="btn-std-secondary"
-            onClick={onClose}
+            onClick={handleClose}
           >
             {result ? 'Tutup' : 'Batal'}
           </button>

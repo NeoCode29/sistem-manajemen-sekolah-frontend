@@ -10,6 +10,7 @@ import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge } from '../../components/ui/Badge';
 import { useDialog } from '../../contexts/DialogContext';
+import { getErrorMessage } from '../../utils/errorHandler';
 import { getAcademicYears, getSemesters, getClassrooms, getMajors, type AcademicYear, type Semester, type Classroom, type Major } from '../../api/academicService';
 
 interface WizardForm {
@@ -95,13 +96,13 @@ export const Students: React.FC = () => {
 
   const handleRestore = async (id: string) => {
     showConfirm('Apakah Anda yakin ingin me-restore siswa ini?', async () => {
-      try { await restore(id); } catch (err: any) { showAlert(err.response?.data?.message || 'Gagal merestore siswa', 'Error'); }
+      try { await restore(id); } catch (err: any) { showAlert(getErrorMessage(err, 'Gagal merestore data siswa'), 'Gagal'); }
     });
   };
 
   const handleDelete = async (id: string) => {
     showConfirm('Apakah Anda yakin ingin menghapus siswa ini?', async () => {
-      try { await remove(id); } catch (err: any) { showAlert(err.response?.data?.message || 'Gagal menghapus siswa', 'Error'); }
+      try { await remove(id); } catch (err: any) { showAlert(getErrorMessage(err, 'Gagal menghapus data siswa. Data siswa tidak dapat dihapus jika masih terikat riwayat kelas atau nilai.'), 'Gagal'); }
     });
   };
 
@@ -135,7 +136,7 @@ export const Students: React.FC = () => {
       });
       closeWizard();
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Terjadi kesalahan saat mendaftar siswa', 'Error');
+      showAlert(getErrorMessage(err, 'Terjadi kesalahan saat mendaftar siswa baru. Pastikan NIS/NISN belum pernah terdaftar sebelumnya.'), 'Gagal');
     }
   };
 
