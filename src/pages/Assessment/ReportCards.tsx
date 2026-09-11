@@ -3,6 +3,7 @@ import { useReportCards, type ReportCard } from '../../hooks/useReportCards';
 import { useAcademicYears } from '../../hooks/useAcademicYears';
 import { useSemesters } from '../../hooks/useSemesters';
 import { useClassrooms } from '../../hooks/useClassrooms';
+import { getHomeroomTeacher } from '../../api/academicService';
 import { FileText, Edit2, Printer, Loader2, AlertCircle, Settings, User, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
@@ -18,6 +19,7 @@ export const ReportCards: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
   const [selectedClassroom, setSelectedClassroom] = useState('');
+  const [homeroomTeacher, setHomeroomTeacher] = useState<any>(null);
   
   const [isClassroomApproved, setIsClassroomApproved] = useState(false);
 
@@ -25,7 +27,13 @@ export const ReportCards: React.FC = () => {
   const [formData, setFormData] = useState({ sickDays: 0, excusedDays: 0, unexcusedDays: 0, homeroomNotes: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isPrincipal = user?.roles?.some(r => r.name === 'Kepala Sekolah');
+  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') ?? false;
+  const isPrincipal = user?.roles?.some(r => r.name === 'Kepala Sekolah') ?? false;
+  const isHomeroomTeacher = Boolean(
+    homeroomTeacher?.employeeId && user?.employeeId && 
+    String(homeroomTeacher.employeeId) === String(user.employeeId)
+  );
+  const canValidate = isSuperAdmin || isPrincipal || isHomeroomTeacher;
 
   useEffect(() => {
     fetchAcademicYears();
@@ -67,6 +75,11 @@ export const ReportCards: React.FC = () => {
       getApprovals({ academicYearId: selectedYear, semesterId: selectedSemester, classroomId: selectedClassroom })
         .then(res => setIsClassroomApproved(res.length > 0 && res[0].status === 'APPROVED'))
         .catch(err => console.error(err));
+      getHomeroomTeacher(selectedClassroom, selectedYear, selectedSemester)
+        .then(ht => setHomeroomTeacher(ht))
+        .catch(() => setHomeroomTeacher(null));
+    } else {
+      setHomeroomTeacher(null);
     }
   }, [selectedYear, selectedSemester, selectedClassroom, fetchReportCards, getApprovals]);
 
@@ -172,24 +185,44 @@ export const ReportCards: React.FC = () => {
           {!row.validatedAt && (
             <button 
               onClick={async () => {
+                if (!canValidate) {
+                  alert('Hanya Wali Kelas untuk kelas ini atau Kepala Sekolah yang dapat memvalidasi rapor.');
+                  return;
+                }
                 if (window.confirm('Validasi rapor ini? Tindakan ini akan membubuhkan tanda tangan digital Anda.')) {
                   try {
                     await validateReportCard(row.id);
                   } catch (e: any) {
-                    alert(e.message || 'Gagal memvalidasi rapor');
+                    alert(e.response?.data?.message || e.message || 'Gagal memvalidasi rapor');
                   }
                 }
               }}
-              className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent"
-              title="Validasi & Tanda Tangani"
+              disabled={!canValidate}
+              className={`p-2 rounded-lg transition-colors border border-transparent ${
+                canValidate 
+                  ? 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 cursor-pointer' 
+                  : 'text-slate-300 cursor-not-allowed opacity-40'
+              }`}
+              title={canValidate ? 'Validasi & Tanda Tangani' : `Hanya Wali Kelas (${homeroomTeacher?.employee?.fullName || 'Wali Kelas'}) atau Kepala Sekolah yang dapat memvalidasi`}
             >
               <CheckCircle size={16} />
             </button>
           )}
           <button 
-            onClick={() => openEditModal(row)}
-            className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent"
-            title="Isi Catatan & Absensi"
+            onClick={() => {
+              if (!canValidate) {
+                alert('Hanya Wali Kelas untuk kelas ini atau Kepala Sekolah yang dapat mengubah catatan/absensi.');
+                return;
+              }
+              openEditModal(row);
+            }}
+            disabled={!canValidate}
+            className={`p-2 rounded-lg transition-colors border border-transparent ${
+              canValidate 
+                ? 'text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 cursor-pointer' 
+                : 'text-slate-300 cursor-not-allowed opacity-40'
+            }`}
+            title={canValidate ? 'Isi Catatan & Absensi' : 'Hanya Wali Kelas atau Kepala Sekolah yang dapat mengubah catatan'}
           >
             <Edit2 size={16} />
           </button>
@@ -213,15 +246,16 @@ export const ReportCards: React.FC = () => {
         action={
           <div className="flex gap-4">
             <button 
-              className="btn-std-primary flex items-center gap-2 disabled:opacity-70" 
+              className="btn-std-primary flex items-center gap-2 disabled:opacity-60" 
               onClick={handleGenerate}
-              disabled={loading || !selectedClassroom}
+              disabled={loading || !selectedClassroom || !canValidate}
+              title={!canValidate ? `Hanya Wali Kelas (${homeroomTeacher?.employee?.fullName || 'Wali Kelas'}) atau Kepala Sekolah yang dapat men-generate rapor kelas ini` : undefined}
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
               Generate Rapor Kelas
             </button>
             
-            {isPrincipal && (
+            {(isPrincipal || isSuperAdmin) && (
               <button 
                 className={`btn-std-primary flex items-center gap-2 disabled:opacity-70 ${isClassroomApproved ? 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500' : ''}`}
                 onClick={async () => {
@@ -295,6 +329,37 @@ export const ReportCards: React.FC = () => {
             </select>
           </div>
         </div>
+
+        {selectedClassroom && (
+          <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-slate-600">Wali Kelas:</span>
+              <span className="font-semibold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md">
+                {homeroomTeacher?.employee?.fullName || 'Belum Ditugaskan'}
+              </span>
+              {isHomeroomTeacher && (
+                <span className="bg-indigo-100 text-indigo-800 border border-indigo-200 font-bold px-2 py-0.5 rounded-full">
+                  Anda adalah Wali Kelas
+                </span>
+              )}
+              {isPrincipal && (
+                <span className="bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold px-2 py-0.5 rounded-full">
+                  Kepala Sekolah
+                </span>
+              )}
+              {isSuperAdmin && (
+                <span className="bg-purple-100 text-purple-800 border border-purple-200 font-bold px-2 py-0.5 rounded-full">
+                  Super Admin
+                </span>
+              )}
+            </div>
+            {!canValidate && (
+              <div className="text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-lg">
+                Mode Hanya-Baca: Validasi dan pengubahan rapor hanya dapat dilakukan oleh Wali Kelas atau Kepala Sekolah.
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 overflow-hidden">
