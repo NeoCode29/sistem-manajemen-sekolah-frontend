@@ -141,3 +141,49 @@ export const upsertExamScoresBatch = async (
 ): Promise<void> => {
   await api.post(`/assessment/assessments/${examId}/scores`, { scores });
 };
+
+// ==========================
+// VALIDATION & LOCK STATUS
+// ==========================
+export interface AssessmentLockStatus {
+  isLocked: boolean;
+  lockReason?: string | null;
+  validation?: {
+    id: string;
+    status: string;
+    submittedAt?: string;
+    validatedAt?: string;
+    notes?: string;
+    validatedBy?: { fullName: string };
+  } | null;
+  approval?: {
+    id: string;
+    status: string;
+    approvedAt?: string;
+    notes?: string;
+    approvedBy?: { fullName: string };
+  } | null;
+  canUnlock: boolean;
+}
+
+export const getAssessmentLockStatus = async (params: {
+  classroomId: string;
+  subjectId: string;
+  academicYearId: string;
+  semesterId: string;
+}): Promise<AssessmentLockStatus> => {
+  const res = await api.get('/assessment/validations/status', { params });
+  return res.data;
+};
+
+export const reopenAssessmentForRevision = async (payload: {
+  classroomId: string;
+  subjectId: string;
+  academicYearId: string;
+  semesterId: string;
+  reason: string;
+}) => {
+  const res = await api.post('/assessment/validations/reopen', payload);
+  return res.data;
+};
+
