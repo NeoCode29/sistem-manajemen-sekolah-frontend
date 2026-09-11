@@ -39,8 +39,9 @@ export const useReportCards = () => {
   const generateReportCards = async (data: { classroomId: string; academicYearId: string; semesterId: string }) => {
     setLoading(true);
     try {
-      await api.post('/assessment/report-cards/generate', data);
+      const res = await api.post('/assessment/report-cards/generate', data);
       await fetchReportCards({ classroomId: data.classroomId, academicYearId: data.academicYearId, semesterId: data.semesterId });
+      return res.data;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to generate report cards');
       throw err;

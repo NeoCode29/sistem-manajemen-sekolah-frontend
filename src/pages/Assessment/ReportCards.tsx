@@ -41,11 +41,19 @@ export const ReportCards: React.FC = () => {
   }, [academicYears, selectedYear]);
 
   useEffect(() => {
-    if (semesters.length > 0 && !selectedSemester) {
-      const active = semesters.find(s => s.isActive) || semesters[0];
-      setSelectedSemester(active.id);
+    if (semesters.length > 0 && selectedYear) {
+      const yearSemesters = semesters.filter(s => s.academicYearId === selectedYear);
+      if (yearSemesters.length > 0) {
+        const stillValid = yearSemesters.some(s => s.id === selectedSemester);
+        if (!stillValid) {
+          const active = yearSemesters.find(s => s.isActive) || yearSemesters[0];
+          setSelectedSemester(active.id);
+        }
+      } else {
+        setSelectedSemester('');
+      }
     }
-  }, [semesters, selectedSemester]);
+  }, [semesters, selectedYear, selectedSemester]);
   
   useEffect(() => {
     if (classrooms.length > 0 && !selectedClassroom) {
@@ -63,13 +71,21 @@ export const ReportCards: React.FC = () => {
   }, [selectedYear, selectedSemester, selectedClassroom, fetchReportCards, getApprovals]);
 
   const handleGenerate = async () => {
-    if (!selectedYear || !selectedSemester || !selectedClassroom) return;
+    if (!selectedYear || !selectedSemester || !selectedClassroom) {
+      alert('Pilih Tahun Ajaran, Semester, dan Kelas terlebih dahulu.');
+      return;
+    }
     if (window.confirm('Generate rapor untuk seluruh siswa di kelas ini? Nilai yang belum divalidasi mungkin tidak akan masuk.')) {
       try {
-        await generateReportCards({ academicYearId: selectedYear, semesterId: selectedSemester, classroomId: selectedClassroom });
-        alert('Rapor berhasil di-generate!');
+        const res = await generateReportCards({ academicYearId: selectedYear, semesterId: selectedSemester, classroomId: selectedClassroom });
+        const count = res?.generatedCount ?? res?.count ?? 0;
+        if (count > 0) {
+          alert(`Rapor berhasil di-generate untuk ${count} siswa!`);
+        } else {
+          alert('Proses generate selesai.');
+        }
       } catch (e: any) {
-        alert(e.message || 'Gagal generate rapor');
+        alert(e.response?.data?.message || e.message || 'Gagal generate rapor');
       }
     }
   };
