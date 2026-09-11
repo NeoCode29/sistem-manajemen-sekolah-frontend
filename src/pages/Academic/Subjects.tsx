@@ -47,6 +47,7 @@ export const Subjects: React.FC = () => {
     setCode(subject.code);
     setName(subject.name);
     setMinimumPassingGrade(subject.minimumPassingGrade || 75);
+    setFormError('');
     setShowModal(true);
   };
 
@@ -108,12 +109,12 @@ export const Subjects: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Mata Pelajaran</h1>
           <p className="text-gray-500 mt-1">Kelola master data Mata Pelajaran</p>
         </div>
-        <button className="btn-std-primary" onClick={() => { setCode(generateSubjectCode()); setShowModal(true); }}>
+        <button className="btn-std-primary" onClick={() => { setFormError(''); setCode(generateSubjectCode()); setShowModal(true); }}>
           <Plus size={18} /> Tambah Data
         </button>
       </div>
 
-      {error && (
+      {error && !showModal && (
         <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
@@ -142,6 +143,12 @@ export const Subjects: React.FC = () => {
       >
         <form id="subject-form" onSubmit={handleSubmit} className="p-6">
           <div className="flex flex-col gap-5">
+            {error && showModal && (
+              <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2 text-sm font-medium">
+                <AlertCircle size={18} className="shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
             <FormField label="Kode" required>
               <div className="flex gap-2">
                 <input type="text" className="input-std flex-1" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Contoh: MAT-W-10" required />

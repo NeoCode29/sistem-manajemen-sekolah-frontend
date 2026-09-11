@@ -44,6 +44,7 @@ export const Semesters: React.FC = () => {
     setEditId(semester.id);
     setAcademicYearId(semester.academicYearId);
     setName(semester.name);
+    setFormError('');
     setShowModal(true);
   };
 
@@ -87,6 +88,7 @@ export const Semesters: React.FC = () => {
   };
 
   const openAddModal = () => {
+    setFormError('');
     if (academicYears.length > 0 && !academicYearId) {
       setAcademicYearId(academicYears.find(y => y.isActive)?.id || academicYears[0].id);
     }
@@ -137,8 +139,8 @@ export const Semesters: React.FC = () => {
         action={<button onClick={openAddModal} className="btn-std-primary"><Plus size={18} /> Tambah Data</button>}
       />
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-3 mb-4 flex items-center gap-2">
+      {error && !showModal && (
+        <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
           <AlertCircle size={18} />
           {error}
         </div>
@@ -165,6 +167,12 @@ export const Semesters: React.FC = () => {
         }
       >
         <form id="semester-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+          {error && showModal && (
+            <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2 text-sm font-medium">
+              <AlertCircle size={18} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
           <FormField label="Tahun Ajaran Induk" required>
             <select className="input-std" value={academicYearId} onChange={(e) => setAcademicYearId(e.target.value)} required>
               {academicYears.map(year => (
