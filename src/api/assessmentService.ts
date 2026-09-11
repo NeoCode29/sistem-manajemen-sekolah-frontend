@@ -4,7 +4,9 @@ export interface AssessmentType {
   id: string;
   code: string;
   name: string;
+  isActive?: boolean;
 }
+
 
 export interface AssessmentComponent {
   id: string;
@@ -72,6 +74,17 @@ export const updateAssessmentComponent = async (id: string, data: Partial<Assess
 export const deleteAssessmentComponent = async (id: string): Promise<void> => {
   await api.delete(`/assessment/components/${id}`);
 };
+
+export const generateDefaultComponents = async (payload: {
+  classroomId: string;
+  subjectId: string;
+  academicYearId: string;
+  semesterId: string;
+}): Promise<AssessmentComponent[]> => {
+  const response = await api.post('/assessment/components/generate-default', payload);
+  return response.data;
+};
+
 
 // ==========================
 // EXAMS (Assessments)

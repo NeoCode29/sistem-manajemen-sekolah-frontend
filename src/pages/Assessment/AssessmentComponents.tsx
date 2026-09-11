@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAcademicYears, getSemesters, getGrades, getClassrooms, getSubjects, type AcademicYear, type Semester, type Grade, type Classroom, type Subject } from '../../api/academicService';
-import { getAssessmentComponents, createAssessmentComponent, updateAssessmentComponent, deleteAssessmentComponent, getAssessmentTypes, type AssessmentComponent, type AssessmentType } from '../../api/assessmentService';
-import { Plus, Settings, Target, BookOpen, PieChart, CheckCircle2 } from 'lucide-react';
+import { getAssessmentComponents, createAssessmentComponent, updateAssessmentComponent, deleteAssessmentComponent, getAssessmentTypes, generateDefaultComponents, type AssessmentComponent, type AssessmentType } from '../../api/assessmentService';
+import { Plus, Settings, Target, BookOpen, PieChart, CheckCircle2, Sparkles } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
@@ -52,6 +52,7 @@ export const AssessmentComponents: React.FC = () => {
   const [modal, setModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
   const [form, setForm] = useState<ComponentForm>(DEFAULT_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [modalClassrooms, setModalClassrooms] = useState<Classroom[]>([]);
 
   useEffect(() => {
@@ -110,6 +111,11 @@ export const AssessmentComponents: React.FC = () => {
   };
 
   const fetchComponents = async () => {
+    if (!filterClassroomId || !filterSubjectId || !filterAcademicYearId || !filterSemesterId) {
+      setComponents([]);
+      return;
+    }
+
     try {
       setLoading(true);
       const data = await getAssessmentComponents({
@@ -206,7 +212,35 @@ export const AssessmentComponents: React.FC = () => {
   };
 
   const totalWeight = components.reduce((sum, c) => sum + (c.weight || 0), 0);
-  const isFiltersComplete = filterClassroomId && filterSubjectId && filterAcademicYearId && filterSemesterId;
+  const isFiltersComplete = Boolean(filterClassroomId && filterSubjectId && filterAcademicYearId && filterSemesterId);
+  const activeTypes = types.filter(t => t.isActive !== false);
+  const existingTypeIds = new Set(components.map(c => (c.typeId || c.type?.id)?.toString()));
+  const isAllTypesCreated = isFiltersComplete && activeTypes.length > 0 && activeTypes.every(t => existingTypeIds.has(t.id.toString()));
+
+  const handleGenerateDefault = async () => {
+    if (!isFiltersComplete || isAllTypesCreated || isGenerating) return;
+
+    showConfirm(
+      'Generate otomatis semua jenis penilaian aktif yang belum ada untuk kelas & mapel ini dengan nilai bobot awal 0%?',
+      async () => {
+        try {
+          setIsGenerating(true);
+          await generateDefaultComponents({
+            classroomId: filterClassroomId,
+            subjectId: filterSubjectId,
+            academicYearId: filterAcademicYearId,
+            semesterId: filterSemesterId
+          });
+          await fetchComponents();
+        } catch (err: any) {
+          const message = err.response?.data?.message;
+          showAlert(Array.isArray(message) ? message.join(', ') : (message || 'Gagal generate komponen penilaian'), 'Error');
+        } finally {
+          setIsGenerating(false);
+        }
+      }
+    );
+  };
 
   const columns: Column<AssessmentComponent>[] = [
     { 
@@ -258,9 +292,33 @@ export const AssessmentComponents: React.FC = () => {
         subtitle="Atur struktur penilaian, jenis ujian, dan proporsi bobot untuk perhitungan nilai akhir."
         action={
           canManageAssessment ? (
-            <button className="btn-std-primary" onClick={() => handleOpenModal()}>
-              <Plus size={20} /> Tambah Komponen
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleGenerateDefault}
+                disabled={!isFiltersComplete || isAllTypesCreated || isGenerating}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm ${
+                  isAllTypesCreated
+                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                    : !isFiltersComplete
+                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                    : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 active:scale-95 cursor-pointer shadow-indigo-100'
+                }`}
+                title={
+                  !isFiltersComplete
+                    ? 'Lengkapi pilihan filter terlebih dahulu'
+                    : isAllTypesCreated
+                    ? 'Semua jenis penilaian aktif sudah dibuat'
+                    : 'Buat otomatis seluruh jenis penilaian dengan bobot 0%'
+                }
+              >
+                <Sparkles size={18} className={isGenerating ? 'animate-spin' : ''} />
+                <span>{isAllTypesCreated ? 'Komponen Lengkap' : 'Generate Otomatis'}</span>
+              </button>
+              <button className="btn-std-primary" onClick={() => handleOpenModal()}>
+                <Plus size={20} /> Tambah Komponen
+              </button>
+            </div>
           ) : undefined
         }
       />
@@ -338,18 +396,18 @@ export const AssessmentComponents: React.FC = () => {
           </div>
         </div>
 
-        {(!isFiltersComplete && components.length === 0) ? (
+        {!isFiltersComplete ? (
           <div className="p-24 text-center flex flex-col items-center justify-center">
              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center mb-6 shadow-sm">
                 <Target size={36} className="text-indigo-600" />
              </div>
-             <div className="text-xl font-extrabold text-slate-800">Data Komponen Kosong</div>
+             <div className="text-xl font-extrabold text-slate-800">Pilih Parameter Penilaian</div>
              <div className="text-sm text-slate-500 mt-2 max-w-md leading-relaxed">
-               Pastikan Anda telah memilih semua filter di atas untuk melihat data komponen penilaian.
+               Silakan pilih Tahun Ajaran, Semester, Rombel/Kelas, dan Mata Pelajaran terlebih dahulu untuk menampilkan atau mengatur bobot komponen penilaian.
              </div>
           </div>
         ) : (
-          <DataTable columns={columns} data={components} loading={loading} emptyMessage="Belum ada komponen penilaian yang diatur untuk kelas dan mapel ini." />
+          <DataTable columns={columns} data={components} loading={loading} emptyMessage="Belum ada komponen penilaian yang diatur untuk kelas dan mapel ini. Silakan tambah komponen baru." />
         )}
 
         {/* Progress Bar Footer */}
