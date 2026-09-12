@@ -52,7 +52,7 @@ export const EmployeeAttendancePage: React.FC = () => {
           employeeId: emp.id,
           employeeName: emp.fullName,
           nip: emp.employeeNumber || '-',
-          status: att ? att.status : 'Hadir',
+          status: att ? att.status : 'Belum Absen',
           checkinTime: att?.checkinTime || '',
           checkoutTime: att?.checkoutTime || '',
           notes: att?.notes || ''
@@ -90,16 +90,24 @@ export const EmployeeAttendancePage: React.FC = () => {
     try {
       setSaving(true);
       
-      const attendances: EmployeeAttendanceBatchItem[] = rows.map(r => {
-        const isPresent = r.status === 'Hadir' || r.status === 'Terlambat';
-        return {
-          employeeId: r.employeeId,
-          status: r.status,
-          checkinTime: isPresent ? (r.checkinTime || undefined) : undefined,
-          checkoutTime: isPresent ? (r.checkoutTime || undefined) : undefined,
-          notes: r.notes || undefined
-        };
-      });
+      const attendances: EmployeeAttendanceBatchItem[] = rows
+        .filter(r => r.status !== 'Belum Absen')
+        .map(r => {
+          const isPresent = r.status === 'Hadir' || r.status === 'Terlambat';
+          return {
+            employeeId: r.employeeId,
+            status: r.status,
+            checkinTime: isPresent ? (r.checkinTime || undefined) : undefined,
+            checkoutTime: isPresent ? (r.checkoutTime || undefined) : undefined,
+            notes: r.notes || undefined
+          };
+        });
+      
+      if (attendances.length === 0) {
+        toast.error('Tidak ada perubahan absensi untuk disimpan. Silakan pilih status kehadiran pegawai terlebih dahulu.');
+        setSaving(false);
+        return;
+      }
       
       await upsertEmployeeAttendanceBatch(date, attendances);
       toast.success('Data absensi pegawai berhasil disimpan!');
@@ -202,6 +210,7 @@ export const EmployeeAttendancePage: React.FC = () => {
                     <td className="py-3 px-2">
                       <select 
                         className={`w-full p-2.5 rounded-xl font-medium outline-none transition-all shadow-sm focus:ring-2 focus:ring-offset-1 focus:border-transparent cursor-pointer ${
+                          row.status === 'Belum Absen' ? 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-400/50' :
                           row.status === 'Hadir' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 focus:ring-emerald-400/50' :
                           row.status === 'Terlambat' ? 'bg-amber-50 text-amber-700 border-amber-200 focus:ring-amber-400/50' :
                           row.status === 'Izin' ? 'bg-sky-50 text-sky-700 border-sky-200 focus:ring-sky-400/50' :
@@ -212,6 +221,7 @@ export const EmployeeAttendancePage: React.FC = () => {
                         value={row.status}
                         onChange={(e) => handleRowChange(index, 'status', e.target.value)}
                       >
+                        <option value="Belum Absen">Belum Absen</option>
                         <option value="Hadir">Hadir</option>
                         <option value="Izin">Izin</option>
                         <option value="Sakit">Sakit</option>

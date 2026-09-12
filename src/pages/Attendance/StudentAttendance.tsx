@@ -118,7 +118,7 @@ export const StudentAttendancePage: React.FC = () => {
           studentId: student.id,
           studentName: student.fullName,
           nis: student.nis,
-          status: att ? att.status : 'Hadir',
+          status: att ? att.status : 'Belum Absen',
           notes: att?.notes || ''
         };
       });
@@ -154,13 +154,21 @@ export const StudentAttendancePage: React.FC = () => {
       setError('');
       setSuccess('');
       
-      const attendances: StudentAttendanceBatchItem[] = rows.map(r => {
-        return {
-          studentId: r.studentId,
-          status: r.status,
-          notes: r.notes || undefined
-        };
-      });
+      const attendances: StudentAttendanceBatchItem[] = rows
+        .filter(r => r.status !== 'Belum Absen')
+        .map(r => {
+          return {
+            studentId: r.studentId,
+            status: r.status,
+            notes: r.notes || undefined
+          };
+        });
+      
+      if (attendances.length === 0) {
+        setError('Tidak ada perubahan absensi untuk disimpan. Silakan pilih status kehadiran siswa terlebih dahulu.');
+        setSaving(false);
+        return;
+      }
       
       await upsertStudentAttendanceBatch(selectedClassroomId, selectedAcademicYearId, selectedSemesterId, date, attendances);
       setSuccess('Data absensi berhasil disimpan!');
@@ -298,6 +306,7 @@ export const StudentAttendancePage: React.FC = () => {
                     <td className="py-3 px-2">
                       <select 
                         className={`w-full p-2.5 rounded-xl font-medium outline-none transition-all shadow-sm focus:ring-2 focus:ring-offset-1 focus:border-transparent cursor-pointer ${
+                          row.status === 'Belum Absen' ? 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-400/50' :
                           row.status === 'Hadir' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 focus:ring-emerald-400/50' :
                           row.status === 'Terlambat' ? 'bg-amber-50 text-amber-700 border-amber-200 focus:ring-amber-400/50' :
                           row.status === 'Izin' ? 'bg-sky-50 text-sky-700 border-sky-200 focus:ring-sky-400/50' :
@@ -307,6 +316,7 @@ export const StudentAttendancePage: React.FC = () => {
                         value={row.status}
                         onChange={(e) => handleRowChange(index, 'status', e.target.value)}
                       >
+                        <option value="Belum Absen">Belum Absen</option>
                         <option value="Hadir">Hadir</option>
                         <option value="Izin">Izin</option>
                         <option value="Sakit">Sakit</option>
