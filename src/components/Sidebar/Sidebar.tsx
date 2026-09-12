@@ -77,13 +77,13 @@ export const Sidebar: React.FC = () => {
               <BadgeCheck size={20} />
               <span>Jabatan</span>
             </NavLink>
-            <NavLink to="/academic/classrooms" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-              <Users size={20} />
-              <span>Rombel / Kelas</span>
-            </NavLink>
             <NavLink to="/academic/grades" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
               <GraduationCap size={20} />
               <span>Tingkat Kelas</span>
+            </NavLink>
+            <NavLink to="/academic/classrooms" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+              <Users size={20} />
+              <span>Rombel / Kelas</span>
             </NavLink>
             <NavLink to="/academic/majors" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
               <Award size={20} />
