@@ -83,7 +83,7 @@ export const Sidebar: React.FC = () => {
   return (
     <div className="w-[260px] bg-white border-r border-gray-200 h-screen flex flex-col fixed left-0 top-0 z-40">
       <div className="p-6 flex items-center gap-3 border-b border-gray-200">
-        <AppLogo size="md" variant="gradient" />
+        <AppLogo size="md" variant="white" />
         <div className="font-bold text-xl text-gray-900 tracking-tight">SekolahApp</div>
       </div>
 

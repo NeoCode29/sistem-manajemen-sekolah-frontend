@@ -48,7 +48,7 @@ export const Login: React.FC = () => {
         <div className="absolute top-[40%] right-[10%] w-[50%] h-[50%] rounded-full bg-purple-500/20 blur-[100px] mix-blend-overlay"></div>
         
         <div className="relative z-10 w-full max-w-xl px-12 text-white page-enter">
-          <AppLogo size="xl" variant="glass" className="mb-8" />
+          <AppLogo size="xl" variant="white" className="mb-8 shadow-2xl" />
           
           <h1 className="text-5xl font-extrabold mb-6 leading-tight">
             Sistem Informasi <br/>
@@ -81,7 +81,7 @@ export const Login: React.FC = () => {
           
           <div className="mb-8">
             <div className="flex items-center gap-3.5 mb-4">
-              <AppLogo size="lg" variant="gradient" />
+              <AppLogo size="lg" variant="white" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900 leading-tight">SekolahApp</h1>
                 <p className="text-xs text-gray-500 font-medium">Sistem Informasi Manajemen Sekolah</p>

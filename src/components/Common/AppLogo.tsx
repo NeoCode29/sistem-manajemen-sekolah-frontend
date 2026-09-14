@@ -4,7 +4,7 @@ export interface AppLogoProps {
   className?: string;
   iconClassName?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  variant?: 'gradient' | 'glass' | 'subtle' | 'plain';
+  variant?: 'white' | 'gradient' | 'glass' | 'subtle' | 'plain';
 }
 
 export const AppLogoIcon: React.FC<{ className?: string }> = ({ className = 'w-full h-full' }) => {
@@ -78,7 +78,7 @@ c87 184 301 279 485 215z m-840 -147 c65 -29 122 -87 154 -156 36 -76 36 -183
 61 -32 -1 28 -87 84 -167 117 -457 187 -60 15 -120 29 -132 32 -18 4 -23 1
 -23 -14z"/>
         <path d="M3160 2361 c-8 -5 -60 -19 -115 -31 -276 -63 -358 -96 -443 -181 -64
--63 -69 -85 -8 -32 44 38 130 86 212 116 38 15 121 36 327 83 61 14 77 21 77
+63 -69 -85 -8 -32 44 38 130 86 212 116 38 15 121 36 327 83 61 14 77 21 77
 36 0 19 -24 24 -50 9z"/>
         <path d="M3205 2293 c-11 -2 -92 -20 -180 -39 -226 -49 -313 -80 -375 -133
 l-25 -22 31 15 c17 8 78 29 135 46 100 31 120 37 199 59 112 31 243 71 248 76
@@ -107,10 +107,10 @@ export const AppLogo: React.FC<AppLogoProps> = ({
   className = '',
   iconClassName,
   size = 'md',
-  variant = 'gradient'
+  variant = 'white'
 }) => {
   if (variant === 'plain') {
-    return <AppLogoIcon className={className || 'w-8 h-8 text-indigo-600'} />;
+    return <AppLogoIcon className={className || 'w-8 h-8 text-blue-600'} />;
   }
 
   const sizeClasses = {
@@ -121,9 +121,10 @@ export const AppLogo: React.FC<AppLogoProps> = ({
   }[size];
 
   const variantClasses = {
+    white: 'bg-white border border-slate-200/80 text-blue-600 shadow-sm',
     gradient: 'bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20 border border-blue-400/30',
     glass: 'bg-white/15 backdrop-blur-md border border-white/25 text-white shadow-xl shadow-black/10',
-    subtle: 'bg-blue-50 border border-blue-100 text-blue-700 shadow-sm'
+    subtle: 'bg-blue-50 border border-blue-100 text-blue-600 shadow-sm'
   }[variant];
 
   return (
