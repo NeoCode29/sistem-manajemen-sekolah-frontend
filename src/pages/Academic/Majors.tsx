@@ -20,7 +20,12 @@ export const Majors: React.FC = () => {
     toggleActive,
     deleteMajor
   } = useMajors();
-  const { canManageAcademic } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canCreateMajor = hasPermission('majors.create') || hasPermission('academic.write');
+  const canEditMajor = hasPermission('majors.update') || hasPermission('academic.write');
+  const canDeleteMajor = hasPermission('majors.delete') || hasPermission('academic.write');
+  const canToggleMajor = hasPermission('majors.toggle_active') || hasPermission('academic.write');
+  const hasActions = canEditMajor || canDeleteMajor;
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -105,7 +110,7 @@ export const Majors: React.FC = () => {
       key: 'isActive', 
       header: 'Status', 
       render: (row) => (
-        <button onClick={() => canManageAcademic ? handleToggleStatus(row.id) : undefined} className={!canManageAcademic ? "cursor-default" : ""}>
+        <button onClick={() => canToggleMajor ? handleToggleStatus(row.id) : undefined} className={!canToggleMajor ? "cursor-default" : ""}>
           <Badge variant={row.isActive ? 'success' : 'danger'}>
             <span className="flex items-center gap-1">
               {row.isActive ? <CheckCircle size={14} /> : <XCircle size={14} />}
@@ -117,11 +122,11 @@ export const Majors: React.FC = () => {
     }
   ];
 
-  if (canManageAcademic) {
+  if (hasActions) {
     columns.push({ key: 'actions', header: 'Aksi', render: (row) => (
       <ActionButtons 
-        onEdit={() => handleEdit(row)}
-        onDelete={() => handleDelete(row.id)}
+        onEdit={canEditMajor ? () => handleEdit(row) : undefined}
+        onDelete={canDeleteMajor ? () => handleDelete(row.id) : undefined}
       />
     )});
   }
@@ -131,7 +136,7 @@ export const Majors: React.FC = () => {
       <PageHeader
         title="Jurusan"
         subtitle="Kelola master data Jurusan (Program Keahlian)"
-        action={canManageAcademic ? (
+        action={canCreateMajor ? (
           <button onClick={() => { setFormError(''); setCode(generateMajorCode()); setShowModal(true); }} className="btn-std-primary">
             <Plus size={18} /> Tambah Data
           </button>

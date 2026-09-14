@@ -27,7 +27,10 @@ export const Classrooms: React.FC = () => {
     updateClassroom,
     deleteClassroom
   } = useClassrooms(filterGradeId);
-  const { canManageAcademic } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canCreateClassroom = hasPermission('classrooms.create') || hasPermission('classrooms.manage');
+  const canEditClassroom = hasPermission('classrooms.update') || hasPermission('classrooms.manage');
+  const canDeleteClassroom = hasPermission('classrooms.delete') || hasPermission('classrooms.manage');
 
   // Modal & Form State
   const [showModal, setShowModal] = useState(false);
@@ -140,23 +143,24 @@ export const Classrooms: React.FC = () => {
     }
   ];
 
-  if (canManageAcademic) {
-    classroomColumns.push({ key: 'actions', header: 'Aksi', render: (row) => (
-        <ActionButtons 
-          onView={() => navigate(`/academic/classrooms/${row.id}`)}
-          onEdit={() => handleEdit(row)}
-          onDelete={() => handleDelete(row.id)}
-        />
-      )
-    });
-  }
+  classroomColumns.push({ 
+    key: 'actions', 
+    header: 'Aksi', 
+    render: (row) => (
+      <ActionButtons 
+        onView={() => navigate(`/academic/classrooms/${row.id}`)}
+        onEdit={canEditClassroom ? () => handleEdit(row) : undefined}
+        onDelete={canDeleteClassroom ? () => handleDelete(row.id) : undefined}
+      />
+    )
+  });
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
       <PageHeader
         title="Rombongan Belajar (Kelas)"
         subtitle="Kelola master data Rombel/Ruang Kelas"
-        action={canManageAcademic ? <button onClick={openAddModal} className="btn-std-primary"><Plus size={18} /> Tambah Data</button> : undefined}
+        action={canCreateClassroom ? <button onClick={openAddModal} className="btn-std-primary"><Plus size={18} /> Tambah Data</button> : undefined}
       />
 
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mt-6 mb-6 p-4 flex flex-col md:flex-row gap-4">

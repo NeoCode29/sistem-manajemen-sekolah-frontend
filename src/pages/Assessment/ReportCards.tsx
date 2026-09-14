@@ -8,6 +8,7 @@ import { FileText, Edit2, Printer, Loader2, AlertCircle, Settings, User, CheckCi
 import { useAuth } from '../../context/AuthContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export const ReportCards: React.FC = () => {
   const { years: academicYears, refresh: fetchAcademicYears } = useAcademicYears();
@@ -27,13 +28,20 @@ export const ReportCards: React.FC = () => {
   const [formData, setFormData] = useState({ sickDays: 0, excusedDays: 0, unexcusedDays: 0, homeroomNotes: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { hasPermission } = usePermissions();
+  const canValidatePermission = hasPermission('score_validations.validate') || hasPermission('assessment.write');
+  const canApprovePermission = hasPermission('score_validations.principal_approve') || hasPermission('assessment.write');
+  const canGeneratePermission = hasPermission('report_cards.generate') || hasPermission('assessment.write');
+
   const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') ?? false;
-  const isPrincipal = user?.roles?.some(r => r.name === 'Kepala Sekolah') ?? false;
+  const isPrincipal = (user?.roles?.some(r => r.name === 'Kepala Sekolah') ?? false) || canApprovePermission;
   const isHomeroomTeacher = Boolean(
     homeroomTeacher?.employeeId && user?.employeeId && 
     String(homeroomTeacher.employeeId) === String(user.employeeId)
   );
-  const canValidate = isSuperAdmin || isPrincipal || isHomeroomTeacher;
+  // STRICT: Only Homeroom Teacher or Principal/Approved role can validate/endorse report cards
+  const canValidate = (canValidatePermission && isHomeroomTeacher) || canApprovePermission || isPrincipal;
+  const canManageReports = canGeneratePermission || isSuperAdmin || isPrincipal || isHomeroomTeacher;
 
   useEffect(() => {
     fetchAcademicYears();
@@ -246,20 +254,20 @@ export const ReportCards: React.FC = () => {
         action={
           <div className="flex gap-4">
             <button 
-              className="btn-std-primary flex items-center gap-2 disabled:opacity-60" 
+              className="btn-std-secondary flex items-center gap-2"
               onClick={handleGenerate}
-              disabled={loading || !selectedClassroom || !canValidate}
-              title={!canValidate ? `Hanya Wali Kelas (${homeroomTeacher?.employee?.fullName || 'Wali Kelas'}) atau Kepala Sekolah yang dapat men-generate rapor kelas ini` : undefined}
+              disabled={loading || !selectedClassroom || !canManageReports}
+              title={!canManageReports ? `Hanya Wali Kelas (${homeroomTeacher?.employee?.fullName || 'Wali Kelas'}), Kepala Sekolah, atau Admin yang dapat men-generate rapor kelas ini` : undefined}
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
               Generate Rapor Kelas
             </button>
             
-            {(isPrincipal || isSuperAdmin) && (
+            {isPrincipal && (
               <button 
                 className={`btn-std-primary flex items-center gap-2 disabled:opacity-70 ${isClassroomApproved ? 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500' : ''}`}
                 onClick={async () => {
-                  if (window.confirm('Sahkah rapor untuk kelas ini? Tanda tangan Anda akan dibubuhkan secara otomatis pada seluruh dokumen rapor di kelas ini.')) {
+                  if (window.confirm('Sahkah rapor untuk kelas ini? Tanda tangan Anda sebagai Kepala Sekolah akan dibubuhkan secara resmi pada seluruh dokumen rapor di kelas ini.')) {
                     try {
                       await approveClassroom({
                         classroomId: selectedClassroom,
@@ -278,7 +286,7 @@ export const ReportCards: React.FC = () => {
                 disabled={loading || !selectedClassroom || isClassroomApproved}
               >
                 <CheckCircle size={18} />
-                {isClassroomApproved ? 'Telah Disahkan' : 'Sahkah Rapor Kelas'}
+                {isClassroomApproved ? 'Telah Disahkan (Kepala Sekolah)' : 'Sahkah Rapor Kelas (Kepala Sekolah)'}
               </button>
             )}
           </div>
@@ -349,13 +357,13 @@ export const ReportCards: React.FC = () => {
               )}
               {isSuperAdmin && (
                 <span className="bg-purple-100 text-purple-800 border border-purple-200 font-bold px-2 py-0.5 rounded-full">
-                  Super Admin
+                  Admin (Non-Wali / Non-Kepsek)
                 </span>
               )}
             </div>
             {!canValidate && (
               <div className="text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-lg">
-                Mode Hanya-Baca: Validasi dan pengubahan rapor hanya dapat dilakukan oleh Wali Kelas atau Kepala Sekolah.
+                Mode Hanya-Baca: Validasi dan pengesahan rapor merupakan hak mutlak Wali Kelas dan Kepala Sekolah.
               </div>
             )}
           </div>

@@ -7,6 +7,8 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { DataTable, type Column } from '../../components/Common/DataTable';
+import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../context/AuthContext';
 
 interface ViolationForm {
   studentId: string;
@@ -29,6 +31,16 @@ const DEFAULT_FORM: ViolationForm = {
 };
 
 export const Violations: React.FC = () => {
+  const { user } = useAuth();
+  const { hasPermission } = usePermissions();
+  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') ?? false;
+  const canCreateAll = isSuperAdmin || hasPermission('violations.create_all') || hasPermission('violations.manage');
+  const canCreateAssigned = hasPermission('violations.create_assigned') || hasPermission('violations.create') || hasPermission('student_affairs.write') || hasPermission('students.write');
+  const canCreate = canCreateAll || canCreateAssigned;
+  const canEdit = isSuperAdmin || hasPermission('violations.update') || canCreate;
+  const canDelete = isSuperAdmin || hasPermission('violations.delete') || hasPermission('student_affairs.write') || hasPermission('students.write');
+  const hasActions = canCreate || canDelete;
+
   const [violations, setViolations] = useState<Violation[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [searchStudent, setSearchStudent] = useState('');
@@ -67,15 +79,15 @@ export const Violations: React.FC = () => {
 
   // Debounced student search
   useEffect(() => {
-    if (searchStudent.length >= 3) {
+    if (searchStudent.length >= 2) {
       const timer = setTimeout(async () => {
         try {
-          const data = await getStudents({ search: searchStudent });
+          const data = await getStudents({ search: searchStudent, limit: 30 });
           setStudents(data);
         } catch (err) {
           console.error(err);
         }
-      }, 500);
+      }, 350);
       return () => clearTimeout(timer);
     } else {
       setStudents([]);
@@ -221,20 +233,24 @@ export const Violations: React.FC = () => {
         </div>
       )
     },
-    {
+    ...(hasActions ? [{
       key: 'actions',
       header: 'Aksi',
-      render: (row) => (
+      render: (row: Violation) => (
         <div className="flex justify-end gap-2">
-          <button onClick={() => handleOpenModal(row)} className="p-2 text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">
-            <Edit2 size={18} />
-          </button>
-          <button onClick={() => handleDelete(row.id)} className="p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors">
-            <Trash2 size={18} />
-          </button>
+          {canCreate && (
+            <button onClick={() => handleOpenModal(row)} className="p-2 text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">
+              <Edit2 size={18} />
+            </button>
+          )}
+          {canDelete && (
+            <button onClick={() => handleDelete(row.id)} className="p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors">
+              <Trash2 size={18} />
+            </button>
+          )}
         </div>
       )
-    }
+    }] : [])
   ];
 
   return (
@@ -242,11 +258,11 @@ export const Violations: React.FC = () => {
       <PageHeader 
         title="Pelanggaran Siswa" 
         subtitle="Kelola dan catat riwayat pelanggaran serta poin kedisiplinan siswa."
-        action={
+        action={canCreate ? (
           <button className="btn-std-primary flex items-center gap-2" onClick={() => handleOpenModal()}>
             <Plus size={20} /> Tambah Pelanggaran
           </button>
-        }
+        ) : undefined}
       />
 
       {error && !modal.open && (
@@ -298,6 +314,19 @@ export const Violations: React.FC = () => {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-6">
           {error && <div className="alert bg-red-50 text-red-800 p-3 rounded-xl border border-red-200 flex items-center gap-3 font-medium"><AlertCircle size={18} />{error}</div>}
           
+          {/* Access Mode Indicator */}
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+            {canCreateAll ? (
+              <span className="flex items-center gap-1.5 font-semibold text-emerald-700">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Mode Akses: Seluruh Siswa (Akses Global / BK / Kesiswaan)
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 font-semibold text-indigo-700">
+                <span className="w-2 h-2 rounded-full bg-indigo-500"></span> Mode Akses: Siswa Kelas yang Diampu / Diwalikan Saja
+              </span>
+            )}
+          </div>
+
           <div className="form-group">
             <label className="text-sm font-semibold text-gray-700 block mb-2">Siswa *</label>
             {!selectedStudent ? (
@@ -305,7 +334,7 @@ export const Violations: React.FC = () => {
                 <input 
                   type="text" 
                   className="input-std pl-10" 
-                  placeholder="Cari nama atau NIS (min 3 huruf)..."
+                  placeholder="Cari nama atau NIS siswa..."
                   value={searchStudent}
                   onChange={(e) => setSearchStudent(e.target.value)}
                 />
@@ -313,16 +342,26 @@ export const Violations: React.FC = () => {
                 
                 {students.length > 0 && (
                   <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
-                    {students.map(s => (
-                      <div 
-                        key={s.id} 
-                        className="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors"
-                        onClick={() => handleSelectStudent(s)}
-                      >
-                        <div className="font-medium text-gray-900">{s.fullName}</div>
-                        <div className="text-xs text-gray-500 font-mono mt-0.5">NIS: {s.nis}</div>
-                      </div>
-                    ))}
+                    {students.map(s => {
+                      const classroomName = s.enrollments?.[0]?.classroom?.name;
+                      return (
+                        <div 
+                          key={s.id} 
+                          className="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors flex items-center justify-between"
+                          onClick={() => handleSelectStudent(s)}
+                        >
+                          <div>
+                            <div className="font-medium text-gray-900">{s.fullName}</div>
+                            <div className="text-xs text-gray-500 font-mono mt-0.5">NIS: {s.nis}</div>
+                          </div>
+                          {classroomName && (
+                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100 shrink-0">
+                              Kelas {classroomName}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -331,8 +370,15 @@ export const Violations: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-indigo-600 shadow-sm"><User size={18} /></div>
                   <div>
-                    <div className="font-bold text-sm text-gray-900">{selectedStudent.fullName}</div>
-                    <div className="text-xs text-gray-500 font-mono mt-0.5">{selectedStudent.nis}</div>
+                    <div className="font-bold text-sm text-gray-900 flex items-center gap-2 flex-wrap">
+                      <span>{selectedStudent.fullName}</span>
+                      {selectedStudent.enrollments?.[0]?.classroom?.name && (
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-semibold border border-indigo-200">
+                          Kelas {selectedStudent.enrollments[0].classroom.name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 font-mono mt-0.5">NIS: {selectedStudent.nis}</div>
                   </div>
                 </div>
                 <button 

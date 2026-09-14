@@ -7,6 +7,7 @@ import { ArrowLeft, Info, Users, CheckCircle, GraduationCap } from 'lucide-react
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, FormField } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export const ClassroomDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,8 +16,11 @@ export const ClassroomDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('info');
   const { user } = useAuth();
+  const { hasPermission } = usePermissions();
   
-  const canManageMaster = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin');
+  const canManageHomeroom = hasPermission('classrooms.manage_homeroom') || hasPermission('classrooms.manage');
+  const canManageStudents = hasPermission('classrooms.manage_students') || hasPermission('classrooms.manage');
+  const canManageMaster = hasPermission('classrooms.read') || hasPermission('academic.read') || hasPermission('classrooms.manage');
   
   // Master Data
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -171,7 +175,7 @@ export const ClassroomDetail: React.FC = () => {
       <div>
         {activeTab === 'info' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {canManageMaster ? (
+            {canManageHomeroom ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-1">Penugasan Wali Kelas</h3>
                 <p className="text-sm text-gray-500 mb-6">

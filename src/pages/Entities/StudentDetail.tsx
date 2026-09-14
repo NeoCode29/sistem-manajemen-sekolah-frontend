@@ -2,13 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getStudentById, updateStudent, createGuardian, updateGuardian, deleteGuardian, createEnrollment, updateEnrollment, deleteEnrollment, type Student, type StudentGuardian, type StudentEnrollment } from '../../api/studentService';
+import { getStudentById, updateStudent, createGuardian, updateGuardian, deleteGuardian, updateEnrollment, type Student, type StudentGuardian, type StudentEnrollment } from '../../api/studentService';
 import { getAcademicYears, getSemesters, getClassrooms, getMajors, type AcademicYear, type Semester, type Classroom, type Major } from '../../api/academicService';
 import { ArrowLeft, User, BookOpen, Award, Pencil, Plus, Trash2, MapPin, Calendar, Phone, Briefcase, GraduationCap, Users } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge } from '../../components/ui/Badge';
 import { useDialog } from '../../contexts/DialogContext';
+
+import { usePermissions } from '../../hooks/usePermissions';
 
 export const StudentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,8 +22,11 @@ export const StudentDetail: React.FC = () => {
   const [success, setSuccess] = useState('');
   const { showConfirm, showAlert } = useDialog();
   const { user } = useAuth();
+  const { hasPermission } = usePermissions();
 
-  const canManageSivitas = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin');
+  const canUpdateStudent = hasPermission('students.update') || hasPermission('students.write');
+  const canManageGuardians = hasPermission('students.manage_guardians') || hasPermission('students.write');
+  const canManageEnrollment = hasPermission('classrooms.manage_students') || hasPermission('students.write') || hasPermission('academic.write');
 
   // Master Data
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -183,14 +188,6 @@ export const StudentDetail: React.FC = () => {
   };
 
   // --- ENROLLMENT HANDLERS ---
-  const handleOpenAddEnrollment = () => {
-    setEditingEnrollment(null);
-    const activeAy = academicYears.find(a => a.isActive)?.id || '';
-    const activeSm = semesters.find(s => s.isActive)?.id || '';
-    setEnrollmentData({ academicYearId: activeAy, semesterId: activeSm, classroomId: '' });
-    setShowEnrollmentModal(true);
-  };
-
   const handleOpenEditEnrollment = (enr: StudentEnrollment) => {
     setEditingEnrollment(enr);
     setEnrollmentData({ ...enr });
@@ -213,9 +210,6 @@ export const StudentDetail: React.FC = () => {
       if (editingEnrollment?.id) {
         await updateEnrollment(student.id, editingEnrollment.id, payload);
         showSuccess('Riwayat kelas diperbarui!');
-      } else {
-        await createEnrollment(student.id, payload);
-        showSuccess('Riwayat kelas ditambahkan!');
       }
       setShowEnrollmentModal(false);
       fetchStudent();
@@ -224,19 +218,6 @@ export const StudentDetail: React.FC = () => {
     } finally {
       setEnrollmentSaving(false);
     }
-  };
-
-  const handleDeleteEnrollment = async (enrId: string) => {
-    if (!student) return;
-    showConfirm('Hapus riwayat penempatan kelas ini?', async () => {
-      try {
-        await deleteEnrollment(student.id, enrId);
-        showSuccess('Riwayat kelas dihapus!');
-        fetchStudent();
-      } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus riwayat kelas', 'Gagal');
-      }
-    });
   };
 
   if (loading) return <div className="academic-container">Memuat data...</div>;
@@ -256,7 +237,7 @@ export const StudentDetail: React.FC = () => {
       {/* Header Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden mb-6">
         <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-indigo-500 to-blue-600 z-0"></div>
-        {canManageSivitas && (
+        {canUpdateStudent && (
           <button 
             onClick={handleOpenEditProfil}
             className="absolute top-6 right-6 z-10 w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-sm transition-colors" 
@@ -339,7 +320,7 @@ export const StudentDetail: React.FC = () => {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                   <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Users size={18} className="text-emerald-500"/> Data Wali Murid</h3>
-                  {canManageSivitas && (
+                  {canManageGuardians && (
                     <button className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-semibold hover:bg-indigo-100 transition-colors" onClick={handleOpenAddGuardian}>
                       <Plus size={14}/> Tambah
                     </button>
@@ -355,7 +336,7 @@ export const StudentDetail: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {student.guardians.map((g: any) => (
                         <div key={g.id} className="p-4 border border-gray-100 rounded-xl bg-white shadow-sm relative group hover:border-indigo-200 transition-colors">
-                          {canManageSivitas && (
+                          {canManageGuardians && (
                             <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-md transition-colors" onClick={() => handleOpenEditGuardian(g)}><Pencil size={14} /></button>
                               <button className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors" onClick={() => handleDeleteGuardian(g.id)}><Trash2 size={14} /></button>
@@ -387,11 +368,6 @@ export const StudentDetail: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><GraduationCap size={18} className="text-blue-500"/> Riwayat Penempatan Kelas</h3>
-              {canManageSivitas && (
-                <button className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-semibold hover:bg-indigo-100 transition-colors" onClick={handleOpenAddEnrollment}>
-                  <Plus size={14}/> Tambah
-                </button>
-              )}
             </div>
             {(!student.enrollments || student.enrollments.length === 0) ? (
               <div className="text-center py-12 text-gray-500">
@@ -407,7 +383,7 @@ export const StudentDetail: React.FC = () => {
                       <th className="px-6 py-4">Semester</th>
                       <th className="px-6 py-4">Kelas</th>
                       <th className="px-6 py-4">Tanggal Masuk</th>
-                      {canManageSivitas && <th className="px-6 py-4 text-right">Aksi</th>}
+                      {canManageEnrollment && <th className="px-6 py-4 text-right">Aksi</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -417,11 +393,10 @@ export const StudentDetail: React.FC = () => {
                         <td className="px-6 py-4 text-gray-900">{enr.semester?.name || '-'}</td>
                         <td className="px-6 py-4"><span className="px-3 py-1 bg-blue-50 text-blue-700 font-semibold rounded-lg">{enr.classroom?.name || '-'}</span></td>
                         <td className="px-6 py-4 text-gray-500">{new Date(enr.createdAt).toLocaleDateString('id-ID')}</td>
-                        {canManageSivitas && (
+                        {canManageEnrollment && (
                           <td className="px-6 py-4 text-right">
                             <div className="flex justify-end gap-2">
                               <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" onClick={() => handleOpenEditEnrollment(enr)}><Pencil size={16} /></button>
-                              <button className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" onClick={() => handleDeleteEnrollment(enr.id)}><Trash2 size={16} /></button>
                             </div>
                           </td>
                         )}
@@ -508,7 +483,7 @@ export const StudentDetail: React.FC = () => {
       <Modal 
         open={showEnrollmentModal} 
         onClose={() => setShowEnrollmentModal(false)} 
-        title={editingEnrollment ? 'Edit Penempatan' : 'Tambah Penempatan'}
+        title="Edit Penempatan"
         footer={
           <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 rounded-b-2xl border-t border-gray-100">
             <button type="button" className="btn-std-secondary" onClick={() => setShowEnrollmentModal(false)}>Batal</button>

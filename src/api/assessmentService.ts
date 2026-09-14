@@ -40,6 +40,7 @@ export interface AssessmentComponent {
   componentId?: string;
   type?: any;
   component?: any;
+  employee?: { id?: string; fullName: string; employeeNumber?: string };
 }
 
 export interface ExamScore {

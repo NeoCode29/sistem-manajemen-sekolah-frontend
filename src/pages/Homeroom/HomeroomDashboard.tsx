@@ -85,7 +85,10 @@ export const HomeroomDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div 
+              onClick={() => navigate('/student-affairs/achievements')}
+              className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex items-center gap-4 hover:shadow-md hover:border-yellow-200 cursor-pointer transition-all"
+            >
               <div className="p-3 bg-yellow-100 text-yellow-600 rounded-lg">
                 <Award size={24} />
               </div>
@@ -95,7 +98,10 @@ export const HomeroomDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div 
+              onClick={() => navigate('/student-affairs/violations')}
+              className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex items-center gap-4 hover:shadow-md hover:border-red-200 cursor-pointer transition-all"
+            >
               <div className="p-3 bg-red-100 text-red-600 rounded-lg">
                 <AlertOctagon size={24} />
               </div>
@@ -121,11 +127,18 @@ export const HomeroomDashboard: React.FC = () => {
                   <Users size={16} className="text-gray-400" />
                 </button>
                 <button
+                  onClick={() => navigate('/student-affairs/achievements')}
+                  className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-yellow-50/50 hover:border-yellow-400 transition-colors flex justify-between items-center"
+                >
+                  <span className="font-medium text-gray-700">Catat Prestasi Siswa</span>
+                  <Award size={16} className="text-yellow-600" />
+                </button>
+                <button
                   onClick={() => navigate('/student-affairs/violations')}
-                  className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-primary transition-colors flex justify-between items-center"
+                  className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-red-50/50 hover:border-red-400 transition-colors flex justify-between items-center"
                 >
                   <span className="font-medium text-gray-700">Catat Pelanggaran Siswa</span>
-                  <AlertOctagon size={16} className="text-gray-400" />
+                  <AlertOctagon size={16} className="text-red-500" />
                 </button>
                 <button
                   onClick={() => navigate('/assessment/report-cards')}

@@ -19,7 +19,11 @@ export const Subjects: React.FC = () => {
     updateSubject,
     deleteSubject
   } = useSubjects();
-  const { canManageAcademic } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canCreateSubject = hasPermission('subjects.create') || hasPermission('academic.write');
+  const canEditSubject = hasPermission('subjects.update') || hasPermission('academic.write');
+  const canDeleteSubject = hasPermission('subjects.delete') || hasPermission('academic.write');
+  const hasActions = canEditSubject || canDeleteSubject;
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -98,11 +102,11 @@ export const Subjects: React.FC = () => {
     )}
   ];
 
-  if (canManageAcademic) {
+  if (hasActions) {
     columns.push({ key: 'actions', header: 'Aksi', render: (row) => (
       <ActionButtons 
-        onEdit={() => handleEdit(row)}
-        onDelete={() => handleDelete(row.id)}
+        onEdit={canEditSubject ? () => handleEdit(row) : undefined}
+        onDelete={canDeleteSubject ? () => handleDelete(row.id) : undefined}
       />
     )});
   }
@@ -114,7 +118,7 @@ export const Subjects: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Mata Pelajaran</h1>
           <p className="text-gray-500 mt-1">Kelola master data Mata Pelajaran</p>
         </div>
-        {canManageAcademic && (
+        {canCreateSubject && (
           <button className="btn-std-primary" onClick={() => { setFormError(''); setCode(generateSubjectCode()); setShowModal(true); }}>
             <Plus size={18} /> Tambah Data
           </button>

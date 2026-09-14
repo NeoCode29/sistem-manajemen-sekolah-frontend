@@ -64,75 +64,121 @@ export const AppRoutes: React.FC = () => {
               <Route path="/homeroom/dashboard" element={<HomeroomDashboard />} />
               <Route path="/403" element={<Forbidden />} />
               
-              <Route element={<AuthorizedRoute requiredPermissions={['academic.read']} />}>
+              {/* Akademik & Kurikulum */}
+              <Route element={<AuthorizedRoute requiredPermissions={['academic_years.read', 'academic.read']} />}>
                 <Route path="/academic/years" element={<AcademicYears />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['semesters.read', 'academic.read']} />}>
                 <Route path="/academic/semesters" element={<Semesters />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['grades.read', 'academic.read']} />}>
                 <Route path="/academic/grades" element={<Grades />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['majors.read', 'academic.read']} />}>
                 <Route path="/academic/majors" element={<Majors />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['classrooms.read', 'academic.read']} />}>
                 <Route path="/academic/classrooms" element={<Classrooms />} />
                 <Route path="/academic/classrooms/:id" element={<ClassroomDetail />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['subjects.read', 'academic.read']} />}>
                 <Route path="/academic/subjects" element={<Subjects />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['class_periods.read', 'academic.read']} />}>
                 <Route path="/academic/class-periods" element={<ClassPeriods />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['schedules.read', 'academic.read']} />}>
                 <Route path="/academic/schedules" element={<Schedules />} />
               </Route>
               
+              {/* Kenaikan & Kelulusan */}
               <Route element={<AuthorizedRoute requiredPermissions={['promotions.read']} />}>
                 <Route path="/academic/promotions" element={<Promotions />} />
               </Route>
-              
-              <Route element={<AuthorizedRoute requiredPermissions={['promotions.write']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['promotions.execute', 'promotions.write', 'promotions.manage']} />}>
                 <Route path="/academic/promotions/batch" element={<BatchPromote />} />
               </Route>
-              
               <Route element={<AuthorizedRoute requiredPermissions={['graduations.read']} />}>
                 <Route path="/academic/graduations" element={<Graduations />} />
               </Route>
 
-              <Route element={<AuthorizedRoute requiredPermissions={['rbac.read']} />}>
+              {/* Sistem, RBAC & Akun */}
+              <Route element={<AuthorizedRoute requiredPermissions={['roles.read', 'roles.manage', 'rbac.read']} />}>
                 <Route path="/admin/permissions" element={<Permissions />} />
                 <Route path="/admin/roles" element={<Roles />} />
               </Route>
-              
-              <Route element={<AuthorizedRoute requiredPermissions={['users.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['users.read', 'users.manage']} />}>
                 <Route path="/admin/users" element={<Users />} />
               </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['school_profile.read', 'school_profile.update']} />}>
+                <Route path="/profile/school" element={<SchoolProfilePage />} />
+              </Route>
 
-              <Route element={<AuthorizedRoute requiredPermissions={['positions.read']} />}>
+              {/* SDM / Kepegawaian */}
+              <Route element={<AuthorizedRoute requiredPermissions={['positions.read', 'positions.manage']} />}>
                 <Route path="/entities/positions" element={<Positions />} />
               </Route>
-              
-              <Route element={<AuthorizedRoute requiredPermissions={['employees.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['employees.read', 'employees.manage']} />}>
                 <Route path="/entities/employees" element={<Employees />} />
               </Route>
 
-              <Route element={<AuthorizedRoute requiredPermissions={['students.read']} />}>
+              {/* Kesiswaan */}
+              <Route element={<AuthorizedRoute requiredPermissions={['students.read', 'students.manage']} />}>
                 <Route path="/entities/students" element={<Students />} />
                 <Route path="/entities/students/:id" element={<StudentDetail />} />
               </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['achievements.read', 'achievements.create_assigned', 'achievements.create_all', 'achievements.create', 'students.read']} />}>
+                <Route path="/student-affairs/achievements" element={<Achievements />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['violations.read', 'violations.create_assigned', 'violations.create_all', 'violations.create', 'students.read']} />}>
+                <Route path="/student-affairs/violations" element={<Violations />} />
+              </Route>
 
-              <Route element={<AuthorizedRoute requiredPermissions={['attendance.read']} />}>
+              {/* Presensi */}
+              <Route element={<AuthorizedRoute requiredPermissions={['attendance_settings.manage']} />}>
                 <Route path="/attendance/settings" element={<AttendanceSettings />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['student_attendance.read', 'student_attendance.record', 'attendance.read']} />}>
                 <Route path="/attendance/students" element={<StudentAttendancePage />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['employee_attendance.read', 'employee_attendance.record', 'attendance.read']} />}>
                 <Route path="/attendance/employees" element={<EmployeeAttendancePage />} />
               </Route>
 
-              <Route element={<AuthorizedRoute requiredPermissions={['assessment.read']} />}>
+              {/* Penilaian & Rapor */}
+              <Route element={<AuthorizedRoute requiredPermissions={['assessment_components.read', 'assessment_components.manage']} />}>
                 <Route path="/assessment/components" element={<AssessmentComponents />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['assessments.read', 'assessments.input', 'assessment.read']} />}>
                 <Route path="/assessment/exams" element={<Exams />} />
                 <Route path="/assessment/exams/:examId/scores" element={<ExamScores />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['report_cards.read', 'report_cards.generate', 'assessment.read']} />}>
                 <Route path="/assessment/report-cards" element={<ReportCards />} />
               </Route>
 
-              <Route path="/student-affairs/achievements" element={<Achievements />} />
-              <Route path="/student-affairs/violations" element={<Violations />} />
+              {/* Persuratan & Komunikasi */}
+              <Route element={<AuthorizedRoute requiredPermissions={['announcements.read', 'announcements.create']} />}>
+                <Route path="/announcements" element={<Announcements />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['incoming_letters.read', 'incoming_letters.create']} />}>
+                <Route path="/letters/incoming" element={<IncomingLetters />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['outgoing_letters.read', 'outgoing_letters.create']} />}>
+                <Route path="/letters/outgoing" element={<OutgoingLetters />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['letter_templates.read', 'letter_templates.manage']} />}>
+                <Route path="/letters/templates" element={<LetterTemplates />} />
+              </Route>
 
-              <Route path="/profile/school" element={<SchoolProfilePage />} />
-              <Route path="/announcements" element={<Announcements />} />
-              <Route path="/letters/incoming" element={<IncomingLetters />} />
-              <Route path="/letters/outgoing" element={<OutgoingLetters />} />
-              <Route path="/letters/templates" element={<LetterTemplates />} />
-              <Route path="/hardware/logs" element={<HardwareLogs />} />
-              <Route path="/hardware/registration" element={<IdentityRegistration />} />
+              {/* Hardware / Perangkat */}
+              <Route element={<AuthorizedRoute requiredPermissions={['hardware.read_logs']} />}>
+                <Route path="/hardware/logs" element={<HardwareLogs />} />
+              </Route>
+              <Route element={<AuthorizedRoute requiredPermissions={['hardware.assign_card']} />}>
+                <Route path="/hardware/registration" element={<IdentityRegistration />} />
+              </Route>
+
               <Route path="/settings" element={<AccountSettings />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>

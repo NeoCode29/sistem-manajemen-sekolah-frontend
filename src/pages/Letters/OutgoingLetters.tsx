@@ -9,9 +9,14 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export const OutgoingLetters: React.FC = () => {
   const { user } = useAuth();
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('outgoing_letters.create') || hasPermission('letters.write');
+  const canUpdate = hasPermission('outgoing_letters.update') || hasPermission('letters.write');
+  const canDelete = hasPermission('outgoing_letters.delete') || hasPermission('letters.write');
   const [letters, setLetters] = useState<OutgoingLetter[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -143,16 +148,24 @@ export const OutgoingLetters: React.FC = () => {
         <span className="text-xs text-gray-400 italic bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 w-max inline-block">Belum ada file</span>
       )
     )},
-    { key: 'actions', header: 'Aksi', render: (item) => (
-      <div className="flex gap-2 justify-end">
-        <button onClick={() => openModal(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
-          <Edit2 size={16} />
-        </button>
-        <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
-          <Trash2 size={16} />
-        </button>
-      </div>
-    )}
+    ...(canUpdate || canDelete ? [{
+      key: 'actions',
+      header: 'Aksi',
+      render: (item: OutgoingLetter) => (
+        <div className="flex gap-2 justify-end">
+          {canUpdate && (
+            <button onClick={() => openModal(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+              <Edit2 size={16} />
+            </button>
+          )}
+          {canDelete && (
+            <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
+      )
+    }] : [])
   ];
 
   return (
@@ -162,10 +175,12 @@ export const OutgoingLetters: React.FC = () => {
           title="Surat Keluar" 
           subtitle="Pembuatan dan arsip surat keluar sekolah"
         />
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => openModal()}>
-          <Plus size={18} />
-          <span>Buat Surat Keluar</span>
-        </button>
+        {canCreate && (
+          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => openModal()}>
+            <Plus size={18} />
+            <span>Buat Surat Keluar</span>
+          </button>
+        )}
       </div>
 
       <DataTable 

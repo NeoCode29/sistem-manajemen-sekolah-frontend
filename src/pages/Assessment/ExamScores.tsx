@@ -10,7 +10,10 @@ import {
   type AssessmentLockStatus
 } from '../../api/assessmentService';
 import { getStudents } from '../../api/studentService';
+import { getSubjectAssignments, type SubjectAssignment } from '../../api/schedulingService';
 import { Save, ArrowLeft, Award, Users, BookOpen, Calendar, CheckCircle2, AlertCircle, Lock, AlertTriangle } from 'lucide-react';
+import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../context/AuthContext';
 
 interface ScoreRow {
   studentId: string;
@@ -23,15 +26,25 @@ interface ScoreRow {
 export const ExamScores: React.FC = () => {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { hasPermission } = usePermissions();
+  const canInputScore = hasPermission('assessments.input') || hasPermission('assessment.write');
+  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') ?? false;
 
   const [exam, setExam] = useState<Exam | null>(null);
   const [rows, setRows] = useState<ScoreRow[]>([]);
   const [lockStatus, setLockStatus] = useState<AssessmentLockStatus | null>(null);
+  const [assignedTeacher, setAssignedTeacher] = useState<any>(null);
+  const [isAssignedTeacher, setIsAssignedTeacher] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const isTeacherOrAdmin = isSuperAdmin || isAssignedTeacher;
+  const isLocked = lockStatus?.isLocked ?? false;
+  const isReadOnly = isLocked || !canInputScore || !isTeacherOrAdmin;
 
   useEffect(() => {
     if (examId) {
@@ -48,8 +61,8 @@ export const ExamScores: React.FC = () => {
       const examData = await getExamById(examId!);
       setExam(examData);
       
-      // 2. Fetch Students in that classroom, existing scores & lock status
-      const [studentsData, scoresData, lockData] = await Promise.all([
+      // 2. Fetch Students in that classroom, existing scores, lock status, and subject assignments
+      const [studentsData, scoresData, lockData, assignmentsData] = await Promise.all([
         getStudents({ 
           classroomId: examData.classroomId, 
           academicYearId: examData.academicYearId,
@@ -62,10 +75,29 @@ export const ExamScores: React.FC = () => {
           subjectId: examData.subjectId,
           academicYearId: examData.academicYearId,
           semesterId: examData.semesterId
-        }).catch(() => null)
+        }).catch(() => null),
+        examData.classroomId 
+          ? getSubjectAssignments(examData.classroomId).catch(() => [] as SubjectAssignment[])
+          : Promise.resolve([] as SubjectAssignment[])
       ]);
       
       setLockStatus(lockData);
+
+      // Determine assigned teacher
+      const matchingAssignment = assignmentsData.find(
+        a => a.subjectId === examData.subjectId &&
+             (!examData.academicYearId || a.academicYearId === examData.academicYearId) &&
+             (!examData.semesterId || a.semesterId === examData.semesterId)
+      ) || assignmentsData.find(a => a.subjectId === examData.subjectId);
+
+      const teacher = matchingAssignment?.employee || examData.employee;
+      setAssignedTeacher(teacher);
+
+      const assignedEmployeeId = matchingAssignment?.employeeId || examData.employeeId;
+      const isTeacher = Boolean(
+        user?.employeeId && assignedEmployeeId && String(assignedEmployeeId) === String(user.employeeId)
+      );
+      setIsAssignedTeacher(isTeacher);
       
       const scoreMap = new Map<string, ExamScore>();
       scoresData.forEach(s => scoreMap.set(s.studentId, s));
@@ -90,7 +122,7 @@ export const ExamScores: React.FC = () => {
   };
 
   const handleRowChange = (index: number, field: keyof ScoreRow, value: string) => {
-    if (lockStatus?.isLocked) return;
+    if (isReadOnly) return;
     const updatedRows = [...rows];
     
     if (field === 'score') {
@@ -111,7 +143,7 @@ export const ExamScores: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!examId || lockStatus?.isLocked) return;
+    if (!examId || isReadOnly) return;
     
     try {
       setSaving(true);
@@ -159,7 +191,6 @@ export const ExamScores: React.FC = () => {
   const totalStudents = rows.length;
   const completedCount = rows.filter(r => r.score !== '' && r.score !== null && r.score !== undefined).length;
   const missingCount = totalStudents - completedCount;
-  const isLocked = lockStatus?.isLocked ?? false;
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
@@ -177,23 +208,29 @@ export const ExamScores: React.FC = () => {
             <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>/</span>
             <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>Input Nilai</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight" style={{ fontSize: '2rem' }}>{exam.title}</h1>
-            {isLocked && (
+            {isReadOnly && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
-                <Lock size={13} /> Terkunci
+                <Lock size={13} /> {isLocked ? 'Terkunci' : (!isTeacherOrAdmin ? 'Bukan Pengampu (Hanya-Baca)' : 'Hanya-Baca')}
               </span>
             )}
           </div>
           <p className="page-description" style={{ fontSize: '1rem', marginTop: '0.25rem' }}>
-            {isLocked ? 'Agenda penilaian telah divalidasi/disahkan. Formulir dalam mode hanya-baca.' : 'Masukkan skor pencapaian siswa untuk agenda ini.'}
+            {isLocked
+              ? 'Agenda penilaian telah divalidasi/disahkan. Formulir dalam mode hanya-baca.'
+              : !isTeacherOrAdmin
+              ? `Mata pelajaran ini diampu oleh ${assignedTeacher?.fullName || 'Guru Pengampu lain'}. Anda berada dalam mode hanya-baca.`
+              : !canInputScore
+              ? 'Anda tidak memiliki hak akses untuk mengubah nilai.'
+              : 'Masukkan skor pencapaian siswa untuk agenda ini.'}
           </p>
         </div>
         <div className="header-actions">
           <button 
             className="btn-std-primary" 
             onClick={handleSave}
-            disabled={saving || rows.length === 0 || isLocked}
+            disabled={saving || rows.length === 0 || isReadOnly}
             style={{ 
               padding: '0.875rem 1.75rem', 
               borderRadius: '12px', 
@@ -201,16 +238,16 @@ export const ExamScores: React.FC = () => {
               display: 'flex', 
               alignItems: 'center', 
               gap: '0.5rem', 
-              opacity: (saving || rows.length === 0 || isLocked) ? 0.6 : 1,
-              cursor: isLocked ? 'not-allowed' : 'pointer',
-              backgroundColor: isLocked ? '#94a3b8' : undefined
+              opacity: (saving || rows.length === 0 || isReadOnly) ? 0.6 : 1,
+              cursor: isReadOnly ? 'not-allowed' : 'pointer',
+              backgroundColor: isReadOnly ? '#94a3b8' : undefined
             }}
-            title={isLocked ? 'Agenda terkunci karena sudah divalidasi atau disahkan' : undefined}
+            title={isReadOnly ? (isLocked ? 'Agenda terkunci karena sudah divalidasi atau disahkan' : (!isTeacherOrAdmin ? `Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) yang dapat menginput nilai` : 'Anda tidak memiliki hak akses untuk menginput nilai')) : undefined}
           >
-            {isLocked ? (
+            {isReadOnly ? (
               <>
                 <Lock size={18} />
-                Terkunci (Hanya-Baca)
+                {!canInputScore ? 'Hanya-Baca (Tidak Ada Izin)' : (!isTeacherOrAdmin ? 'Hanya-Baca (Bukan Pengampu)' : 'Terkunci (Hanya-Baca)')}
               </>
             ) : (
               <>
@@ -221,6 +258,26 @@ export const ExamScores: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Teacher Ownership Notice if not assigned teacher */}
+      {!isSuperAdmin && !isAssignedTeacher && (
+        <div className="mb-6 p-4 rounded-2xl bg-slate-100 border border-slate-200 text-slate-800 flex items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center flex-shrink-0 text-slate-700">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-slate-900 text-sm sm:text-base">Mode Hanya-Baca: Bukan Guru Pengampu</h4>
+              <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                Mata pelajaran ini diampu oleh <strong>{assignedTeacher?.fullName || 'Guru Pengampu lain'}</strong>. Hanya guru pengampu yang berwenang untuk menginput atau mengubah nilai siswa.
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-700 shrink-0">
+            Read Only
+          </span>
+        </div>
+      )}
 
       {/* Lock Banner if locked */}
       {isLocked && (
@@ -272,6 +329,9 @@ export const ExamScores: React.FC = () => {
             <div>
               <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Mata Pelajaran</div>
               <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', marginTop: '0.15rem' }}>{exam.subject?.name}</div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
+                Pengampu: <strong style={{ color: '#334155' }}>{assignedTeacher?.fullName || 'Belum Ditugaskan'}</strong>
+              </div>
             </div>
           </div>
           
@@ -415,16 +475,16 @@ export const ExamScores: React.FC = () => {
                         <input 
                           type="number" 
                           className="input-std"
-                          disabled={isLocked}
+                          disabled={isReadOnly}
                           style={{ 
                             textAlign: 'center', 
                             fontWeight: 800, 
                             fontSize: '1.1rem',
                             height: '46px',
-                            color: isLocked ? '#64748b' : (isBelowPassing ? '#dc2626' : '#0f172a'),
-                            backgroundColor: isLocked ? '#f1f5f9' : (isMissing ? '#fffbeb' : (isBelowPassing ? '#fef2f2' : '#f8fafc')),
-                            borderColor: isLocked ? '#cbd5e1' : (isMissing ? '#fcd34d' : (isBelowPassing ? '#fca5a5' : '#e2e8f0')),
-                            cursor: isLocked ? 'not-allowed' : 'text',
+                            color: isReadOnly ? '#64748b' : (isBelowPassing ? '#dc2626' : '#0f172a'),
+                            backgroundColor: isReadOnly ? '#f1f5f9' : (isMissing ? '#fffbeb' : (isBelowPassing ? '#fef2f2' : '#f8fafc')),
+                            borderColor: isReadOnly ? '#cbd5e1' : (isMissing ? '#fcd34d' : (isBelowPassing ? '#fca5a5' : '#e2e8f0')),
+                            cursor: isReadOnly ? 'not-allowed' : 'text',
                           }}
                           value={row.score}
                           onChange={(e) => handleRowChange(index, 'score', e.target.value)}
@@ -438,14 +498,14 @@ export const ExamScores: React.FC = () => {
                         <input 
                           type="text" 
                           className="input-std"
-                          disabled={isLocked}
+                          disabled={isReadOnly}
                           style={{ 
                             height: '46px', 
-                            backgroundColor: isLocked ? '#f1f5f9' : '#f8fafc', 
-                            borderColor: isLocked ? '#cbd5e1' : '#e2e8f0',
+                            backgroundColor: isReadOnly ? '#f1f5f9' : '#f8fafc', 
+                            borderColor: isReadOnly ? '#cbd5e1' : '#e2e8f0',
                             fontSize: '0.9rem',
-                            cursor: isLocked ? 'not-allowed' : 'text',
-                            color: isLocked ? '#64748b' : undefined
+                            cursor: isReadOnly ? 'not-allowed' : 'text',
+                            color: isReadOnly ? '#64748b' : undefined
                           }}
                           value={row.notes}
                           onChange={(e) => handleRowChange(index, 'notes', e.target.value)}

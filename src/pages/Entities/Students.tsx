@@ -49,7 +49,10 @@ export const Students: React.FC = () => {
     page: currentPage, limit: itemsPerPage, search: searchTerm, 
     status: filterStatus || undefined, isDeleted: activeTab === 'deleted'
   });
-  const { canManageStudents } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canCreateStudent = hasPermission('students.create') || hasPermission('students.write');
+  const canDeleteStudent = hasPermission('students.delete') || hasPermission('students.write');
+  const canImportExport = hasPermission('students.export_import') || hasPermission('students.write');
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [wizardModal, setWizardModal] = useState({ open: false, step: 1 });
@@ -207,13 +210,13 @@ export const Students: React.FC = () => {
             <button className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" onClick={() => navigate(`/entities/students/${student.id}`)} title="Lihat Detail Siswa">
               <ChevronRight size={18} />
             </button>
-            {canManageStudents && (
+            {canDeleteStudent && (
               <button className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" onClick={() => handleDelete(student.id)} title="Hapus">
                 <Trash2 size={18} />
               </button>
             )}
           </>
-        ) : canManageStudents ? (
+        ) : canDeleteStudent ? (
           <button
             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-semibold transition-colors shadow-sm"
             onClick={() => handleRestore(student.id)}
@@ -232,16 +235,20 @@ export const Students: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <PageHeader title="Siswa & Wali Murid" subtitle="Pendaftaran dan manajemen riwayat siswa terpadu" />
         <div className="flex gap-3">
-          {canManageStudents && activeTab === 'active' && (
+          {activeTab === 'active' && (
             <>
-              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors shadow-sm" onClick={() => setIsImportModalOpen(true)}>
-                <FileUp size={18} className="text-gray-500" /> 
-                <span>Import Excel</span>
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => setWizardModal({ open: true, step: 1 })}>
-                <Plus size={18} /> 
-                <span>Pendaftaran Siswa Baru</span>
-              </button>
+              {canImportExport && (
+                <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors shadow-sm" onClick={() => setIsImportModalOpen(true)}>
+                  <FileUp size={18} className="text-gray-500" /> 
+                  <span>Import Excel</span>
+                </button>
+              )}
+              {canCreateStudent && (
+                <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => setWizardModal({ open: true, step: 1 })}>
+                  <Plus size={18} /> 
+                  <span>Pendaftaran Siswa Baru</span>
+                </button>
+              )}
             </>
           )}
         </div>

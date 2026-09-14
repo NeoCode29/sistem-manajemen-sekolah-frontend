@@ -20,7 +20,12 @@ const DEFAULT_FORM: PositionForm = { code: '', name: '', description: '', isActi
 
 export const Positions: React.FC = () => {
   const { items, loading, create, update, remove } = usePositions();
-  const { canManagePositions } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canCreatePosition = hasPermission('positions.create') || hasPermission('employees.write');
+  const canEditPosition = hasPermission('positions.update') || hasPermission('employees.write');
+  const canDeletePosition = hasPermission('positions.delete') || hasPermission('employees.write');
+  const canTogglePosition = hasPermission('positions.update') || hasPermission('employees.write');
+  const hasActions = canEditPosition || canDeletePosition;
   const { showConfirm, showAlert } = useDialog();
 
   const [modal, setModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
@@ -69,15 +74,24 @@ export const Positions: React.FC = () => {
     { key: 'name', header: 'Nama' },
     { key: 'description', header: 'Deskripsi', render: row => row.description || '-' },
     { key: 'isActive', header: 'Status', render: row => (
-        <button onClick={() => canManagePositions ? handleToggleActive(row) : undefined} className={!canManagePositions ? "cursor-default" : ""}>
+        <button onClick={() => canTogglePosition ? handleToggleActive(row) : undefined} className={!canTogglePosition ? "cursor-default" : ""}>
           <Badge variant={row.isActive ? 'success' : 'danger'}>{row.isActive ? 'Aktif' : 'Nonaktif'}</Badge>
         </button>
       )
     }
   ];
 
-  if (canManagePositions) {
-    columns.push({ key: 'actions', header: 'Aksi', render: row => <ActionButtons onEdit={() => openEdit(row)} onDelete={() => handleDelete(row.id)} /> });
+  if (hasActions) {
+    columns.push({ 
+      key: 'actions', 
+      header: 'Aksi', 
+      render: row => (
+        <ActionButtons 
+          onEdit={canEditPosition ? () => openEdit(row) : undefined} 
+          onDelete={canDeletePosition ? () => handleDelete(row.id) : undefined} 
+        />
+      ) 
+    });
   }
 
   return (
@@ -85,7 +99,7 @@ export const Positions: React.FC = () => {
       <PageHeader
         title="Data Jabatan"
         subtitle="Manajemen master data jabatan untuk pegawai"
-        action={canManagePositions ? <button onClick={openAdd} className="btn-std-primary"><Plus size={18} /> Tambah Data</button> : undefined}
+        action={canCreatePosition ? <button onClick={openAdd} className="btn-std-primary"><Plus size={18} /> Tambah Data</button> : undefined}
       />
 
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex flex-col md:flex-row gap-4">

@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Plus, CheckCircle, XCircle, Library, AlertCircle } from 'lucide-react';
-import { DataTable, type Column } from '../../components/Common/DataTable';
-import { ActionButtons } from '../../components/Common/ActionButtons';
+import React, { useState, useMemo } from 'react';
+import { 
+  CheckCircle2, 
+  AlertCircle, 
+  Info, 
+  Calendar, 
+  Search,
+  Filter
+} from 'lucide-react';
 import { useSemesters } from '../../hooks/useSemesters';
 import { usePermissions } from '../../hooks/usePermissions';
-import type { Semester } from '../../api/academicService';
 import { useDialog } from '../../contexts/DialogContext';
-import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import type { Semester } from '../../api/academicService';
+import { PageHeader, Badge } from '../../components/ui';
 
 export const Semesters: React.FC = () => {
   const {
@@ -15,181 +19,322 @@ export const Semesters: React.FC = () => {
     academicYears,
     loading,
     error: fetchError,
-    createSemester,
-    updateSemester,
-    deleteSemester,
-    toggleSemesterActive
+    toggleSemesterActive,
   } = useSemesters();
-  const { canManageAcademic } = usePermissions();
+  const { canManageAcademic, hasPermission } = usePermissions();
+  const canToggleSemester = hasPermission('semesters.toggle_active') || hasPermission('semesters.update') || canManageAcademic;
+  const { showConfirm } = useDialog();
 
-  const [showModal, setShowModal] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editId, setEditId] = useState('');
-  
-  const [academicYearId, setAcademicYearId] = useState('');
-  const [name, setName] = useState('');
-  const [formError, setFormError] = useState('');
-  const { showConfirm, showAlert } = useDialog();
+  const [toggleError, setToggleError] = useState('');
+  const [selectedYearFilter, setSelectedYearFilter] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
-  const error = formError || fetchError;
+  const error = toggleError || fetchError;
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setIsEditing(false);
-    setEditId('');
-    setName('');
-    setFormError('');
-  };
+  // Group semesters by Academic Year, sorted chronologically descending
+  const groupedData = useMemo(() => {
+    const yearMap = new Map<string, { year: any; semesters: Semester[] }>();
 
-  const handleEdit = (semester: Semester) => {
-    setIsEditing(true);
-    setEditId(semester.id);
-    setAcademicYearId(semester.academicYearId);
-    setName(semester.name);
-    setFormError('');
-    setShowModal(true);
-  };
+    academicYears.forEach((ay) => {
+      yearMap.set(ay.id.toString(), {
+        year: ay,
+        semesters: [],
+      });
+    });
 
-  const handleToggle = async (id: string) => {
-    setFormError('');
-    try {
-      await toggleSemesterActive(id);
-    } catch (err: any) {
-      setFormError(err.message || 'Gagal mengubah status');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    showConfirm('Are you sure you want to delete this semester?', async () => {
-      setFormError('');
-      try {
-        await deleteSemester(id);
-      } catch (err: any) {
-        setFormError(err.message || 'Gagal menghapus semester');
+    semesters.forEach((sem) => {
+      const yId = (sem.academicYearId || sem.academicYear?.id)?.toString();
+      if (yId && yearMap.has(yId)) {
+        yearMap.get(yId)!.semesters.push(sem);
+      } else if (yId) {
+        yearMap.set(yId, {
+          year: sem.academicYear || { id: yId, name: 'Tahun Ajaran ' + yId, isActive: false },
+          semesters: [sem],
+        });
       }
     });
+
+    // Sort academic years descending by name (e.g. 2030/2031, 2029/2030)
+    const list = Array.from(yearMap.values()).sort((a, b) => 
+      (b.year.name || '').localeCompare(a.year.name || '')
+    );
+
+    // Within each year, sort semesters: Ganjil first, then Genap
+    list.forEach((item) => {
+      item.semesters.sort((a, b) => a.name.localeCompare(b.name));
+    });
+
+    return list;
+  }, [academicYears, semesters]);
+
+  // Filtered data based on dropdown & search
+  const filteredGroups = useMemo(() => {
+    return groupedData.filter((item) => {
+      const matchYearFilter =
+        selectedYearFilter === 'ALL' || item.year.id.toString() === selectedYearFilter;
+      const matchSearch =
+        !searchTerm.trim() ||
+        item.year.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.semesters.some((s) => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      return matchYearFilter && matchSearch;
+    });
+  }, [groupedData, selectedYearFilter, searchTerm]);
+
+  const handleToggle = (semester: Semester, yearName?: string) => {
+    if (semester.isActive) return;
+
+    showConfirm(
+      `Aktifkan Semester ${semester.name} untuk Tahun Ajaran ${yearName || semester.academicYear?.name}? Mengaktifkan semester ini akan otomatis menjadikan Tahun Ajaran ${yearName || semester.academicYear?.name} sebagai periode akademik aktif.`,
+      async () => {
+        setToggleError('');
+        try {
+          await toggleSemesterActive(semester.id);
+        } catch (err: any) {
+          setToggleError(err.message || 'Gagal mengubah status semester');
+        }
+      },
+    );
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError('');
-    try {
-      const payload: any = {
-        academicYearId: Number(academicYearId),
-        name,
-      };
-      if (isEditing) {
-        await updateSemester(editId, payload);
-      } else {
-        await createSemester(payload);
-      }
-      handleCloseModal();
-    } catch (err: any) {
-      setFormError(err.message || 'Gagal menyimpan semester');
-    }
-  };
-
-  const openAddModal = () => {
-    setFormError('');
-    if (academicYears.length > 0 && !academicYearId) {
-      setAcademicYearId(academicYears.find(y => y.isActive)?.id || academicYears[0].id);
-    }
-    setShowModal(true);
-  };
-
-  const columns: Column<Semester>[] = [
-    { key: 'name', header: 'Nama Semester', render: (row) => <span className="font-semibold">{row.name}</span> },
-    { key: 'academicYear', header: 'Tahun Ajaran', render: (row) => (
-      <span className="text-gray-700">
-        {row.academicYear?.name || '-'}
-      </span>
-    )},
-    { key: 'status', header: 'Status', render: (row) => (
-      <Badge variant={row.isActive ? 'success' : 'default'}>
-        {row.isActive ? 'Aktif' : 'Nonaktif'}
-      </Badge>
-    )}
-  ];
-
-  if (canManageAcademic) {
-    columns.push({ key: 'actions', header: 'Aksi', render: (row) => {
-      const activeYearId = academicYears.find(y => y.isActive)?.id;
-      const isParentYearActive = row.academicYearId === activeYearId || row.academicYear?.isActive;
-
-      return (
-      <div className="flex items-center gap-2">
-        {isParentYearActive && (
-          <button 
-            className={`action-btn ${row.isActive ? 'text-red-400' : 'text-green-400'}`}
-            onClick={() => handleToggle(row.id)}
-            title={row.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-          >
-            {row.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
-          </button>
-        )}
-        <ActionButtons 
-          onEdit={() => handleEdit(row)}
-          onDelete={() => handleDelete(row.id)}
-        />
-      </div>
-      );
-    }});
-  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto page-enter">
       <PageHeader
         title="Semester"
-        subtitle="Kelola data Semester dan Tahun Ajaran"
-        action={canManageAcademic ? <button onClick={openAddModal} className="btn-std-primary"><Plus size={18} /> Tambah Data</button> : undefined}
+        subtitle="Kelola status aktif semester akademik per Tahun Ajaran"
       />
 
-      {error && !showModal && (
+      {/* Information Banner */}
+      <div className="mb-6 p-4 bg-blue-50/80 backdrop-blur-sm text-blue-900 border border-blue-200 rounded-2xl flex items-start gap-3 text-sm leading-relaxed">
+        <Info size={20} className="text-blue-600 shrink-0 mt-0.5" />
+        <div>
+          <span className="font-semibold block mb-0.5">Informasi Master Semester</span>
+          Setiap Tahun Ajaran memiliki dua semester bawaan (<strong>Ganjil</strong> dan <strong>Genap</strong>) yang dibuat secara otomatis. Pilih tombol <strong>Aktifkan</strong> pada semester yang diinginkan untuk beralih periode semester yang sedang berjalan.
+        </div>
+      </div>
+
+      {error && (
         <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
-          <AlertCircle size={18} />
-          {error}
+          <AlertCircle size={18} className="shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6">
-        <DataTable 
-          columns={columns} 
-          data={semesters} 
-          loading={loading}
-          emptyMessage="Belum ada data Semester."
-        />
+      {/* Toolbar Controls: Filter & Search */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-gray-100 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
+            <Filter size={16} className="text-gray-400" />
+            <span>Tahun Ajaran:</span>
+          </div>
+          <select
+            className="input-std text-sm py-1.5 px-3 rounded-xl min-w-[180px]"
+            value={selectedYearFilter}
+            onChange={(e) => setSelectedYearFilter(e.target.value)}
+          >
+            <option value="ALL">Semua Tahun Ajaran</option>
+            {academicYears.map((ay) => (
+              <option key={ay.id} value={ay.id}>
+                {ay.name} {ay.isActive ? '(Aktif)' : ''}
+              </option>
+            ))}
+          </select>
+
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Cari tahun ajaran..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input-std text-sm pl-9 pr-3 py-1.5 rounded-xl w-52"
+            />
+          </div>
+        </div>
+
+        <span className="text-xs text-gray-500 font-medium">
+          Menampilkan {filteredGroups.length} Tahun Ajaran
+        </span>
       </div>
 
-      <Modal 
-        open={showModal} 
-        onClose={handleCloseModal} 
-        title={isEditing ? 'Edit Semester' : 'Tambah Semester'}
-        footer={
-          <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
-            <button type="button" className="btn-std-secondary" onClick={handleCloseModal}>Batal</button>
-            <button type="button" className="btn-std-primary" onClick={handleSubmit}>Simpan</button>
-          </div>
-        }
-      >
-        <form id="semester-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
-          {error && showModal && (
-            <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2 text-sm font-medium">
-              <AlertCircle size={18} className="shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-          <FormField label="Tahun Ajaran Induk" required>
-            <select className="input-std" value={academicYearId} onChange={(e) => setAcademicYearId(e.target.value)} required>
-              {academicYears.map(year => (
-                <option key={year.id} value={year.id}>{year.name}</option>
-              ))}
-            </select>
-          </FormField>
-          <FormField label="Nama Semester" required>
-            <input type="text" className="input-std" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Semester Ganjil 2026/2027" required />
-          </FormField>
-        </form>
-      </Modal>
+      {/* Loading state */}
+      {loading ? (
+        <div className="py-16 text-center text-gray-500 font-medium">
+          Memuat data semester...
+        </div>
+      ) : filteredGroups.length === 0 ? (
+        <div className="py-16 text-center bg-white rounded-2xl border border-gray-100 text-gray-500">
+          Tidak ada data semester yang sesuai dengan filter.
+        </div>
+      ) : (
+        /* CARDS VIEW: Grouped by Academic Year */
+        <div className="space-y-4">
+          {filteredGroups.map(({ year, semesters: yearSemesters }) => {
+            const isYearActive = year.isActive;
+            const ganjil = yearSemesters.find((s) => s.name.trim().toLowerCase() === 'ganjil');
+            const genap = yearSemesters.find((s) => s.name.trim().toLowerCase() === 'genap');
+
+            return (
+              <div
+                key={year.id}
+                className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm hover:shadow-md ${
+                  isYearActive
+                    ? 'border-emerald-300 ring-2 ring-emerald-100/80 bg-gradient-to-b from-emerald-50/20 to-white'
+                    : 'border-gray-200'
+                }`}
+              >
+                {/* Year Header */}
+                <div
+                  className={`px-6 py-3.5 border-b flex flex-wrap items-center justify-between gap-3 ${
+                    isYearActive
+                      ? 'bg-emerald-50/60 border-emerald-100'
+                      : 'bg-gray-50/80 border-gray-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm ${
+                        isYearActive
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      <Calendar size={18} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-900 text-base">
+                          Tahun Ajaran {year.name}
+                        </span>
+                        {isYearActive && (
+                          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            Tahun Ajaran Aktif
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {yearSemesters.length} semester terdaftar
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className="text-xs text-gray-400">
+                    ID: {year.id}
+                  </span>
+                </div>
+
+                {/* Semesters Pair Grid */}
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Semester Ganjil Panel */}
+                  <div
+                    className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-4 ${
+                      ganjil?.isActive
+                        ? 'bg-emerald-50/80 border-emerald-200 shadow-sm'
+                        : 'bg-gray-50/50 border-gray-200/80 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                          ganjil?.isActive
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-white border border-gray-200 text-gray-700'
+                        }`}
+                      >
+                        1
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                          <span>Semester Ganjil</span>
+                          <Badge variant={ganjil?.isActive ? 'success' : 'default'}>
+                            {ganjil?.isActive ? 'Aktif' : 'Nonaktif'}
+                          </Badge>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          Semester 1 Periode Awal ({year.name})
+                        </span>
+                      </div>
+                    </div>
+
+                    {canToggleSemester && ganjil && (
+                      <div>
+                        {ganjil.isActive ? (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 font-semibold text-xs border border-emerald-300">
+                            <CheckCircle2 size={15} className="text-emerald-600" />
+                            <span>Sedang Berjalan</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggle(ganjil, year.name)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white text-gray-700 font-medium text-xs border border-gray-300 shadow-sm hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 transition-all"
+                            title="Aktifkan Semester Ganjil"
+                          >
+                            <CheckCircle2 size={14} className="text-gray-400" />
+                            <span>Aktifkan</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Semester Genap Panel */}
+                  <div
+                    className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-4 ${
+                      genap?.isActive
+                        ? 'bg-emerald-50/80 border-emerald-200 shadow-sm'
+                        : 'bg-gray-50/50 border-gray-200/80 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                          genap?.isActive
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-white border border-gray-200 text-gray-700'
+                        }`}
+                      >
+                        2
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                          <span>Semester Genap</span>
+                          <Badge variant={genap?.isActive ? 'success' : 'default'}>
+                            {genap?.isActive ? 'Aktif' : 'Nonaktif'}
+                          </Badge>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          Semester 2 Periode Akhir ({year.name})
+                        </span>
+                      </div>
+                    </div>
+
+                    {canToggleSemester && genap && (
+                      <div>
+                        {genap.isActive ? (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 font-semibold text-xs border border-emerald-300">
+                            <CheckCircle2 size={15} className="text-emerald-600" />
+                            <span>Sedang Berjalan</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggle(genap, year.name)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white text-gray-700 font-medium text-xs border border-gray-300 shadow-sm hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 transition-all"
+                            title="Aktifkan Semester Genap"
+                          >
+                            <CheckCircle2 size={14} className="text-gray-400" />
+                            <span>Aktifkan</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

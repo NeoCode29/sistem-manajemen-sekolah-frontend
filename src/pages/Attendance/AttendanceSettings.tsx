@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getAttendanceSetting, updateAttendanceSetting } from '../../api/attendanceService';
 import { Clock, Save, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
 import { Can } from '../../components/Common/Can';
+import { MapLocationPicker } from '../../components/widgets/MapLocationPicker';
 
 export const AttendanceSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -216,6 +217,16 @@ export const AttendanceSettings: React.FC = () => {
                 <p className="text-sm text-purple-800/80 font-medium mb-5 bg-white/50 p-3 rounded-xl inline-block border border-purple-100">
                   <span className="mr-2">📍</span> Fitur ini membatasi area di mana siswa atau pegawai dapat melakukan absensi melalui GPS.
                 </p>
+                <div className="mb-6">
+                  <MapLocationPicker
+                    position={latitude !== '' && longitude !== '' ? [Number(latitude), Number(longitude)] : null}
+                    radius={radiusMeter !== '' ? Number(radiusMeter) : null}
+                    onLocationSelect={(lat, lng) => {
+                      setLatitude(lat);
+                      setLongitude(lng);
+                    }}
+                  />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="form-group">
                     <label className="text-sm font-medium text-gray-700">Latitude</label>
@@ -274,7 +285,7 @@ export const AttendanceSettings: React.FC = () => {
                   <p className="text-sm text-gray-500 ml-8 mt-1.5 font-medium">Sistem akan memvalidasi absensi berdasarkan jam masuk & pulang ini.</p>
                 </div>
                 
-                <Can permission="attendance.write">
+                <Can permission={['attendance_settings.manage', 'attendance.write']}>
                 <button
                   type="submit"
                   className="btn-std-primary flex items-center gap-2 px-6 py-2.5 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 transition-all duration-300 w-full sm:w-auto justify-center"

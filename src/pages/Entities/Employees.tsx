@@ -47,7 +47,11 @@ export const Employees: React.FC = () => {
     positionId: filterPosition || undefined,
     isDeleted: activeTab === 'deleted'
   });
-  const { canManageEmployees } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canCreateEmployee = hasPermission('employees.create') || hasPermission('employees.write');
+  const canEditEmployee = hasPermission('employees.update') || hasPermission('employees.write');
+  const canDeleteEmployee = hasPermission('employees.delete') || hasPermission('employees.write');
+  const hasActions = canEditEmployee || canDeleteEmployee;
 
   const [positions, setPositions] = useState<Position[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -190,21 +194,26 @@ export const Employees: React.FC = () => {
     ) }
   ];
 
-  if (canManageEmployees) {
+  if (hasActions) {
     columns.push({ key: 'actions', header: 'Aksi', render: (emp) => (
       <div className="flex items-center gap-1 justify-end">
         {activeTab === 'active' ? (
           <>
-            <button 
-              className={`p-1.5 rounded-lg transition-colors ${emp.isActive ? 'text-red-500 hover:bg-red-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
-              onClick={() => handleToggle(emp)}
-              title={emp.isActive ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
-            >
-              {emp.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
-            </button>
-            <ActionButtons onEdit={() => openEdit(emp)} onDelete={() => handleDelete(emp.id)} />
+            {canEditEmployee && (
+              <button 
+                className={`p-1.5 rounded-lg transition-colors ${emp.isActive ? 'text-red-500 hover:bg-red-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
+                onClick={() => handleToggle(emp)}
+                title={emp.isActive ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+              >
+                {emp.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
+              </button>
+            )}
+            <ActionButtons 
+              onEdit={canEditEmployee ? () => openEdit(emp) : undefined} 
+              onDelete={canDeleteEmployee ? () => handleDelete(emp.id) : undefined} 
+            />
           </>
-        ) : (
+        ) : canDeleteEmployee ? (
           <button
             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-semibold transition-colors shadow-sm"
             onClick={() => handleRestore(emp.id)}
@@ -213,7 +222,7 @@ export const Employees: React.FC = () => {
             <RefreshCw size={14} />
             <span>Pulihkan</span>
           </button>
-        )}
+        ) : null}
       </div>
     ) });
   }
@@ -222,7 +231,7 @@ export const Employees: React.FC = () => {
     <div className="p-6 max-w-7xl mx-auto page-enter">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <PageHeader title="Pegawai & Guru" subtitle="Manajemen data pegawai dan tenaga pendidik" />
-        {canManageEmployees && activeTab === 'active' && (
+        {canCreateEmployee && activeTab === 'active' && (
           <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={openAdd}>
             <Plus size={18} /> Tambah Pegawai Baru
           </button>

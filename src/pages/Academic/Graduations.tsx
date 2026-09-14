@@ -125,7 +125,7 @@ export const Graduations: React.FC = () => {
       )
     )},
     { key: 'actions', header: 'Aksi', render: (row) => (
-      <Can permission="graduations.delete">
+      <Can permissions={['graduations.delete', 'academic.write']}>
         <button
           onClick={() => handleCancelGraduation(row.id)}
           className="action-btn"
@@ -146,7 +146,7 @@ export const Graduations: React.FC = () => {
           <p className="text-gray-500 mt-1">Daftar alumni dan proses pelepasan siswa (Lulus)</p>
         </div>
         <div className="header-actions">
-          <Can permission="graduations.write">
+          <Can permissions={['graduations.execute', 'academic.write']}>
             <button className="btn-std-primary" onClick={() => setIsModalOpen(true)}>
               <Award size={18} />
               <span>Proses Kelulusan Baru</span>

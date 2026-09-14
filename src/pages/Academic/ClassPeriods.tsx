@@ -20,7 +20,11 @@ export const ClassPeriods: React.FC = () => {
     updateClassPeriod,
     deleteClassPeriod
   } = useClassPeriods();
-  const { canManageAcademic } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canCreatePeriod = hasPermission('class_periods.create') || hasPermission('academic.write');
+  const canEditPeriod = hasPermission('class_periods.update') || hasPermission('academic.write');
+  const canDeletePeriod = hasPermission('class_periods.delete') || hasPermission('academic.write');
+  const hasActions = canEditPeriod || canDeletePeriod;
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -111,11 +115,11 @@ export const ClassPeriods: React.FC = () => {
     )}
   ];
 
-  if (canManageAcademic) {
+  if (hasActions) {
     columns.push({ key: 'actions', header: 'Aksi', render: (row) => (
       <ActionButtons 
-        onEdit={() => handleEdit(row)}
-        onDelete={() => handleDelete(row.id)}
+        onEdit={canEditPeriod ? () => handleEdit(row) : undefined}
+        onDelete={canDeletePeriod ? () => handleDelete(row.id) : undefined}
       />
     )});
   }
@@ -127,7 +131,7 @@ export const ClassPeriods: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Jam Pelajaran</h1>
           <p className="text-gray-500 mt-1">Kelola master data Waktu / Jam Pelajaran</p>
         </div>
-        {canManageAcademic && (
+        {canCreatePeriod && (
           <button className="btn-std-primary" onClick={() => { setCode(generatePeriodCode(periods.length + 1, false)); setShowModal(true); }}>
             <Plus size={18} /> Tambah Data
           </button>

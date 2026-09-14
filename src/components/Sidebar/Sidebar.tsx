@@ -12,31 +12,72 @@ export const Sidebar: React.FC = () => {
   };
 
   const isSuperAdminOrAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah');
-  const isTeacher = user?.roles?.some(r => r.name === 'Guru / Wali Kelas');
-  const isPrincipal = user?.roles?.some(r => r.name === 'Kepala Sekolah');
+  const isTeacher = user?.roles?.some(r => r.name === 'Guru / Wali Kelas' || r.name === 'Wali Kelas' || r.name === 'Guru' || r.name?.toLowerCase().includes('guru') || r.name?.toLowerCase().includes('wali')) || Boolean(user?.employeeId && !isSuperAdminOrAdmin);
 
-  const {
-    canManageAcademic, canReadAcademic,
-    canReadStudents,
-    canReadEmployees,
-    canReadPositions,
-    canManageAssessment, canReadAssessment,
-    canReadReportCards,
-    canReadPromotions,
-    canReadGraduations,
-    canManageAttendance, canReadAttendance,
-    canManageUsers, canManageRbac
-  } = usePermissions();
+  const { hasPermission, canReadResource } = usePermissions();
 
-  const showMasterData = canReadAcademic || canReadPositions;
-  const showSivitas = canReadStudents || canReadEmployees;
-  const showAkademik = canReadAcademic || canReadPromotions || canReadGraduations;
-  const showKehadiran = canManageAttendance || canReadAttendance || canReadStudents || canReadEmployees;
-  const showPenilaian = canReadAssessment || canReadReportCards;
-  const showKesiswaan = canReadStudents;
-  const showKomunikasi = isSuperAdminOrAdmin || isPrincipal;
-  const showSistem = canManageUsers || canManageRbac;
-  const showPerangkat = isSuperAdminOrAdmin;
+  // Profil Institusi
+  const canSchoolProfile = canReadResource('school_profile');
+
+  // Data Master
+  const canPositions = canReadResource('positions');
+  const canClassrooms = canReadResource('classrooms');
+  const canGrades = canReadResource('grades');
+  const canMajors = canReadResource('majors');
+  const canYears = canReadResource('academic_years');
+  const canSemesters = canReadResource('semesters');
+
+  // Sivitas Akademika
+  const canStudents = canReadResource('students');
+  const canEmployees = canReadResource('employees');
+
+  // Akademik & Kurikulum
+  const canSubjects = canReadResource('subjects');
+  const canClassPeriods = canReadResource('class_periods');
+  const canSchedules = canReadResource('schedules');
+  const canPromotions = canReadResource('promotions');
+  const canGraduations = canReadResource('graduations');
+
+  // Kehadiran & Absensi
+  const canAttendanceSettings = hasPermission('attendance_settings.manage') || hasPermission('attendance_settings.read');
+  const canStudentAttendance = canReadResource('student_attendance');
+  const canEmployeeAttendance = canReadResource('employee_attendance');
+
+  // Penilaian & Ujian
+  const canAssessmentComponents = canReadResource('assessment_components');
+  const canAssessments = canReadResource('assessments');
+  const canReportCards = canReadResource('report_cards');
+
+  // Kesiswaan & Kedisiplinan
+  const canAchievements = canReadResource('achievements');
+  const canViolations = canReadResource('violations');
+
+  // Komunikasi & Persuratan
+  const canAnnouncements = canReadResource('announcements');
+  const canIncomingLetters = canReadResource('incoming_letters');
+  const canOutgoingLetters = canReadResource('outgoing_letters');
+  const canLetterTemplates = canReadResource('letter_templates');
+
+  // Sistem & Akses
+  const canUsers = canReadResource('users');
+  const canRoles = canReadResource('roles');
+  const canPermissions = hasPermission('roles.assign_permissions') || hasPermission('roles.read') || hasPermission('roles.manage');
+
+  // Perangkat Keras
+  const canHardwareLogs = hasPermission('hardware.read_logs');
+  const canHardwareRegistration = hasPermission('hardware.assign_card');
+
+  // Group visibility
+  const showInstitusi = canSchoolProfile;
+  const showMasterData = canPositions || canClassrooms || canGrades || canMajors || canYears || canSemesters;
+  const showSivitas = canStudents || canEmployees;
+  const showAkademik = canSubjects || canClassPeriods || canSchedules || canPromotions || canGraduations;
+  const showKehadiran = canAttendanceSettings || canStudentAttendance || canEmployeeAttendance;
+  const showPenilaian = canAssessmentComponents || canAssessments || canReportCards;
+  const showKesiswaan = canAchievements || canViolations;
+  const showKomunikasi = canAnnouncements || canIncomingLetters || canOutgoingLetters || canLetterTemplates;
+  const showSistem = canUsers || canRoles || canPermissions;
+  const showPerangkat = canHardwareLogs || canHardwareRegistration;
 
   return (
     <div className="w-[260px] bg-white border-r border-gray-200 h-screen flex flex-col fixed left-0 top-0 z-40">
@@ -71,7 +112,7 @@ export const Sidebar: React.FC = () => {
           </>
         )}
         
-        {showMasterData && (
+        {showInstitusi && (
           <>
             <div className="px-6 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Profil Institusi
@@ -88,35 +129,41 @@ export const Sidebar: React.FC = () => {
             <div className="px-6 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Data Master
             </div>
-            {canReadPositions && (
+            {canPositions && (
               <NavLink to="/entities/positions" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
                 <BadgeCheck size={20} />
                 <span>Jabatan</span>
               </NavLink>
             )}
-            {canReadAcademic && (
-              <>
-                <NavLink to="/academic/classrooms" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-                  <Users size={20} />
-                  <span>Rombel / Kelas</span>
-                </NavLink>
-                <NavLink to="/academic/grades" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-                  <GraduationCap size={20} />
-                  <span>Tingkat Kelas</span>
-                </NavLink>
-                <NavLink to="/academic/majors" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-                  <Award size={20} />
-                  <span>Jurusan</span>
-                </NavLink>
-                <NavLink to="/academic/years" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-                  <Calendar size={20} />
-                  <span>Tahun Ajaran</span>
-                </NavLink>
-                <NavLink to="/academic/semesters" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-                  <Library size={20} />
-                  <span>Semester</span>
-                </NavLink>
-              </>
+            {canClassrooms && (
+              <NavLink to="/academic/classrooms" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <Users size={20} />
+                <span>Rombel / Kelas</span>
+              </NavLink>
+            )}
+            {canGrades && (
+              <NavLink to="/academic/grades" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <GraduationCap size={20} />
+                <span>Tingkat Kelas</span>
+              </NavLink>
+            )}
+            {canMajors && (
+              <NavLink to="/academic/majors" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <Award size={20} />
+                <span>Jurusan</span>
+              </NavLink>
+            )}
+            {canYears && (
+              <NavLink to="/academic/years" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <Calendar size={20} />
+                <span>Tahun Ajaran</span>
+              </NavLink>
+            )}
+            {canSemesters && (
+              <NavLink to="/academic/semesters" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <Library size={20} />
+                <span>Semester</span>
+              </NavLink>
             )}
           </>
         )}
@@ -126,13 +173,13 @@ export const Sidebar: React.FC = () => {
             <div className="px-6 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Sivitas Akademika
             </div>
-            {canReadStudents && (
+            {canStudents && (
               <NavLink to="/entities/students" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
                 <User size={20} />
                 <span>Siswa & Wali</span>
               </NavLink>
             )}
-            {canReadEmployees && (
+            {canEmployees && (
               <NavLink to="/entities/employees" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
                 <Briefcase size={20} />
                 <span>Pegawai / Guru</span>
@@ -146,29 +193,31 @@ export const Sidebar: React.FC = () => {
             <div className="px-6 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Akademik & Kurikulum
             </div>
-            {canReadAcademic && (
-              <>
-                <NavLink to="/academic/subjects" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-                  <BookOpen size={20} />
-                  <span>Mata Pelajaran</span>
-                </NavLink>
-                <NavLink to="/academic/class-periods" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-                  <Clock size={20} />
-                  <span>Jam Pelajaran</span>
-                </NavLink>
-                <NavLink to="/academic/schedules" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-                  <CalendarDays size={20} />
-                  <span>Jadwal Pelajaran</span>
-                </NavLink>
-              </>
+            {canSubjects && (
+              <NavLink to="/academic/subjects" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <BookOpen size={20} />
+                <span>Mata Pelajaran</span>
+              </NavLink>
             )}
-            {canReadPromotions && (
+            {canClassPeriods && (
+              <NavLink to="/academic/class-periods" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <Clock size={20} />
+                <span>Jam Pelajaran</span>
+              </NavLink>
+            )}
+            {canSchedules && (
+              <NavLink to="/academic/schedules" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <CalendarDays size={20} />
+                <span>Jadwal Pelajaran</span>
+              </NavLink>
+            )}
+            {canPromotions && (
               <NavLink to="/academic/promotions" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
                 <TrendingUp size={20} />
                 <span>Kenaikan Kelas</span>
               </NavLink>
             )}
-            {canReadGraduations && (
+            {canGraduations && (
               <NavLink to="/academic/graduations" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
                 <Award size={20} />
                 <span>Kelulusan</span>
@@ -182,19 +231,19 @@ export const Sidebar: React.FC = () => {
             <div className="px-6 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Kehadiran & Absensi
             </div>
-            {canManageAttendance && (
+            {canAttendanceSettings && (
               <NavLink to="/attendance/settings" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
                 <Settings size={20} />
                 <span>Pengaturan Absensi</span>
               </NavLink>
             )}
-            {canReadStudents && (
+            {canStudentAttendance && (
               <NavLink to="/attendance/students" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
                 <UserCheck size={20} />
                 <span>Absensi Siswa</span>
               </NavLink>
             )}
-            {canReadEmployees && (
+            {canEmployeeAttendance && (
               <NavLink to="/attendance/employees" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
                 <Briefcase size={20} />
                 <span>Absensi Pegawai</span>
@@ -208,19 +257,19 @@ export const Sidebar: React.FC = () => {
             <div className="px-6 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Penilaian & Ujian
             </div>
-            {canManageAssessment && (
+            {canAssessmentComponents && (
               <NavLink to="/assessment/components" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
                 <Settings size={20} />
                 <span>Komponen Penilaian</span>
               </NavLink>
             )}
-            {canReadAssessment && (
+            {canAssessments && (
               <NavLink to="/assessment/exams" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
                 <FileEdit size={20} />
                 <span>Agenda Penilaian</span>
               </NavLink>
             )}
-            {canReadReportCards && (
+            {canReportCards && (
               <NavLink to="/assessment/report-cards" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
                 <FileText size={20} />
                 <span>Cetak Rapor</span>
@@ -234,14 +283,18 @@ export const Sidebar: React.FC = () => {
             <div className="px-6 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Kesiswaan
             </div>
-            <NavLink to="/student-affairs/achievements" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-              <Award size={20} />
-              <span>Prestasi Siswa</span>
-            </NavLink>
-            <NavLink to="/student-affairs/violations" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-              <AlertOctagon size={20} />
-              <span>Pelanggaran (Kasus)</span>
-            </NavLink>
+            {canAchievements && (
+              <NavLink to="/student-affairs/achievements" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <Award size={20} />
+                <span>Prestasi Siswa</span>
+              </NavLink>
+            )}
+            {canViolations && (
+              <NavLink to="/student-affairs/violations" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <AlertOctagon size={20} />
+                <span>Pelanggaran (Kasus)</span>
+              </NavLink>
+            )}
           </>
         )}
 
@@ -250,22 +303,30 @@ export const Sidebar: React.FC = () => {
             <div className="px-6 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Komunikasi
             </div>
-            <NavLink to="/announcements" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-              <Megaphone size={20} />
-              <span>Pengumuman</span>
-            </NavLink>
-            <NavLink to="/letters/incoming" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-              <Mail size={20} />
-              <span>Surat Masuk</span>
-            </NavLink>
-            <NavLink to="/letters/outgoing" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-              <Send size={20} />
-              <span>Surat Keluar</span>
-            </NavLink>
-            <NavLink to="/letters/templates" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-              <FileCode size={20} />
-              <span>Template Surat</span>
-            </NavLink>
+            {canAnnouncements && (
+              <NavLink to="/announcements" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <Megaphone size={20} />
+                <span>Pengumuman</span>
+              </NavLink>
+            )}
+            {canIncomingLetters && (
+              <NavLink to="/letters/incoming" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <Mail size={20} />
+                <span>Surat Masuk</span>
+              </NavLink>
+            )}
+            {canOutgoingLetters && (
+              <NavLink to="/letters/outgoing" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <Send size={20} />
+                <span>Surat Keluar</span>
+              </NavLink>
+            )}
+            {canLetterTemplates && (
+              <NavLink to="/letters/templates" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <FileCode size={20} />
+                <span>Template Surat</span>
+              </NavLink>
+            )}
           </>
         )}
 
@@ -274,23 +335,23 @@ export const Sidebar: React.FC = () => {
             <div className="px-6 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Sistem & Akses
             </div>
-            {canManageUsers && (
+            {canUsers && (
               <NavLink to="/admin/users" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
                 <UserCog size={20} />
                 <span>Pengguna</span>
               </NavLink>
             )}
-            {canManageRbac && (
-              <>
-                <NavLink to="/admin/roles" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-                  <UserCheck size={20} />
-                  <span>Peran (Roles)</span>
-                </NavLink>
-                <NavLink to="/admin/permissions" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-                  <ShieldCheck size={20} />
-                  <span>Hak Akses</span>
-                </NavLink>
-              </>
+            {canRoles && (
+              <NavLink to="/admin/roles" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <UserCheck size={20} />
+                <span>Peran (Roles)</span>
+              </NavLink>
+            )}
+            {canPermissions && (
+              <NavLink to="/admin/permissions" className={({isActive}) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <ShieldCheck size={20} />
+                <span>Hak Akses</span>
+              </NavLink>
             )}
           </>
         )}
@@ -300,14 +361,18 @@ export const Sidebar: React.FC = () => {
             <div className="px-6 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide" style={{ padding: '1rem 1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Perangkat
             </div>
-            <NavLink to="/hardware/logs" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-              <Monitor size={20} />
-              <span>Log Mesin Absensi</span>
-            </NavLink>
-            <NavLink to="/hardware/registration" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
-              <UserPlus size={20} />
-              <span>Registrasi Biometrik</span>
-            </NavLink>
+            {canHardwareLogs && (
+              <NavLink to="/hardware/logs" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <Monitor size={20} />
+                <span>Log Mesin Absensi</span>
+              </NavLink>
+            )}
+            {canHardwareRegistration && (
+              <NavLink to="/hardware/registration" className={({ isActive }) => isActive ? "flex items-center gap-3 px-6 py-3 text-blue-700 bg-blue-50 font-medium border-l-4 border-blue-700 transition-colors" : "flex items-center gap-3 px-6 py-3 text-gray-600 font-medium border-l-4 border-transparent hover:bg-gray-50 hover:text-gray-900 transition-colors"}>
+                <UserPlus size={20} />
+                <span>Registrasi Biometrik</span>
+              </NavLink>
+            )}
           </>
         )}
 

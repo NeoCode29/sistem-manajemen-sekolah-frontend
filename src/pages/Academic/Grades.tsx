@@ -19,7 +19,11 @@ export const Grades: React.FC = () => {
     updateGrade,
     deleteGrade
   } = useGrades();
-  const { canManageAcademic } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canCreateGrade = hasPermission('grades.create') || hasPermission('academic.write');
+  const canEditGrade = hasPermission('grades.update') || hasPermission('academic.write');
+  const canDeleteGrade = hasPermission('grades.delete') || hasPermission('academic.write');
+  const hasActions = canEditGrade || canDeleteGrade;
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -101,11 +105,11 @@ export const Grades: React.FC = () => {
     )}
   ];
 
-  if (canManageAcademic) {
+  if (hasActions) {
     columns.push({ key: 'actions', header: 'Aksi', render: (row) => (
       <ActionButtons 
-        onEdit={() => handleEdit(row)}
-        onDelete={() => handleDelete(row.id)}
+        onEdit={canEditGrade ? () => handleEdit(row) : undefined}
+        onDelete={canDeleteGrade ? () => handleDelete(row.id) : undefined}
       />
     )});
   }
@@ -115,7 +119,7 @@ export const Grades: React.FC = () => {
       <PageHeader
         title="Tingkat Kelas"
         subtitle="Kelola master data Tingkat/Level Kelas (misal: Kelas 10, 11, 12)"
-        action={canManageAcademic ? (
+        action={canCreateGrade ? (
           <button onClick={() => { setFormError(''); setCode(generateGradeCode(educationLevel, level, name)); setShowModal(true); }} className="btn-std-primary">
             <Plus size={18} /> Tambah Data
           </button>

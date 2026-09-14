@@ -25,8 +25,10 @@ import {
   type Classroom, 
   type Subject 
 } from '../../api/academicService';
-import { Plus, Search, Calendar, Users, BookOpen, Target, Settings, Lock, RotateCcw } from 'lucide-react';
+import { Plus, Search, Calendar, Users, BookOpen, Target, Settings, Lock, RotateCcw, CheckCircle2, UserCheck, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { getSubjectAssignments, type SubjectAssignment } from '../../api/schedulingService';
 import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
@@ -74,7 +76,13 @@ export const Exams: React.FC = () => {
   const [components, setComponents] = useState<AssessmentComponent[]>([]);
   
   const [loading, setLoading] = useState(false);
-  const { canManageAssessment } = usePermissions();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') ?? false;
+  const [classAssignments, setClassAssignments] = useState<SubjectAssignment[]>([]);
+  
+  const { hasPermission } = usePermissions();
+  const canManageExams = hasPermission('assessments.input') || hasPermission('assessment.write');
+  const canReadScores = hasPermission('assessments.read') || hasPermission('assessment.read') || canManageExams;
   const { showConfirm, showAlert } = useDialog();
   
   // Filters
@@ -105,9 +113,38 @@ export const Exams: React.FC = () => {
     filterAcademicYearId && filterSemesterId && filterClassroomId && filterSubjectId
   );
 
+  const currentAssignment = classAssignments.find(a => 
+    a.subjectId === filterSubjectId &&
+    (!filterAcademicYearId || a.academicYearId === filterAcademicYearId) &&
+    (!filterSemesterId || a.semesterId === filterSemesterId)
+  ) || classAssignments.find(a => a.subjectId === filterSubjectId);
+
+  const assignedTeacher = currentAssignment?.employee;
+  const isAssignedTeacher = Boolean(
+    currentAssignment &&
+    user?.employeeId &&
+    String(currentAssignment.employeeId) === String(user.employeeId)
+  );
+
+  const isTeacherOrAdmin = isSuperAdmin || isAssignedTeacher;
+  const canCreateExam = isTeacherOrAdmin && canManageExams && isFiltersComplete && !lockStatus?.isLocked;
+
   useEffect(() => {
     fetchDependencies();
   }, []);
+
+  useEffect(() => {
+    if (filterClassroomId) {
+      getSubjectAssignments(filterClassroomId)
+        .then(setClassAssignments)
+        .catch(err => {
+          console.error('Failed to load assignments', err);
+          setClassAssignments([]);
+        });
+    } else {
+      setClassAssignments([]);
+    }
+  }, [filterClassroomId]);
 
   useEffect(() => {
     if (filterGradeId) {
@@ -207,6 +244,11 @@ export const Exams: React.FC = () => {
   };
 
   const handleOpenModal = (exam?: Exam) => {
+    if (!isTeacherOrAdmin) {
+      showAlert(`Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) atau Administrator yang berwenang membuat atau mengedit agenda penilaian untuk mata pelajaran ini.`, 'Akses Ditolak');
+      return;
+    }
+
     if (exam) {
       const classroom = classrooms.find(c => c.id === exam.classroomId);
       setForm({
@@ -246,6 +288,11 @@ export const Exams: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isTeacherOrAdmin) {
+      showAlert(`Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) atau Administrator yang berwenang menyimpan agenda penilaian.`, 'Akses Ditolak');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       
@@ -274,6 +321,11 @@ export const Exams: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!isTeacherOrAdmin) {
+      showAlert(`Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) atau Administrator yang berwenang menghapus agenda penilaian.`, 'Akses Ditolak');
+      return;
+    }
+
     if (lockStatus?.isLocked) {
       showAlert('Agenda penilaian tidak dapat dihapus karena nilai sudah divalidasi/disahkan', 'Peringatan');
       return;
@@ -373,27 +425,43 @@ export const Exams: React.FC = () => {
     }
   ];
 
-  if (canManageAssessment) {
+  if (canReadScores || canManageExams) {
     columns.push({
       key: 'actions',
       header: 'Aksi',
-      render: (row) => (
-        <div className="flex justify-end items-center gap-2">
-          <Link 
-            to={`/assessment/exams/${row.id}/scores`}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-100"
-          >
-            {lockStatus?.isLocked ? 'Lihat Nilai' : 'Input Nilai'}
-          </Link>
-          {!lockStatus?.isLocked ? (
-            <ActionButtons onEdit={() => handleOpenModal(row)} onDelete={() => handleDelete(row.id)} />
-          ) : (
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-400 border border-slate-200">
-              Terkunci
-            </span>
-          )}
-        </div>
-      )
+      render: (row) => {
+        const isRowOwner = isSuperAdmin || Boolean(
+          (row.employeeId && user?.employeeId && String(row.employeeId) === String(user.employeeId)) ||
+          isAssignedTeacher
+        );
+        const canInputThisExam = isRowOwner && canManageExams && !lockStatus?.isLocked;
+
+        return (
+          <div className="flex justify-end items-center gap-2">
+            <Link 
+              to={`/assessment/exams/${row.id}/scores`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border ${
+                canInputThisExam
+                  ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border-indigo-100'
+                  : 'text-slate-600 bg-slate-50 hover:bg-slate-100 border-slate-200'
+              }`}
+            >
+              {canInputThisExam ? 'Input Nilai' : 'Lihat Nilai'}
+            </Link>
+            {canManageExams && (
+              !lockStatus?.isLocked ? (
+                isRowOwner ? (
+                  <ActionButtons onEdit={() => handleOpenModal(row)} onDelete={() => handleDelete(row.id)} />
+                ) : null
+              ) : (
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-400 border border-slate-200">
+                  Terkunci
+                </span>
+              )
+            )}
+          </div>
+        );
+      }
     });
   }
 
@@ -412,16 +480,18 @@ export const Exams: React.FC = () => {
         title="Agenda Penilaian"
         subtitle="Kelola agenda penilaian, ujian, dan tugas untuk setiap kelas dan mata pelajaran."
         action={
-          canManageAssessment ? (
+          canManageExams ? (
             <button 
-              className={`btn-std-primary ${(!isFiltersComplete || lockStatus?.isLocked) ? 'opacity-50 cursor-not-allowed' : ''}`} 
+              className={`btn-std-primary ${(!canCreateExam) ? 'opacity-50 cursor-not-allowed' : ''}`} 
               onClick={() => handleOpenModal()}
-              disabled={!isFiltersComplete || lockStatus?.isLocked}
+              disabled={!canCreateExam}
               title={
                 !isFiltersComplete 
                   ? 'Pilih filter terlebih dahulu' 
                   : lockStatus?.isLocked 
                   ? 'Agenda ditutup karena nilai sudah disahkan' 
+                  : !isTeacherOrAdmin
+                  ? `Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) yang dapat membuat agenda`
                   : 'Buat Agenda Baru'
               }
             >
@@ -481,22 +551,66 @@ export const Exams: React.FC = () => {
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mata Pelajaran</label>
             <select className="input-std bg-slate-50 border-slate-200 cursor-pointer" value={filterSubjectId} onChange={e => setFilterSubjectId(e.target.value)}>
               <option value="">Pilih Mapel...</option>
-              {subjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
+              {subjects.map(s => {
+                const isTaughtByMe = user?.employeeId && classAssignments.some(
+                  a => a.subjectId === s.id && String(a.employeeId) === String(user.employeeId)
+                );
+                return (
+                  <option key={s.id} value={s.id}>
+                    {isTaughtByMe ? '★ ' : ''}{s.name} ({s.code}){isTaughtByMe ? ' [Mapel Anda]' : ''}
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>
 
+        {/* Teacher Assignment Status Banner */}
         {isFiltersComplete && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
-            <div className="relative w-full max-w-md">
+          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                isAssignedTeacher 
+                  ? 'bg-emerald-100 text-emerald-700' 
+                  : assignedTeacher 
+                  ? 'bg-blue-100 text-blue-700' 
+                  : 'bg-amber-100 text-amber-700'
+              }`}>
+                <Users size={18} />
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 font-medium">Guru Pengampu Mata Pelajaran:</span>
+                <div className="font-semibold text-slate-800 flex items-center gap-2 flex-wrap">
+                  <span>{assignedTeacher?.fullName || 'Belum Ditugaskan'}</span>
+                  {assignedTeacher?.employeeNumber && (
+                    <span className="text-xs font-normal text-slate-500">({assignedTeacher.employeeNumber})</span>
+                  )}
+                  {isAssignedTeacher ? (
+                    <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      Anda Guru Pengampu
+                    </span>
+                  ) : isSuperAdmin ? (
+                    <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                      Akses Admin
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                      Mode Hanya-Baca
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="relative w-full sm:w-72">
               <input 
                 type="text" 
-                className="input-std pl-10" 
+                className="input-std pl-10 w-full text-sm" 
                 placeholder="Cari judul penilaian..." 
                 value={search} 
                 onChange={e => setSearch(e.target.value)} 
               />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             </div>
           </div>
         )}

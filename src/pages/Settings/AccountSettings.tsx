@@ -27,25 +27,33 @@ export const AccountSettings: React.FC = () => {
   // Signature States
   const [sigFile, setSigFile] = useState<File | null>(null);
   const [sigPreview, setSigPreview] = useState<string | null>(null);
+  const [currentSigUrl, setCurrentSigUrl] = useState<string | null>(null);
   const [isUploadingSig, setIsUploadingSig] = useState(false);
   const [sigMessage, setSigMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const sigInputRef = useRef<HTMLInputElement>(null);
   const employeeId = user?.employeeId;
   const isPrincipal = user?.roles?.some(r => r.name === 'Kepala Sekolah');
 
-  const [schoolProfile, setSchoolProfile] = useState<any>(null);
-  const [isUploadingPrincipalSig, setIsUploadingPrincipalSig] = useState(false);
-  const principalSigInputRef = useRef<HTMLInputElement>(null);
-
   React.useEffect(() => {
     if (isPrincipal) {
       import('../../api/schoolProfileService').then(({ getSchoolProfile }) => {
         getSchoolProfile().then(data => {
-          setSchoolProfile(data);
+          if (data?.principalSignatureUrl) {
+            setCurrentSigUrl(data.principalSignatureUrl);
+          }
         }).catch(err => console.error(err));
       });
+    } else if (employeeId) {
+      api.get(`/employees/${employeeId}`).then(res => {
+        const emp = res.data?.data || res.data;
+        if (emp?.signatureUrl) {
+          setCurrentSigUrl(emp.signatureUrl);
+        }
+      }).catch(err => {
+        console.warn('Could not fetch employee signature', err);
+      });
     }
-  }, [isPrincipal]);
+  }, [isPrincipal, employeeId]);
 
   // Show/hide password
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -93,13 +101,41 @@ export const AccountSettings: React.FC = () => {
   };
 
   const handleSigUpload = async () => {
-    if (!sigFile || !employeeId) return;
+    if (!sigFile) return;
 
     setIsUploadingSig(true);
+    setSigMessage(null);
     try {
-      await uploadSignature(employeeId.toString(), sigFile);
-      setSigMessage({ type: 'success', text: 'Tanda tangan berhasil diunggah!' });
-      setSigFile(null); // Clear selection after successful upload
+      if (isPrincipal) {
+        // 1. Upload ke Profil Sekolah (untuk pengesahan resmi Rapor & dokumen institusi)
+        const { uploadSchoolSignature } = await import('../../api/schoolProfileService');
+        const res = await uploadSchoolSignature(sigFile);
+        if (res && res.principalSignatureUrl) {
+          setCurrentSigUrl(res.principalSignatureUrl);
+        }
+
+        // 2. Otomatis sinkronkan ke profil pegawai jika akun terhubung dengan data pegawai
+        if (employeeId) {
+          try {
+            await uploadSignature(employeeId.toString(), sigFile);
+          } catch (syncErr) {
+            console.warn('Sync to employee signature failed', syncErr);
+          }
+        }
+        setSigMessage({ type: 'success', text: 'Tanda tangan resmi Kepala Sekolah berhasil disimpan dan disinkronkan!' });
+      } else if (employeeId) {
+        const res = await uploadSignature(employeeId.toString(), sigFile);
+        if (res && res.signatureUrl) {
+          setCurrentSigUrl(res.signatureUrl);
+        }
+        setSigMessage({ type: 'success', text: 'Tanda tangan berhasil disimpan!' });
+      }
+
+      setSigFile(null);
+      setSigPreview(null);
+      if (sigInputRef.current) {
+        sigInputRef.current.value = '';
+      }
     } catch (error: any) {
       console.error('Upload failed:', error);
       setSigMessage({ type: 'error', text: error.response?.data?.message || 'Gagal mengunggah tanda tangan' });
@@ -240,18 +276,37 @@ export const AccountSettings: React.FC = () => {
           </form>
         </div>
 
-        {/* Tanda Tangan Section (Hanya untuk Pegawai/Guru) */}
-        {employeeId && (
+        {/* Tanda Tangan Section (Terpadu: Otomatis sinkron untuk Kepala Sekolah & Pegawai/Guru) */}
+        {(employeeId || isPrincipal) && (
           <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">
-            <div className="px-8 py-6 border-b border-gray-50 flex items-center gap-4 bg-gray-50/30">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600">
-                <PenTool size={24} strokeWidth={2.5} />
+            <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between bg-gray-50/30">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600">
+                  <PenTool size={24} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 m-0">
+                    {isPrincipal ? 'Tanda Tangan Digital (Kepala Sekolah)' : 'Tanda Tangan Digital'}
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {isPrincipal 
+                      ? 'Tanda tangan resmi untuk pengesahan Rapor Siswa dan dokumen institusi sekolah' 
+                      : 'Tanda tangan digital untuk pengesahan Rapor Siswa sebagai Wali Kelas'}
+                  </p>
+                </div>
               </div>
-              <h2 className="text-xl font-bold text-gray-900 m-0">Tanda Tangan Digital</h2>
+              {isPrincipal && (
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full border border-emerald-200">
+                  Resmi Kepala Sekolah
+                </span>
+              )}
             </div>
+
             <div className="p-8 flex flex-col gap-6">
               <p className="text-sm text-gray-500 leading-relaxed max-w-3xl">
-                Unggah tanda tangan digital Anda untuk pengesahan dokumen otomatis (seperti Rapor Siswa). Pastikan gambar (PNG/JPG) memiliki latar belakang transparan.
+                {isPrincipal
+                  ? 'Unggah tanda tangan resmi Anda sebagai Kepala Sekolah. Tanda tangan ini akan dibubuhkan secara otomatis pada seluruh dokumen rapor siswa dan pengesahan resmi sekolah. Sistem otomatis menyinkronkan tanda tangan ini dengan profil pegawai Anda.'
+                  : 'Unggah tanda tangan digital Anda untuk pengesahan dokumen otomatis (seperti Rapor Siswa sebagai Wali Kelas). Pastikan file gambar (PNG/JPG) memiliki latar belakang transparan.'}
               </p>
               
               {sigMessage && (
@@ -261,116 +316,74 @@ export const AccountSettings: React.FC = () => {
                 </div>
               )}
 
-              <FormField label="Pilih File Gambar (PNG/JPG)">
-                <input 
-                  type="file" 
-                  ref={sigInputRef}
-                  accept=".png, .jpg, .jpeg"
-                  onChange={handleSigChange}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition-colors cursor-pointer"
-                />
-              </FormField>
-
-              {sigPreview && (
-                <FormField label="Pratinjau">
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 bg-gray-50 flex justify-center items-center min-h-[160px]">
-                    <img 
-                      src={sigPreview} 
-                      alt="Signature Preview" 
-                      className="max-h-[150px] max-w-full object-contain drop-shadow-sm" 
-                    />
-                  </div>
-                </FormField>
-              )}
-
-              <div className="flex gap-4 mt-2">
-                <button
-                  onClick={handleSigUpload}
-                  disabled={!sigFile || isUploadingSig}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-6 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-600 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Save size={18} /> {isUploadingSig ? 'Menyimpan...' : 'Simpan Tanda Tangan'}
-                </button>
-                
-                <button
-                  onClick={handleSigClear}
-                  disabled={!sigFile}
-                  className="px-6 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 font-semibold hover:bg-gray-100 hover:text-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Batal
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Tanda Tangan Kepala Sekolah Section */}
-        {isPrincipal && (
-          <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">
-            <div className="px-8 py-6 border-b border-gray-50 flex items-center gap-4 bg-gray-50/30">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600">
-                <PenTool size={24} strokeWidth={2.5} />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900 m-0">Tanda Tangan Kepala Sekolah</h2>
-            </div>
-            <div className="p-8 flex flex-col gap-6">
-              <p className="text-sm text-gray-500 leading-relaxed max-w-3xl">
-                Unggah tanda tangan resmi Kepala Sekolah untuk pengesahan Rapor Siswa. Pastikan gambar (PNG/JPG) memiliki latar belakang transparan.
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField label="File Tanda Tangan Saat Ini">
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 bg-gray-50 flex justify-center items-center min-h-[160px] relative">
-                    {schoolProfile?.principalSignatureUrl ? (
-                      <img 
-                        src={`http://localhost:3000${schoolProfile.principalSignatureUrl}`}
-                        alt="Signature Preview" 
-                        className="max-h-[150px] max-w-full object-contain drop-shadow-sm" 
-                      />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Kolom 1: Tanda Tangan Aktif Saat Ini */}
+                <FormField label="Tanda Tangan Aktif Saat Ini">
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 bg-gray-50 flex flex-col justify-center items-center min-h-[180px] relative">
+                    {currentSigUrl ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <img 
+                          src={`http://localhost:3000${currentSigUrl}`}
+                          alt="Tanda Tangan Aktif" 
+                          className="max-h-[140px] max-w-full object-contain drop-shadow-sm" 
+                        />
+                        <span className="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1 mt-1">
+                          <CheckCircle size={12} /> Tanda tangan tersimpan
+                        </span>
+                      </div>
                     ) : (
-                      <span className="text-gray-400 text-sm font-medium flex items-center gap-2">
-                        <AlertCircle size={16} /> Belum ada tanda tangan
-                      </span>
+                      <div className="flex flex-col items-center gap-2 text-gray-400">
+                        <AlertCircle size={28} className="stroke-[1.5]" />
+                        <span className="text-sm font-medium">Belum ada tanda tangan</span>
+                        <span className="text-xs text-gray-400">Silakan pilih file di sebelah kanan</span>
+                      </div>
                     )}
                   </div>
                 </FormField>
 
-                <FormField label="Unggah Baru">
-                  <div className="flex flex-col gap-3">
+                {/* Kolom 2: Unggah Tanda Tangan Baru */}
+                <div className="flex flex-col gap-4">
+                  <FormField label="Pilih File Gambar Baru (PNG/JPG)">
                     <input 
                       type="file" 
-                      ref={principalSigInputRef}
+                      ref={sigInputRef}
                       accept=".png, .jpg, .jpeg"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        try {
-                          setIsUploadingPrincipalSig(true);
-                          const { uploadSchoolSignature } = await import('../../api/schoolProfileService');
-                          const res = await uploadSchoolSignature(file);
-                          if (res && res.principalSignatureUrl) {
-                            setSchoolProfile((prev: any) => ({ ...prev, principalSignatureUrl: res.principalSignatureUrl }));
-                            setProfileSuccess(true);
-                            setTimeout(() => setProfileSuccess(false), 3000);
-                          }
-                        } catch (err: any) {
-                          setError(err.response?.data?.message || 'Gagal mengunggah tanda tangan');
-                        } finally {
-                          setIsUploadingPrincipalSig(false);
-                          if (principalSigInputRef.current) {
-                            principalSigInputRef.current.value = '';
-                          }
-                        }
-                      }}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors cursor-pointer"
+                      onChange={handleSigChange}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition-colors cursor-pointer"
                     />
-                    {isUploadingPrincipalSig && (
-                      <span className="text-sm font-medium text-blue-600 animate-pulse flex items-center gap-2">
-                        Sedang mengunggah...
-                      </span>
+                  </FormField>
+
+                  {sigPreview && (
+                    <FormField label="Pratinjau File Baru">
+                      <div className="border-2 border-dashed border-blue-200 rounded-xl p-4 bg-blue-50/40 flex justify-center items-center min-h-[110px]">
+                        <img 
+                          src={sigPreview} 
+                          alt="Signature Preview" 
+                          className="max-h-[100px] max-w-full object-contain drop-shadow-sm" 
+                        />
+                      </div>
+                    </FormField>
+                  )}
+
+                  <div className="flex gap-3 mt-auto pt-2">
+                    <button
+                      onClick={handleSigUpload}
+                      disabled={!sigFile || isUploadingSig}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-700 hover:to-teal-700 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                      <Save size={16} /> {isUploadingSig ? 'Menyimpan...' : 'Simpan Tanda Tangan'}
+                    </button>
+                    
+                    {sigFile && (
+                      <button
+                        onClick={handleSigClear}
+                        className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 font-semibold hover:bg-gray-100 hover:text-gray-900 transition-all text-sm"
+                      >
+                        Batal
+                      </button>
                     )}
                   </div>
-                </FormField>
+                </div>
               </div>
             </div>
           </div>

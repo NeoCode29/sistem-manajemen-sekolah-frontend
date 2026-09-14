@@ -35,7 +35,15 @@ export function usePromotions(initialPage = 1, initialLimit = 15) {
       await apiCancelPromotion(id);
       await fetchHistory(currentPage, itemsPerPage);
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal membatalkan kenaikan kelas');
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error?.message ||
+        (typeof err.response?.data?.error === 'string' ? err.response?.data?.error : null) ||
+        err.message ||
+        'Gagal membatalkan kenaikan kelas';
+      const customErr = new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      (customErr as any).response = err.response;
+      throw customErr;
     }
   };
 

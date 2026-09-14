@@ -9,9 +9,14 @@ import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge } from '../../components/ui/Badge';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export const Announcements: React.FC = () => {
   const { user } = useAuth();
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('announcements.create') || hasPermission('announcements.write');
+  const canUpdate = hasPermission('announcements.update') || hasPermission('announcements.write');
+  const canDelete = hasPermission('announcements.delete') || hasPermission('announcements.write');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -168,24 +173,32 @@ export const Announcements: React.FC = () => {
         )}
       </div>
     )},
-    { key: 'actions', header: 'Aksi', render: (item) => (
-      <div className="flex gap-2 justify-end">
-        <button
-          onClick={() => openModal(item)}
-          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          title="Edit"
-        >
-          <Edit2 size={16} />
-        </button>
-        <button
-          onClick={() => handleDelete(item.id)}
-          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          title="Hapus"
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-    )}
+    ...(canUpdate || canDelete ? [{
+      key: 'actions',
+      header: 'Aksi',
+      render: (item: Announcement) => (
+        <div className="flex gap-2 justify-end">
+          {canUpdate && (
+            <button
+              onClick={() => openModal(item)}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Edit"
+            >
+              <Edit2 size={16} />
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => handleDelete(item.id)}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Hapus"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
+      )
+    }] : [])
   ];
 
   return (
@@ -195,10 +208,12 @@ export const Announcements: React.FC = () => {
           title="Papan Pengumuman" 
           subtitle="Kelola pengumuman untuk siswa, guru, dan staf"
         />
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => openModal()}>
-          <Plus size={18} />
-          <span>Buat Pengumuman</span>
-        </button>
+        {canCreate && (
+          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => openModal()}>
+            <Plus size={18} />
+            <span>Buat Pengumuman</span>
+          </button>
+        )}
       </div>
 
       <DataTable 

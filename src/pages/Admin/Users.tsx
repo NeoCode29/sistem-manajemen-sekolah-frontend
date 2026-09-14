@@ -14,7 +14,10 @@ export const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [allRoles, setAllRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
-  const { canManageUsers } = usePermissions();
+  const { hasPermission, canManageUsers } = usePermissions();
+  const canCreateUser = hasPermission('users.create') || canManageUsers;
+  const canUpdateUser = hasPermission('users.update') || canManageUsers;
+  const canAssignRoles = hasPermission('users.assign_roles') || hasPermission('roles.assign') || canManageUsers;
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -152,22 +155,26 @@ export const Users: React.FC = () => {
     )}
   ];
 
-  if (canManageUsers) {
+  if (canAssignRoles || canUpdateUser) {
     columns.push({ key: 'actions', header: 'Aksi', render: (user) => (
       <div className="flex items-center gap-2 justify-end">
-        <button
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
-          onClick={() => openAssignModal(user)}
-        >
-          <Shield size={14} /> Atur Peran
-        </button>
-        <button 
-          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          onClick={() => handleEdit(user)}
-          title="Edit"
-        >
-          <Edit size={16} />
-        </button>
+        {canAssignRoles && (
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+            onClick={() => openAssignModal(user)}
+          >
+            <Shield size={14} /> Atur Peran
+          </button>
+        )}
+        {canUpdateUser && (
+          <button 
+            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            onClick={() => handleEdit(user)}
+            title="Edit"
+          >
+            <Edit size={16} />
+          </button>
+        )}
       </div>
     ) });
   }
@@ -179,7 +186,7 @@ export const Users: React.FC = () => {
           title="Pengguna (Users)" 
           subtitle="Kelola akun pengguna dan peran (Role) mereka"
         />
-        {canManageUsers && (
+        {canCreateUser && (
           <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => setShowModal(true)}>
             <Plus size={18} /> Tambah Akun
           </button>

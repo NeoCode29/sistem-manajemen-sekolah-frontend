@@ -3,11 +3,12 @@ import api from './axios';
 // 1. Academic Years
 export interface AcademicYear {
   id: string;
-  code: string;
+  code?: string;
   name: string;
   startDate?: string;
   endDate?: string;
   isActive: boolean;
+  semesters?: Semester[];
 }
 export const getAcademicYears = async (): Promise<AcademicYear[]> => {
   const response = await api.get('/academic-years');

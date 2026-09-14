@@ -26,15 +26,53 @@ export const Promotions: React.FC = () => {
   const error = actionError || fetchError;
   const { showConfirm, showAlert } = useDialog();
 
-  const handleCancelPromotion = async (id: string) => {
-    showConfirm('Yakin ingin membatalkan status kenaikan kelas ini?', async () => {
-      setActionError('');
-      try {
-        await cancelPromotion(id);
-      } catch (err: any) {
-        setActionError(err.message || 'Gagal membatalkan');
+  const latestPromoIdByStudent = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of promotionsHistory) {
+      const sId = item.studentId?.toString();
+      if (sId && !map.has(sId) && item.status !== 'CANCELLED') {
+        map.set(sId, item.id?.toString());
       }
-    });
+    }
+    return map;
+  }, [promotionsHistory]);
+
+  const handleCancelPromotion = async (row: any) => {
+    const studentName = row.student?.fullName || row.student?.name || 'Siswa';
+    const fromName = row.fromClassroom?.name || 'Kelas Asal';
+    const toName = row.toClassroom?.name || 'Kelas Tujuan';
+    const yearName = row.toAcademicYear?.name || '';
+    const isLatest = !row.studentId || latestPromoIdByStudent.get(row.studentId.toString()) === row.id?.toString();
+
+    if (!isLatest) {
+      showAlert(
+        `Kenaikan kelas untuk siswa "${studentName}" (${fromName} ➔ ${toName}) tidak dapat dibatalkan langsung karena siswa telah memiliki kenaikan kelas lanjutan yang lebih baru.\n\nUntuk menjaga keutuhan riwayat akademik, silakan cari dan batalkan kenaikan kelas yang paling baru untuk siswa ini terlebih dahulu secara berurutan.`,
+        'Urutan Pembatalan Diperlukan',
+        'warning'
+      );
+      return;
+    }
+
+    showConfirm(
+      `Apakah Anda yakin ingin membatalkan kenaikan kelas untuk ${studentName} (${fromName} ➔ ${toName} ${yearName})?\n\nSiswa akan dikembalikan ke status terdaftar aktif di kelas ${fromName}.`,
+      async () => {
+        setActionError('');
+        try {
+          await cancelPromotion(row.id);
+          showAlert(`Kenaikan kelas untuk ${studentName} berhasil dibatalkan. Siswa telah dikembalikan ke kelas ${fromName}.`, 'Berhasil Dibatalkan', 'success');
+        } catch (err: any) {
+          const errorMsg =
+            err.response?.data?.message ||
+            err.response?.data?.error?.message ||
+            (typeof err.response?.data?.error === 'string' ? err.response?.data?.error : null) ||
+            err.message ||
+            'Gagal membatalkan kenaikan kelas.';
+          setActionError(errorMsg);
+          showAlert(errorMsg, 'Tidak Dapat Membatalkan Kenaikan Kelas', 'error');
+        }
+      },
+      'Konfirmasi Pembatalan Kenaikan'
+    );
   };
 
   const getStatusBadge = (status: string) => {
@@ -58,19 +96,48 @@ export const Promotions: React.FC = () => {
     { key: 'toAcademicYear', header: 'Tahun Ajaran Baru', render: (row) => row.toAcademicYear?.name || '-' },
     { key: 'fromClassroom', header: 'Kelas Asal', render: (row) => row.fromClassroom?.name || '-' },
     { key: 'toClassroom', header: 'Kelas Tujuan', render: (row) => row.toClassroom?.name || '-' },
-    { key: 'status', header: 'Status', render: (row) => getStatusBadge(row.status) },
+    { key: 'status', header: 'Status', render: (row) => {
+      const isLatest = !row.studentId || latestPromoIdByStudent.get(row.studentId.toString()) === row.id?.toString();
+      return (
+        <div>
+          {getStatusBadge(row.status)}
+          {row.status !== 'CANCELLED' && !isLatest && (
+            <span className="text-[11px] text-amber-600 font-medium block mt-0.5" title="Siswa sudah memiliki kenaikan kelas yang lebih baru">
+              Telah Dimutasi Lagi
+            </span>
+          )}
+        </div>
+      );
+    }},
     { key: 'date', header: 'Tanggal Proses', render: (row) => new Date(row.promotionDate || row.createdAt).toLocaleDateString('id-ID') },
-    { key: 'actions', header: 'Aksi', render: (row) => (
-      <Can permission="promotions.delete">
-        <button
-          onClick={() => handleCancelPromotion(row.id)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
-          title="Batalkan Kenaikan Kelas"
-        >
-          <Undo2 size={16} /> Batal
-        </button>
-      </Can>
-    )}
+    { key: 'actions', header: 'Aksi', render: (row) => {
+      const isLatest = !row.studentId || latestPromoIdByStudent.get(row.studentId.toString()) === row.id?.toString();
+      return (
+        <Can permissions={['promotions.revert', 'academic.write']}>
+          {row.status !== 'CANCELLED' ? (
+            isLatest ? (
+              <button
+                onClick={() => handleCancelPromotion(row)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+                title="Batalkan Kenaikan Kelas"
+              >
+                <Undo2 size={16} /> Batal
+              </button>
+            ) : (
+              <button
+                onClick={() => handleCancelPromotion(row)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 hover:text-gray-700 transition-colors"
+                title="Siswa telah dinaikkan lagi. Klik untuk melihat instruksi pembatalan."
+              >
+                <Undo2 size={16} /> Batal (Terkunci)
+              </button>
+            )
+          ) : (
+            <span className="text-xs text-gray-400 italic">Telah dibatalkan</span>
+          )}
+        </Can>
+      );
+    }}
   ];
 
   return (
@@ -81,7 +148,7 @@ export const Promotions: React.FC = () => {
           <p className="text-gray-500 mt-1">Riwayat dan pemrosesan kenaikan kelas siswa</p>
         </div>
         <div className="header-actions">
-          <Can permission="promotions.write">
+          <Can permissions={['promotions.execute', 'academic.write']}>
             <button className="btn-std-primary" onClick={() => navigate('/academic/promotions/batch')}>
               <TrendingUp size={18} />
               <span>Proses Kenaikan Kelas</span>

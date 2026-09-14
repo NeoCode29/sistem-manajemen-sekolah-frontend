@@ -38,7 +38,8 @@ export const AssessmentComponents: React.FC = () => {
   const [types, setTypes] = useState<AssessmentType[]>([]);
   
   const [loading, setLoading] = useState(false);
-  const { canManageAssessment } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canManageAssessmentComponents = hasPermission('assessment_components.manage') || hasPermission('assessment.write');
   const { showConfirm, showAlert } = useDialog();
 
   // Filters
@@ -280,7 +281,7 @@ export const AssessmentComponents: React.FC = () => {
     }
   ];
 
-  if (canManageAssessment) {
+  if (canManageAssessmentComponents) {
     columns.push({
       key: 'actions',
       header: 'Aksi',
@@ -294,7 +295,7 @@ export const AssessmentComponents: React.FC = () => {
         title="Komponen Penilaian"
         subtitle="Atur struktur penilaian, jenis ujian, dan proporsi bobot untuk perhitungan nilai akhir."
         action={
-          canManageAssessment ? (
+          canManageAssessmentComponents ? (
             <div className="flex items-center gap-3">
               <button
                 type="button"

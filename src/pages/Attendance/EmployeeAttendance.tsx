@@ -4,6 +4,7 @@ import { getEmployeeAttendances, upsertEmployeeAttendanceBatch, type EmployeeAtt
 import { Save, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { TableSkeleton } from '../../components/Common/TableSkeleton';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface AttendanceRow {
   employeeId: string;
@@ -16,6 +17,9 @@ interface AttendanceRow {
 }
 
 export const EmployeeAttendancePage: React.FC = () => {
+  const { hasPermission } = usePermissions();
+  const canRecordEmployeeAttendance = hasPermission('employee_attendance.record') || hasPermission('attendance.write');
+
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   
   const [loading, setLoading] = useState(false);
@@ -154,14 +158,16 @@ export const EmployeeAttendancePage: React.FC = () => {
             <div className="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
             <h2 className="text-lg font-bold text-gray-800">Daftar Kehadiran Pegawai</h2>
           </div>
-          <button 
-            className="btn-std-primary flex items-center gap-2 px-6 shadow-md shadow-indigo-600/20 hover:shadow-lg hover:shadow-indigo-600/30 hover:-translate-y-0.5 transition-all duration-300"
-            onClick={handleSave}
-            disabled={saving || rows.length === 0}
-          >
-            <Save size={18} className={saving ? 'animate-pulse' : ''} />
-            <span className="font-semibold">{saving ? 'Menyimpan...' : 'Simpan Absensi'}</span>
-          </button>
+          {canRecordEmployeeAttendance && (
+            <button 
+              className="btn-std-primary flex items-center gap-2 px-6 shadow-md shadow-indigo-600/20 hover:shadow-lg hover:shadow-indigo-600/30 hover:-translate-y-0.5 transition-all duration-300"
+              onClick={handleSave}
+              disabled={saving || rows.length === 0}
+            >
+              <Save size={18} className={saving ? 'animate-pulse' : ''} />
+              <span className="font-semibold">{saving ? 'Menyimpan...' : 'Simpan Absensi'}</span>
+            </button>
+          )}
         </div>
         
         {loading ? (
@@ -209,7 +215,8 @@ export const EmployeeAttendancePage: React.FC = () => {
                     <td className="font-bold text-gray-800 py-3 px-2">{row.employeeName}</td>
                     <td className="py-3 px-2">
                       <select 
-                        className={`w-full p-2.5 rounded-xl font-medium outline-none transition-all shadow-sm focus:ring-2 focus:ring-offset-1 focus:border-transparent cursor-pointer ${
+                        disabled={!canRecordEmployeeAttendance}
+                        className={`w-full p-2.5 rounded-xl font-medium outline-none transition-all shadow-sm focus:ring-2 focus:ring-offset-1 focus:border-transparent ${canRecordEmployeeAttendance ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'} ${
                           row.status === 'Belum Absen' ? 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-400/50' :
                           row.status === 'Hadir' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 focus:ring-emerald-400/50' :
                           row.status === 'Terlambat' ? 'bg-amber-50 text-amber-700 border-amber-200 focus:ring-amber-400/50' :
@@ -236,7 +243,7 @@ export const EmployeeAttendancePage: React.FC = () => {
                         className="input-std py-2 px-3 shadow-sm w-full bg-white/50 focus:bg-white transition-colors"
                         value={row.checkinTime}
                         onChange={(e) => handleRowChange(index, 'checkinTime', e.target.value)}
-                        disabled={row.status !== 'Hadir' && row.status !== 'Terlambat'}
+                        disabled={!canRecordEmployeeAttendance || (row.status !== 'Hadir' && row.status !== 'Terlambat')}
                       />
                     </td>
                     <td className="py-3 px-2">
@@ -245,16 +252,17 @@ export const EmployeeAttendancePage: React.FC = () => {
                         className="input-std py-2 px-3 shadow-sm w-full bg-white/50 focus:bg-white transition-colors"
                         value={row.checkoutTime}
                         onChange={(e) => handleRowChange(index, 'checkoutTime', e.target.value)}
-                        disabled={row.status !== 'Hadir' && row.status !== 'Terlambat'}
+                        disabled={!canRecordEmployeeAttendance || (row.status !== 'Hadir' && row.status !== 'Terlambat')}
                       />
                     </td>
                     <td className="py-3 px-4">
                       <input 
                         type="text" 
-                        className="input-std py-2 px-3 shadow-sm w-full bg-white/50 focus:bg-white transition-colors"
+                        disabled={!canRecordEmployeeAttendance}
+                        className={`input-std py-2 px-3 shadow-sm w-full transition-colors ${canRecordEmployeeAttendance ? 'bg-white/50 focus:bg-white' : 'bg-gray-100 cursor-not-allowed opacity-80'}`}
                         value={row.notes}
                         onChange={(e) => handleRowChange(index, 'notes', e.target.value)}
-                        placeholder="Tambahkan keterangan opsional..."
+                        placeholder={canRecordEmployeeAttendance ? "Tambahkan keterangan opsional..." : "-"}
                       />
                     </td>
                   </tr>

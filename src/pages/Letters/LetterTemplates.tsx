@@ -11,9 +11,13 @@ import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge } from '../../components/ui/Badge';
 import { generateLetterTemplateCode } from '../../utils/codeGenerator';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export const LetterTemplates: React.FC = () => {
   const { user } = useAuth();
+  const { hasPermission } = usePermissions();
+  const canManageTemplates = hasPermission('letter_templates.manage') || hasPermission('letters.write');
+  const canUpdateProfile = hasPermission('school_profile.update') || hasPermission('letters.write');
   const [activeTab, setActiveTab] = useState<'KOP_SURAT' | 'TEMPLATE'>('KOP_SURAT');
   
   // Tab: KOP_SURAT
@@ -207,16 +211,20 @@ export const LetterTemplates: React.FC = () => {
         <span className="text-xs text-gray-400 italic bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 w-max inline-block">Belum ada file</span>
       )
     )},
-    { key: 'actions', header: 'Aksi', render: (item) => (
-      <div className="flex gap-2 justify-end">
-        <button onClick={() => openModal(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
-          <Edit2 size={16} />
-        </button>
-        <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
-          <Trash2 size={16} />
-        </button>
-      </div>
-    )}
+    ...(canManageTemplates ? [{
+      key: 'actions',
+      header: 'Aksi',
+      render: (item: LetterTemplate) => (
+        <div className="flex gap-2 justify-end">
+          <button onClick={() => openModal(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+            <Edit2 size={16} />
+          </button>
+          <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
+    }] : [])
   ];
 
   return (
@@ -226,7 +234,7 @@ export const LetterTemplates: React.FC = () => {
           title="Template Surat" 
           subtitle="Kelola Kop Surat dan Bank File Template"
         />
-        {activeTab === 'TEMPLATE' && (
+        {activeTab === 'TEMPLATE' && canManageTemplates && (
           <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => openModal()}>
             <Plus size={18} />
             <span>Upload Template Baru</span>
@@ -304,9 +312,11 @@ export const LetterTemplates: React.FC = () => {
               </FormField>
 
               <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row gap-3 mt-4">
-                <button type="submit" className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm w-full sm:w-auto" disabled={profileSaving}>
-                  {profileSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}
-                </button>
+                {canUpdateProfile && (
+                  <button type="submit" className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm w-full sm:w-auto" disabled={profileSaving}>
+                    {profileSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}
+                  </button>
+                )}
                 <button type="button" className="px-5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors border border-gray-200 shadow-sm" onClick={handleDownloadDocx}>
                   <Download size={16} /> Unduh Contoh Kop
                 </button>

@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import type { Schedule, SubjectAssignment } from '../../api/schedulingService';
-import { CalendarDays, Plus, Edit2, Trash2, Clock, Users, BookOpen, MapPin, AlertCircle } from 'lucide-react';
+import { CalendarDays, Plus, Edit2, Trash2, Clock, BookOpen, MapPin, AlertCircle } from 'lucide-react';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
-import { useSchedules } from '../../hooks/useSchedules';
 import { useDialog } from '../../contexts/DialogContext';
+import { useSchedules } from '../../hooks/useSchedules';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const DAYS = [
   { id: 1, name: 'Senin' },
@@ -15,38 +16,41 @@ const DAYS = [
   { id: 4, name: 'Kamis' },
   { id: 5, name: 'Jumat' },
   { id: 6, name: 'Sabtu' },
-  { id: 7, name: 'Minggu' }
 ];
 
-const getSubjectColor = (subjectName: string = '') => {
-  const colorMap = [
-    { border: 'border-t-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-600' },
-    { border: 'border-t-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' },
-    { border: 'border-t-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-600' },
-    { border: 'border-t-orange-500', bg: 'bg-orange-50', text: 'text-orange-600' },
-    { border: 'border-t-purple-500', bg: 'bg-purple-50', text: 'text-purple-600' },
-    { border: 'border-t-rose-500', bg: 'bg-rose-50', text: 'text-rose-600' },
-  ];
+const SUBJECT_COLORS = [
+  { border: 'border-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' },
+  { border: 'border-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-600' },
+  { border: 'border-violet-500', bg: 'bg-violet-50', text: 'text-violet-600' },
+  { border: 'border-amber-500', bg: 'bg-amber-50', text: 'text-amber-600' },
+  { border: 'border-rose-500', bg: 'bg-rose-50', text: 'text-rose-600' },
+  { border: 'border-cyan-500', bg: 'bg-cyan-50', text: 'text-cyan-600' },
+  { border: 'border-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-600' }
+];
+
+const getSubjectColor = (name: string) => {
   let hash = 0;
-  for (let i = 0; i < subjectName.length; i++) {
-    hash = subjectName.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return colorMap[Math.abs(hash) % colorMap.length];
+  return SUBJECT_COLORS[Math.abs(hash) % SUBJECT_COLORS.length];
 };
 
 export const Schedules: React.FC = () => {
   const { showConfirm, showAlert } = useDialog();
-  const [activeTab, setActiveTab] = useState<'schedule' | 'assignments'>('schedule');
+  const { hasPermission } = usePermissions();
+  const canManageSchedule = hasPermission('schedules.manage') || hasPermission('academic.write');
+  const [activeTab, setActiveTab] = useState<'assignments' | 'schedule'>('assignments');
 
   const {
-    schedules,
-    subjectAssignments,
     academicYears,
     semesters,
     classrooms,
     subjects,
     employees,
     classPeriods,
+    schedules,
+    subjectAssignments,
     loading,
     error,
     pageError,
@@ -257,12 +261,16 @@ export const Schedules: React.FC = () => {
       <span className="font-semibold text-gray-800">{row.subject?.name}</span>
     )},
     { key: 'employee', header: 'Guru Pengampu', render: (row) => <span className="text-gray-600 font-medium">{row.employee?.fullName}</span> },
-    { key: 'actions', header: 'Aksi', render: (row) => (
-      <ActionButtons 
-        onEdit={() => openEditAssignmentModal(row)}
-        onDelete={() => handleDeleteAssignment(row.id)}
-      />
-    )}
+    ...(canManageSchedule ? [{
+      key: 'actions',
+      header: 'Aksi',
+      render: (row: SubjectAssignment) => (
+        <ActionButtons 
+          onEdit={() => openEditAssignmentModal(row)}
+          onDelete={() => handleDeleteAssignment(row.id)}
+        />
+      )
+    }] : [])
   ];
 
   return (
@@ -348,9 +356,11 @@ export const Schedules: React.FC = () => {
                       <h2 className="font-bold text-lg text-gray-800">Daftar Guru Mata Pelajaran</h2>
                       <p className="text-xs text-gray-500 mt-1">Kelola guru pengampu untuk kelas ini</p>
                     </div>
-                    <button className="btn-std-primary flex items-center gap-2 text-sm py-2 shadow-md hover:shadow-lg" onClick={openAddAssignmentModal}>
-                      <Plus size={16} /> Tambah Penugasan
-                    </button>
+                    {canManageSchedule && (
+                      <button className="btn-std-primary flex items-center gap-2 text-sm py-2 shadow-md hover:shadow-lg" onClick={openAddAssignmentModal}>
+                        <Plus size={16} /> Tambah Penugasan
+                      </button>
+                    )}
                   </div>
                   <DataTable 
                     columns={assignmentColumns}
@@ -368,9 +378,11 @@ export const Schedules: React.FC = () => {
                       <h2 className="font-bold text-lg text-gray-800">Grid Jadwal Pelajaran</h2>
                       <p className="text-xs text-gray-500">Susunan mata pelajaran per hari</p>
                     </div>
-                    <button className="btn-std-primary flex items-center gap-2 text-sm py-2 shadow-md hover:shadow-lg" onClick={openAddScheduleModal}>
-                      <Plus size={16} /> Tambah Jadwal
-                    </button>
+                    {canManageSchedule && (
+                      <button className="btn-std-primary flex items-center gap-2 text-sm py-2 shadow-md hover:shadow-lg" onClick={openAddScheduleModal}>
+                        <Plus size={16} /> Tambah Jadwal
+                      </button>
+                    )}
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -384,15 +396,17 @@ export const Schedules: React.FC = () => {
                           {day.schedules.length === 0 ? (
                             <div className="p-8 flex flex-col items-center justify-center text-gray-400 flex-1">
                               <span className="text-sm font-medium mb-4 opacity-70">Belum ada jadwal</span>
-                              <button 
-                                className="text-blue-600 hover:text-white font-semibold border border-blue-600 hover:bg-blue-600 px-4 py-1.5 rounded-full text-xs transition-all flex items-center gap-1 shadow-sm hover:shadow"
-                                onClick={() => {
-                                  openAddScheduleModal();
-                                  setDayOfWeek(day.id);
-                                }}
-                              >
-                                <Plus size={14} /> Tambah Jadwal
-                              </button>
+                              {canManageSchedule && (
+                                <button 
+                                  className="text-blue-600 hover:text-white font-semibold border border-blue-600 hover:bg-blue-600 px-4 py-1.5 rounded-full text-xs transition-all flex items-center gap-1 shadow-sm hover:shadow"
+                                  onClick={() => {
+                                    openAddScheduleModal();
+                                    setDayOfWeek(day.id);
+                                  }}
+                                >
+                                  <Plus size={14} /> Tambah Jadwal
+                                </button>
+                              )}
                             </div>
                           ) : (
                             <div className="flex-1 flex flex-col gap-4">
@@ -412,14 +426,16 @@ export const Schedules: React.FC = () => {
                                       <div className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 tracking-wide">
                                         <Clock size={12} className="text-gray-500" /> {item.classPeriod?.startTime} - {item.classPeriod?.endTime}
                                       </div>
-                                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors" onClick={() => openEditScheduleModal(item)} title="Edit">
-                                          <Edit2 size={14} />
-                                        </button>
-                                        <button className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors" onClick={() => handleDeleteSchedule(item.id)} title="Hapus">
-                                          <Trash2 size={14} />
-                                        </button>
-                                      </div>
+                                      {canManageSchedule && (
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          <button className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors" onClick={() => openEditScheduleModal(item)} title="Edit">
+                                            <Edit2 size={14} />
+                                          </button>
+                                          <button className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors" onClick={() => handleDeleteSchedule(item.id)} title="Hapus">
+                                            <Trash2 size={14} />
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                   

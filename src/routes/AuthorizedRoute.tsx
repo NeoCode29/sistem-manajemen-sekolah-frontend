@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 
 interface AuthorizedRouteProps {
   requiredPermissions?: string[];
@@ -12,6 +13,7 @@ export const AuthorizedRoute: React.FC<AuthorizedRouteProps> = ({
   requireAll = false 
 }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { hasPermission } = usePermissions();
 
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
@@ -25,13 +27,16 @@ export const AuthorizedRoute: React.FC<AuthorizedRouteProps> = ({
     return <Outlet />;
   }
 
-  const userPermissions = user.permissions?.map(p => p.name) || [];
+  const isSuperAdminOrAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') || user?.username === 'admin';
+  if (isSuperAdminOrAdmin) {
+    return <Outlet />;
+  }
 
-  const hasPermission = requireAll 
-    ? requiredPermissions.every(p => userPermissions.includes(p))
-    : requiredPermissions.some(p => userPermissions.includes(p));
+  const isAuthorized = requireAll 
+    ? requiredPermissions.every(p => hasPermission(p))
+    : requiredPermissions.some(p => hasPermission(p));
 
-  if (!hasPermission) {
+  if (!isAuthorized) {
     return <Navigate to="/403" replace />;
   }
 
