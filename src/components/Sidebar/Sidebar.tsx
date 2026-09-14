@@ -82,8 +82,10 @@ export const Sidebar: React.FC = () => {
   return (
     <div className="w-[260px] bg-white border-r border-gray-200 h-screen flex flex-col fixed left-0 top-0 z-40">
       <div className="p-6 flex items-center gap-3 border-b border-gray-200">
-        <div className="bg-blue-700 text-white w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm">SMS</div>
-        <div className="font-bold text-xl text-gray-900">SekolahApp</div>
+        <div className="w-9 h-9 rounded-xl bg-slate-50 border border-gray-200 p-1 flex items-center justify-center shadow-sm shrink-0">
+          <img src="/icon.svg" alt="App Logo" className="w-full h-full object-contain" />
+        </div>
+        <div className="font-bold text-xl text-gray-900 tracking-tight">SekolahApp</div>
       </div>
 
       <div className="p-5 border-t border-gray-200 flex items-center gap-3">
