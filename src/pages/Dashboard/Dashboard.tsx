@@ -79,14 +79,9 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-white p-2.5 border border-gray-100 shadow-sm flex items-center justify-center shrink-0">
-              <img src="/icon.svg" alt="App Logo" className="w-full h-full object-contain" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">Dashboard Utama</h1>
-              <p className="text-gray-500 text-sm">Selamat datang kembali, {user?.name || 'Admin'}. Berikut ringkasan operasional sekolah hari ini.</p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Dashboard Utama</h1>
+            <p className="text-gray-500 text-sm">Selamat datang kembali, {user?.name || 'Admin'}. Berikut ringkasan operasional sekolah hari ini.</p>
           </div>
           <div className="flex gap-4">
             <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors shadow-sm">

@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
+import { AppLogo } from '../Common/AppLogo';
 import { LayoutDashboard, Users, Settings, LogOut, BookOpen, Clock, Calendar, GraduationCap, Library, UserCog, ShieldCheck, UserCheck, Briefcase, User, BadgeCheck, CalendarDays, FileText, FileEdit, Award, AlertOctagon, Building2, Megaphone, Mail, Send, FileCode, TrendingUp, UserPlus, Monitor } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -82,9 +83,7 @@ export const Sidebar: React.FC = () => {
   return (
     <div className="w-[260px] bg-white border-r border-gray-200 h-screen flex flex-col fixed left-0 top-0 z-40">
       <div className="p-6 flex items-center gap-3 border-b border-gray-200">
-        <div className="w-9 h-9 rounded-xl bg-slate-50 border border-gray-200 p-1 flex items-center justify-center shadow-sm shrink-0">
-          <img src="/icon.svg" alt="App Logo" className="w-full h-full object-contain" />
-        </div>
+        <AppLogo size="md" variant="gradient" />
         <div className="font-bold text-xl text-gray-900 tracking-tight">SekolahApp</div>
       </div>
 

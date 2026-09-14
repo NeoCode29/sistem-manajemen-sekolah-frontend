@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
 import { Lock, User, ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
+import { AppLogo } from '../../components/Common/AppLogo';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -47,9 +48,7 @@ export const Login: React.FC = () => {
         <div className="absolute top-[40%] right-[10%] w-[50%] h-[50%] rounded-full bg-purple-500/20 blur-[100px] mix-blend-overlay"></div>
         
         <div className="relative z-10 w-full max-w-xl px-12 text-white page-enter">
-          <div className="bg-white p-3.5 rounded-2xl shadow-2xl inline-flex items-center justify-center mb-8 border border-white/20">
-            <img src="/icon.svg" alt="Logo Aplikasi" className="w-12 h-12 object-contain" />
-          </div>
+          <AppLogo size="xl" variant="glass" className="mb-8" />
           
           <h1 className="text-5xl font-extrabold mb-6 leading-tight">
             Sistem Informasi <br/>
@@ -82,9 +81,7 @@ export const Login: React.FC = () => {
           
           <div className="mb-8">
             <div className="flex items-center gap-3.5 mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-white p-2 border border-slate-200 shadow-sm flex items-center justify-center shrink-0">
-                <img src="/icon.svg" alt="Logo Sekolah" className="w-full h-full object-contain" />
-              </div>
+              <AppLogo size="lg" variant="gradient" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900 leading-tight">SekolahApp</h1>
                 <p className="text-xs text-gray-500 font-medium">Sistem Informasi Manajemen Sekolah</p>

@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Home, User, BookOpen, AlertTriangle, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { AppLogo } from '../Common/AppLogo';
 
 export const StudentSidebar: React.FC = () => {
   const { logout } = useAuth();
@@ -27,9 +28,7 @@ export const StudentSidebar: React.FC = () => {
   return (
     <aside style={{ width: '260px', backgroundColor: '#ffffff', borderRight: '1px solid #e5e7eb', height: '100vh', position: 'fixed', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <div style={{ width: '36px', height: '36px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', flexShrink: 0 }}>
-          <img src="/icon.svg" alt="App Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-        </div>
+        <AppLogo size="md" variant="gradient" />
         <div>
           <h1 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.025em' }}>Portal Siswa</h1>
         </div>
