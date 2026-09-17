@@ -45,6 +45,7 @@ import { IdentityRegistration } from '../pages/Hardware/IdentityRegistration';
 import { AccountSettings } from '../pages/Settings/AccountSettings';
 import { HomeroomDashboard } from '../pages/Homeroom/HomeroomDashboard';
 import { Forbidden } from '../pages/Error/Forbidden';
+import { ComponentShowcase } from '../pages/DesignSystem/ComponentShowcase';
 
 import { StudentLayout } from '../components/Layout/StudentLayout';
 import { StudentDashboard } from '../pages/Student/StudentDashboard';
@@ -58,9 +59,11 @@ export const AppRoutes: React.FC = () => {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/design-system" element={<ComponentShowcase />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/ui-demo" element={<ComponentShowcase />} />
               <Route path="/homeroom/dashboard" element={<HomeroomDashboard />} />
               <Route path="/403" element={<Forbidden />} />
               

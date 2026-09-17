@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { getEmployees } from '../../api/employeeService';
 import { getEmployeeAttendances, upsertEmployeeAttendanceBatch, type EmployeeAttendance, type EmployeeAttendanceBatchItem } from '../../api/attendanceService';
-import { Save, Calendar } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { Save, Calendar, Search, CheckCircle2, Clock, UserCheck, AlertTriangle, Users, RotateCcw } from 'lucide-react';
 import { TableSkeleton } from '../../components/Common/TableSkeleton';
 import { usePermissions } from '../../hooks/usePermissions';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Badge, type BadgeVariant } from '../../components/ui/Badge';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { notify } from '../../utils/feedback';
 
 interface AttendanceRow {
   employeeId: string;
@@ -21,11 +24,15 @@ export const EmployeeAttendancePage: React.FC = () => {
   const canRecordEmployeeAttendance = hasPermission('employee_attendance.record') || hasPermission('attendance.write');
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'input' | 'recap'>('input');
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   
   const [rows, setRows] = useState<AttendanceRow[]>([]);
+  const [originalRows, setOriginalRows] = useState<AttendanceRow[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (date) {
@@ -50,7 +57,7 @@ export const EmployeeAttendancePage: React.FC = () => {
         attendanceMap.set(att.employeeId, att);
       });
       
-      const newRows = activeEmployees.map(emp => {
+      const newRows: AttendanceRow[] = activeEmployees.map(emp => {
         const att = attendanceMap.get(emp.id);
         return {
           employeeId: emp.id,
@@ -64,9 +71,11 @@ export const EmployeeAttendancePage: React.FC = () => {
       });
       
       setRows(newRows);
+      setOriginalRows(JSON.parse(JSON.stringify(newRows)));
     } catch (err: any) {
-      toast.error('Gagal memuat data absensi pegawai');
+      notify.error(err, 'Gagal memuat data absensi pegawai');
       setRows([]);
+      setOriginalRows([]);
     } finally {
       setLoading(false);
     }
@@ -76,21 +85,64 @@ export const EmployeeAttendancePage: React.FC = () => {
     const updatedRows = [...rows];
     const updatedRow = { ...updatedRows[index], [field]: value };
     
-    if (field === 'status' && value !== 'Hadir' && value !== 'Terlambat') {
-      updatedRow.checkinTime = '';
-      updatedRow.checkoutTime = '';
+    if (field === 'status') {
+      if (value === 'Hadir' || value === 'Terlambat') {
+        if (!updatedRow.checkinTime) {
+          const now = new Date();
+          const hh = String(now.getHours()).padStart(2, '0');
+          const mm = String(now.getMinutes()).padStart(2, '0');
+          updatedRow.checkinTime = `${hh}:${mm}`;
+        }
+      } else {
+        updatedRow.checkinTime = '';
+        updatedRow.checkoutTime = '';
+      }
     }
     
     updatedRows[index] = updatedRow;
     setRows(updatedRows);
   };
 
-  const handleSave = async () => {
+  const handleSetAllPresent = () => {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const currentTime = `${hh}:${mm}`;
+
+    const updated = rows.map(r => {
+      if (r.status === 'Belum Absen') {
+        return {
+          ...r,
+          status: 'Hadir',
+          checkinTime: r.checkinTime || currentTime
+        };
+      }
+      return r;
+    });
+
+    setRows(updated);
+    notify.info('Pegawai yang belum absen telah diset Hadir dengan jam saat ini.');
+  };
+
+  const handleReset = () => {
+    setRows(JSON.parse(JSON.stringify(originalRows)));
+    notify.info('Perubahan status telah dikembalikan ke kondisi awal.');
+  };
+
+  const handleOpenConfirm = () => {
     if (!date) {
-      toast.error('Harap pilih tanggal.');
+      notify.error('Harap pilih tanggal presensi.');
       return;
     }
-    
+    const attendances = rows.filter(r => r.status !== 'Belum Absen');
+    if (attendances.length === 0) {
+      notify.error('Tidak ada perubahan status presensi untuk disimpan.');
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
+  const handleExecuteSave = async () => {
     try {
       setSaving(true);
       
@@ -107,163 +159,389 @@ export const EmployeeAttendancePage: React.FC = () => {
           };
         });
       
-      if (attendances.length === 0) {
-        toast.error('Tidak ada perubahan absensi untuk disimpan. Silakan pilih status kehadiran pegawai terlebih dahulu.');
-        setSaving(false);
-        return;
-      }
-      
       await upsertEmployeeAttendanceBatch(date, attendances);
-      toast.success('Data absensi pegawai berhasil disimpan!');
-      
-      // Refresh to get potentially auto-updated statuses (like Terlambat)
+      notify.success(`Data absensi untuk ${attendances.length} pegawai berhasil disimpan!`);
+      setConfirmOpen(false);
       await fetchAttendanceData();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Gagal menyimpan absensi');
+      notify.error(err, 'Gagal menyimpan absensi pegawai');
     } finally {
       setSaving(false);
     }
   };
 
+  // KPI calculations
+  const totalEmployees = rows.length;
+  const countPresent = rows.filter(r => r.status === 'Hadir').length;
+  const countLate = rows.filter(r => r.status === 'Terlambat').length;
+  const countLeave = rows.filter(r => r.status === 'Sakit' || r.status === 'Izin' || r.status === 'Cuti').length;
+  const countAlphaUnrecorded = rows.filter(r => r.status === 'Alpa' || r.status === 'Belum Absen').length;
+
+  const getStatusBadgeVariant = (status: string): BadgeVariant => {
+    switch (status) {
+      case 'Hadir': return 'success';
+      case 'Terlambat': return 'warning';
+      case 'Sakit':
+      case 'Izin':
+      case 'Cuti': return 'info';
+      case 'Alpa': return 'danger';
+      default: return 'default';
+    }
+  };
+
+  // Search filtering
+  const filteredRows = rows.filter(r => {
+    const matchesSearch = 
+      r.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.nip.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
+  const isDirty = useMemo(() => {
+    return JSON.stringify(rows) !== JSON.stringify(originalRows);
+  }, [rows, originalRows]);
+
+  const formattedDate = date ? new Date(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+
   return (
-    <div className="p-6 max-w-7xl mx-auto page-enter">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Absensi Pegawai / Guru</h1>
-          <p className="text-gray-500 mt-1">Kelola kehadiran harian staf dan pengajar</p>
+    <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
+      {/* 1. Header Halaman */}
+      <PageHeader
+        title="Presensi Pegawai & Guru"
+        subtitle="Kelola dan pantau kehadiran harian staf dan dewan pengajar"
+      />
+
+      {/* 2. Filter Bar Terintegrasi (Glassmorphism Standard) */}
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-wrap gap-4 items-end justify-between">
+        <div className="w-full sm:w-[220px]">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Tanggal Presensi
+          </label>
+          <div className="relative group">
+            <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={18} />
+            <input 
+              type="date" 
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium" 
+              value={date} 
+              onChange={(e) => setDate(e.target.value)} 
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 min-w-[260px] max-w-lg">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Pencarian Pegawai / Guru
+          </label>
+          <div className="relative group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+            <input
+              type="text"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-gray-400"
+              placeholder="Cari nama guru atau NIP..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {Boolean(searchTerm) && (
+          <button
+            type="button"
+            onClick={() => setSearchTerm('')}
+            className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-rose-200 shadow-sm"
+          >
+            <RotateCcw size={14} />
+            Reset
+          </button>
+        )}
+      </div>
+
+      {/* 3. Kartu Ringkasan KPI Guru */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
+            <Users size={20} />
+          </div>
+          <div>
+            <p className="text-xs text-slate-500 font-medium">Total Pegawai</p>
+            <p className="text-xl font-bold text-slate-800">{totalEmployees}</p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-emerald-200/80 rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+            <CheckCircle2 size={20} />
+          </div>
+          <div>
+            <p className="text-xs text-emerald-600 font-medium">Hadir</p>
+            <p className="text-xl font-bold text-emerald-800">{countPresent}</p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-amber-200/80 rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+            <Clock size={20} />
+          </div>
+          <div>
+            <p className="text-xs text-amber-600 font-medium">Terlambat</p>
+            <p className="text-xl font-bold text-amber-800">{countLate}</p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-sky-200/80 rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600">
+            <UserCheck size={20} />
+          </div>
+          <div>
+            <p className="text-xs text-sky-600 font-medium">Izin / Cuti</p>
+            <p className="text-xl font-bold text-sky-800">{countLeave}</p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-rose-200/80 rounded-2xl p-4 shadow-sm flex items-center gap-3 col-span-2 sm:col-span-1">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">
+            <AlertTriangle size={20} />
+          </div>
+          <div>
+            <p className="text-xs text-rose-600 font-medium">Alpa / Belum</p>
+            <p className="text-xl font-bold text-rose-800">{countAlphaUnrecorded}</p>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white/90 backdrop-blur-xl border border-white shadow-lg shadow-slate-200/40 rounded-3xl p-6 md:p-8 mb-8 transition-all duration-300 hover:shadow-xl">
-        <div className="flex items-center gap-3 mb-6 text-indigo-600 border-b border-indigo-100/50 pb-4">
-          <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600 shadow-sm border border-indigo-100/50">
-            <Calendar size={22} className="stroke-[2.5]" />
-          </div>
-          <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-blue-600">
-            Filter Data Absensi
-          </h2>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <div className="form-group">
-            <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Pilih Tanggal</label>
-            <input type="date" className="input-std w-full shadow-sm" value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white border border-gray-100 rounded-3xl shadow-xl shadow-slate-200/30 mb-8 overflow-hidden transition-all duration-300">
-        <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-gray-50/80 to-white">
-          <div className="flex items-center gap-3">
-            <div className="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
-            <h2 className="text-lg font-bold text-gray-800">Daftar Kehadiran Pegawai</h2>
-          </div>
-          {canRecordEmployeeAttendance && (
-            <button 
-              className="btn-std-primary flex items-center gap-2 px-6 shadow-md shadow-indigo-600/20 hover:shadow-lg hover:shadow-indigo-600/30 hover:-translate-y-0.5 transition-all duration-300"
-              onClick={handleSave}
-              disabled={saving || rows.length === 0}
+      {/* 4. Toolbar Tabel Presensi Pegawai (Clean Standard) */}
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Sisi Kiri: Tab Pilihan Mode & Status */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5 p-1 bg-gray-100/80 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setActiveTab('input')}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'input' 
+                  ? 'bg-white text-indigo-700 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
-              <Save size={18} className={saving ? 'animate-pulse' : ''} />
-              <span className="font-semibold">{saving ? 'Menyimpan...' : 'Simpan Absensi'}</span>
+              Pencatatan Presensi
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('recap')}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'recap' 
+                  ? 'bg-white text-indigo-700 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Rekap Pegawai
+            </button>
+          </div>
+
+          <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl hidden sm:inline-flex items-center gap-1.5">
+            <Users size={13} />
+            {totalEmployees} Pegawai ({formattedDate})
+          </span>
+
+          {isDirty && (
+            <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl animate-pulse">
+              Perubahan belum disimpan
+            </span>
           )}
         </div>
-        
+
+        {/* Sisi Kanan: Aksi Massal & Simpan */}
+        {canRecordEmployeeAttendance && rows.length > 0 && (
+          <div className="flex items-center gap-2 self-end md:self-auto">
+            {activeTab === 'input' && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSetAllPresent}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors flex items-center gap-1.5 shadow-sm"
+                >
+                  <CheckCircle2 size={14} />
+                  Set Semua Hadir
+                </button>
+                {isDirty && (
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="px-3.5 py-2 rounded-xl text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors flex items-center gap-1.5 shadow-sm"
+                    title="Kembalikan ke kondisi awal"
+                  >
+                    <RotateCcw size={14} />
+                    Reset
+                  </button>
+                )}
+              </>
+            )}
+            <button
+              type="button"
+              onClick={handleOpenConfirm}
+              disabled={saving || !isDirty}
+              className={`inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm shadow-indigo-200 transition-all ${
+                !isDirty ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
+            >
+              <Save size={15} className={saving ? 'animate-pulse' : ''} />
+              <span>{saving ? 'Menyimpan...' : 'Simpan Presensi'}</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 5. Tabel Presensi Pegawai */}
+      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden transition-all duration-300">
+
         {loading ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-gray-50/50 text-gray-600 font-medium border-b border-gray-100">
-                <tr>
-                  <th className="w-12 text-center py-4">No</th>
-                  <th className="py-4 px-2">NIP</th>
-                  <th className="py-4 px-2">Nama Pegawai</th>
-                  <th className="w-48 py-4 px-2">Status</th>
-                  <th className="w-36 py-4 px-2">Check In</th>
-                  <th className="w-36 py-4 px-2">Check Out</th>
-                  <th className="py-4 px-4">Catatan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                <TableSkeleton columns={7} rows={5} />
+          <div className="p-6">
+            <table className="w-full">
+              <tbody>
+                <TableSkeleton rows={6} columns={6} />
               </tbody>
             </table>
           </div>
-        ) : rows.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            Tidak ada data pegawai aktif.
+        ) : filteredRows.length === 0 ? (
+          <div className="p-12 text-center text-gray-500 text-sm">
+            {searchTerm ? `Tidak ditemukan pegawai dengan pencarian "${searchTerm}".` : 'Tidak ada data pegawai aktif.'}
           </div>
-        ) : (
+        ) : activeTab === 'input' ? (
+          /* TAB 1: INPUT PRESENSI PEGAWAI */
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-gray-50/50 text-gray-600 font-medium border-b border-gray-100">
+              <thead className="bg-gray-50/70 text-gray-600 font-semibold border-b border-gray-100">
                 <tr>
-                  <th className="w-12 text-center py-4">No</th>
-                  <th className="py-4 px-2">NIP</th>
-                  <th className="py-4 px-2">Nama Pegawai</th>
-                  <th className="w-48 py-4 px-2">Status</th>
-                  <th className="w-36 py-4 px-2">Check In</th>
-                  <th className="w-36 py-4 px-2">Check Out</th>
-                  <th className="py-4 px-4">Catatan</th>
+                  <th className="w-12 text-center py-3.5 px-3">No</th>
+                  <th className="w-32 py-3.5 px-3">NIP</th>
+                  <th className="py-3.5 px-3">Nama Pegawai</th>
+                  <th className="w-48 py-3.5 px-3">Status</th>
+                  <th className="w-32 py-3.5 px-3">Jam Masuk</th>
+                  <th className="w-32 py-3.5 px-3">Jam Pulang</th>
+                  <th className="py-3.5 px-4">Keterangan</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
-                {rows.map((row, index) => (
-                  <tr key={row.employeeId} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="text-center text-gray-500 py-3">{index + 1}</td>
-                    <td className="font-mono text-sm text-gray-500 py-3 px-2">{row.nip}</td>
-                    <td className="font-bold text-gray-800 py-3 px-2">{row.employeeName}</td>
-                    <td className="py-3 px-2">
-                      <select 
-                        disabled={!canRecordEmployeeAttendance}
-                        className={`w-full p-2.5 rounded-xl font-medium outline-none transition-all shadow-sm focus:ring-2 focus:ring-offset-1 focus:border-transparent ${canRecordEmployeeAttendance ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'} ${
-                          row.status === 'Belum Absen' ? 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-400/50' :
-                          row.status === 'Hadir' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 focus:ring-emerald-400/50' :
-                          row.status === 'Terlambat' ? 'bg-amber-50 text-amber-700 border-amber-200 focus:ring-amber-400/50' :
-                          row.status === 'Izin' ? 'bg-sky-50 text-sky-700 border-sky-200 focus:ring-sky-400/50' :
-                          row.status === 'Sakit' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 focus:ring-indigo-400/50' :
-                          row.status === 'Cuti' ? 'bg-purple-50 text-purple-700 border-purple-200 focus:ring-purple-400/50' :
-                          'bg-rose-50 text-rose-700 border-rose-200 focus:ring-rose-400/50'
-                        }`}
-                        value={row.status}
-                        onChange={(e) => handleRowChange(index, 'status', e.target.value)}
+              <tbody className="divide-y divide-gray-50 animate-in fade-in duration-300">
+                {filteredRows.map((row, index) => {
+                  const originalIndex = rows.findIndex(r => r.employeeId === row.employeeId);
+                  const isPresent = row.status === 'Hadir' || row.status === 'Terlambat';
+                  return (
+                    <tr key={row.employeeId} className="hover:bg-indigo-50/20 transition-colors">
+                      <td className="text-center text-gray-400 py-3 px-3 font-mono text-xs">{index + 1}</td>
+                      <td className="font-mono text-xs text-gray-500 py-3 px-3">{row.nip}</td>
+                      <td className="py-3 px-3">
+                        <span 
+                          className="font-bold text-gray-800 truncate block max-w-[220px]" 
+                          title={row.employeeName}
+                        >
+                          {row.employeeName}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <select 
+                          disabled={!canRecordEmployeeAttendance}
+                          className={`w-full py-2 px-3 rounded-xl text-xs font-semibold outline-none transition-all shadow-sm focus:ring-2 focus:ring-offset-1 focus:border-transparent ${
+                            canRecordEmployeeAttendance ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'
+                          } ${
+                            row.status === 'Belum Absen' ? 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-400/50' :
+                            row.status === 'Hadir' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 focus:ring-emerald-400/50' :
+                            row.status === 'Terlambat' ? 'bg-amber-50 text-amber-700 border-amber-300 focus:ring-amber-400/50' :
+                            row.status === 'Izin' ? 'bg-sky-50 text-sky-700 border-sky-300 focus:ring-sky-400/50' :
+                            row.status === 'Sakit' ? 'bg-indigo-50 text-indigo-700 border-indigo-300 focus:ring-indigo-400/50' :
+                            row.status === 'Cuti' ? 'bg-purple-50 text-purple-700 border-purple-300 focus:ring-purple-400/50' :
+                            'bg-rose-50 text-rose-700 border-rose-300 focus:ring-rose-400/50'
+                          }`}
+                          value={row.status}
+                          onChange={(e) => handleRowChange(originalIndex, 'status', e.target.value)}
+                        >
+                          <option value="Belum Absen">Belum Absen</option>
+                          <option value="Hadir">Hadir</option>
+                          <option value="Terlambat">Terlambat</option>
+                          <option value="Izin">Izin</option>
+                          <option value="Sakit">Sakit</option>
+                          <option value="Cuti">Cuti</option>
+                          <option value="Alpa">Alpa</option>
+                        </select>
+                      </td>
+                      <td className="py-3 px-3">
+                        <input 
+                          type="time" 
+                          disabled={!canRecordEmployeeAttendance || !isPresent}
+                          className={`input-std py-1 px-2.5 text-xs w-full ${!isPresent ? 'bg-gray-100 opacity-60 cursor-not-allowed' : ''}`}
+                          value={row.checkinTime}
+                          onChange={(e) => handleRowChange(originalIndex, 'checkinTime', e.target.value)}
+                        />
+                      </td>
+                      <td className="py-3 px-3">
+                        <input 
+                          type="time" 
+                          disabled={!canRecordEmployeeAttendance || !isPresent}
+                          className={`input-std py-1 px-2.5 text-xs w-full ${!isPresent ? 'bg-gray-100 opacity-60 cursor-not-allowed' : ''}`}
+                          value={row.checkoutTime}
+                          onChange={(e) => handleRowChange(originalIndex, 'checkoutTime', e.target.value)}
+                        />
+                      </td>
+                      <td className="py-3 px-4">
+                        <input 
+                          type="text" 
+                          disabled={!canRecordEmployeeAttendance}
+                          className={`input-std py-1.5 px-3 text-xs shadow-sm w-full transition-colors ${
+                            canRecordEmployeeAttendance ? 'bg-white/70 focus:bg-white' : 'bg-gray-100 cursor-not-allowed opacity-80'
+                          }`}
+                          value={row.notes}
+                          onChange={(e) => handleRowChange(originalIndex, 'notes', e.target.value)}
+                          placeholder={canRecordEmployeeAttendance ? "Keterangan opsional..." : "-"}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* TAB 2: REKAP PEGAWAI */
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-gray-50/70 text-gray-600 font-semibold border-b border-gray-100">
+                <tr>
+                  <th className="w-12 text-center py-3.5 px-3">No</th>
+                  <th className="w-32 py-3.5 px-3">NIP</th>
+                  <th className="py-3.5 px-3">Nama Pegawai</th>
+                  <th className="w-36 py-3.5 px-3">Status</th>
+                  <th className="w-28 py-3.5 px-3">Jam Masuk</th>
+                  <th className="w-28 py-3.5 px-3">Jam Pulang</th>
+                  <th className="py-3.5 px-4">Keterangan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 animate-in fade-in duration-300">
+                {filteredRows.map((row, index) => (
+                  <tr key={row.employeeId} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="text-center text-gray-400 py-3 px-3 font-mono text-xs">{index + 1}</td>
+                    <td className="font-mono text-xs text-gray-500 py-3 px-3">{row.nip}</td>
+                    <td className="py-3 px-3">
+                      <span 
+                        className="font-bold text-gray-800 truncate block max-w-[240px]"
+                        title={row.employeeName}
                       >
-                        <option value="Belum Absen">Belum Absen</option>
-                        <option value="Hadir">Hadir</option>
-                        <option value="Izin">Izin</option>
-                        <option value="Sakit">Sakit</option>
-                        <option value="Cuti">Cuti</option>
-                        <option value="Alpa">Alpa</option>
-                        <option value="Terlambat">Terlambat</option>
-                      </select>
+                        {row.employeeName}
+                      </span>
                     </td>
-                    <td className="py-3 px-2">
-                      <input 
-                        type="time" 
-                        className="input-std py-2 px-3 shadow-sm w-full bg-white/50 focus:bg-white transition-colors"
-                        value={row.checkinTime}
-                        onChange={(e) => handleRowChange(index, 'checkinTime', e.target.value)}
-                        disabled={!canRecordEmployeeAttendance || (row.status !== 'Hadir' && row.status !== 'Terlambat')}
-                      />
+                    <td className="py-3 px-3">
+                      <Badge variant={getStatusBadgeVariant(row.status)}>
+                        {row.status}
+                      </Badge>
                     </td>
-                    <td className="py-3 px-2">
-                      <input 
-                        type="time" 
-                        className="input-std py-2 px-3 shadow-sm w-full bg-white/50 focus:bg-white transition-colors"
-                        value={row.checkoutTime}
-                        onChange={(e) => handleRowChange(index, 'checkoutTime', e.target.value)}
-                        disabled={!canRecordEmployeeAttendance || (row.status !== 'Hadir' && row.status !== 'Terlambat')}
-                      />
+                    <td className="py-3 px-3 font-mono text-xs text-gray-600">
+                      {row.checkinTime || '-'}
                     </td>
-                    <td className="py-3 px-4">
-                      <input 
-                        type="text" 
-                        disabled={!canRecordEmployeeAttendance}
-                        className={`input-std py-2 px-3 shadow-sm w-full transition-colors ${canRecordEmployeeAttendance ? 'bg-white/50 focus:bg-white' : 'bg-gray-100 cursor-not-allowed opacity-80'}`}
-                        value={row.notes}
-                        onChange={(e) => handleRowChange(index, 'notes', e.target.value)}
-                        placeholder={canRecordEmployeeAttendance ? "Tambahkan keterangan opsional..." : "-"}
-                      />
+                    <td className="py-3 px-3 font-mono text-xs text-gray-600">
+                      {row.checkoutTime || '-'}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-gray-600">
+                      <span className="truncate block max-w-[280px]" title={row.notes || '-'}>
+                        {row.notes || '-'}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -272,6 +550,17 @@ export const EmployeeAttendancePage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 5. Dialog Konfirmasi Simpan Presensi Pegawai */}
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleExecuteSave}
+        variant="info"
+        title="Konfirmasi Presensi Pegawai"
+        message={`Apakah Anda yakin ingin menyimpan data absensi untuk dewan guru/pegawai pada tanggal ${date}? Data presensi yang telah terisi (${rows.filter(r => r.status !== 'Belum Absen').length} orang) akan diperbarui ke sistem.`}
+        confirmText={saving ? 'Menyimpan...' : 'Ya, Simpan'}
+      />
     </div>
   );
 };

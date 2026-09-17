@@ -1,10 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { User, Key, Save, Eye, EyeOff, PenTool, AlertCircle, CheckCircle } from 'lucide-react';
+import { 
+  User, 
+  Key, 
+  Save, 
+  Eye, 
+  EyeOff, 
+  PenTool, 
+  ShieldCheck, 
+  UploadCloud, 
+  Trash2, 
+  Loader2,
+  CheckCircle2
+} from 'lucide-react';
 import api from '../../api/axios';
 import { uploadSignature } from '../../api/employeeService';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { FormField } from '../../components/ui/FormField';
+import { notify } from '../../utils/feedback';
 
 export const AccountSettings: React.FC = () => {
   const { user } = useAuth();
@@ -20,21 +33,19 @@ export const AccountSettings: React.FC = () => {
     confirmPassword: '',
   });
 
-  const [profileSuccess, setProfileSuccess] = useState(false);
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
-  const [error, setError] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   // Signature States
   const [sigFile, setSigFile] = useState<File | null>(null);
   const [sigPreview, setSigPreview] = useState<string | null>(null);
   const [currentSigUrl, setCurrentSigUrl] = useState<string | null>(null);
   const [isUploadingSig, setIsUploadingSig] = useState(false);
-  const [sigMessage, setSigMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const sigInputRef = useRef<HTMLInputElement>(null);
   const employeeId = user?.employeeId;
   const isPrincipal = user?.roles?.some(r => r.name === 'Kepala Sekolah');
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isPrincipal) {
       import('../../api/schoolProfileService').then(({ getSchoolProfile }) => {
         getSchoolProfile().then(data => {
@@ -62,30 +73,32 @@ export const AccountSettings: React.FC = () => {
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setIsSavingProfile(true);
       await api.put(`/users/${user?.id}`, profileForm);
-      setProfileSuccess(true);
-      setTimeout(() => setProfileSuccess(false), 3000);
-      setError('');
+      notify.success('Informasi profil berhasil diperbarui!');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memperbarui profil');
+      notify.error(err, 'Gagal memperbarui profil');
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setError('Konfirmasi password baru tidak cocok');
+      notify.error(new Error('Konfirmasi kata sandi baru tidak cocok'), 'Validasi Sandi Gagal');
       return;
     }
     
     try {
+      setIsSavingPassword(true);
       await api.put(`/users/${user?.id}`, { password: passwordForm.newPassword });
-      setPasswordSuccess(true);
-      setTimeout(() => setPasswordSuccess(false), 3000);
+      notify.success('Kata sandi akun berhasil diubah!');
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setError('');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal mengubah password');
+      notify.error(err, 'Gagal mengubah kata sandi');
+    } finally {
+      setIsSavingPassword(false);
     }
   };
 
@@ -96,7 +109,6 @@ export const AccountSettings: React.FC = () => {
       
       const objectUrl = URL.createObjectURL(selectedFile);
       setSigPreview(objectUrl);
-      setSigMessage(null);
     }
   };
 
@@ -104,7 +116,6 @@ export const AccountSettings: React.FC = () => {
     if (!sigFile) return;
 
     setIsUploadingSig(true);
-    setSigMessage(null);
     try {
       if (isPrincipal) {
         // 1. Upload ke Profil Sekolah (untuk pengesahan resmi Rapor & dokumen institusi)
@@ -122,13 +133,13 @@ export const AccountSettings: React.FC = () => {
             console.warn('Sync to employee signature failed', syncErr);
           }
         }
-        setSigMessage({ type: 'success', text: 'Tanda tangan resmi Kepala Sekolah berhasil disimpan dan disinkronkan!' });
+        notify.success('Tanda tangan resmi Kepala Sekolah berhasil disimpan dan disinkronkan!');
       } else if (employeeId) {
         const res = await uploadSignature(employeeId.toString(), sigFile);
         if (res && res.signatureUrl) {
           setCurrentSigUrl(res.signatureUrl);
         }
-        setSigMessage({ type: 'success', text: 'Tanda tangan berhasil disimpan!' });
+        notify.success('Tanda tangan digital berhasil disimpan!');
       }
 
       setSigFile(null);
@@ -137,8 +148,7 @@ export const AccountSettings: React.FC = () => {
         sigInputRef.current.value = '';
       }
     } catch (error: any) {
-      console.error('Upload failed:', error);
-      setSigMessage({ type: 'error', text: error.response?.data?.message || 'Gagal mengunggah tanda tangan' });
+      notify.error(error, 'Gagal mengunggah tanda tangan digital');
     } finally {
       setIsUploadingSig(false);
     }
@@ -153,243 +163,215 @@ export const AccountSettings: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto page-enter">
-      
-      {/* Premium Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-3xl font-bold shadow-md">
-          {user?.name?.charAt(0)?.toUpperCase() || 'A'}
-        </div>
-        <div className="flex-1">
-          <PageHeader 
-            title="Pengaturan Akun" 
-            subtitle="Personalisasikan profil Anda dan tingkatkan keamanan akun dengan mudah."
-          />
-        </div>
-      </div>
+    <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
+      {/* 1. PageHeader */}
+      <PageHeader 
+        title="Pengaturan Akun" 
+        subtitle="Personalisasikan profil Anda dan tingkatkan keamanan akun dengan mudah"
+      />
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-700 border border-red-200 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-          <AlertCircle size={20} className="text-red-500 flex-shrink-0" />
-          <p className="font-medium">{error}</p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Profil Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">
-          <div className="px-8 py-6 border-b border-gray-50 flex items-center gap-4 bg-gray-50/30">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600">
-              <User size={24} strokeWidth={2.5} />
+      {/* 2. Form Cards Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Card 1: Profil Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+          <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3.5 bg-slate-50/50">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-indigo-50 text-indigo-600 border border-indigo-100 shrink-0">
+              <User size={20} />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 m-0">Informasi Profil</h2>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 m-0">Informasi Profil</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Nama tampilan dan username login</p>
+            </div>
           </div>
-          <form onSubmit={handleProfileSubmit} className="p-8 flex flex-col gap-6 h-full">
-            
+          
+          <form onSubmit={handleProfileSubmit} className="p-6 flex flex-col gap-5 flex-1">
             <FormField label="Nama Lengkap" required>
               <input 
                 type="text" 
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all focus:bg-white"
+                className="input-std w-full px-4 py-2.5 text-sm font-semibold text-slate-900"
                 value={profileForm.name}
-                onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
+                onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
                 required
               />
             </FormField>
 
-            <FormField label="Username" required>
+            <FormField label="Username Login" required>
               <input 
                 type="text" 
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all focus:bg-white"
+                className="input-std w-full px-4 py-2.5 text-sm font-mono text-slate-900"
                 value={profileForm.username}
-                onChange={(e) => setProfileForm({...profileForm, username: e.target.value})}
+                onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })}
                 required
               />
             </FormField>
 
-            <div className="flex flex-col gap-3 mt-auto">
-              <button type="submit" className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-600 shadow-md transition-all mt-2">
-                <Save size={18} /> Simpan Profil
+            <div className="pt-4 border-t border-slate-100 mt-auto">
+              <button 
+                type="submit" 
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm font-semibold rounded-xl shadow-sm transition-all"
+                disabled={isSavingProfile}
+              >
+                {isSavingProfile ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                <span>{isSavingProfile ? 'Menyimpan...' : 'Simpan Profil'}</span>
               </button>
-              {profileSuccess && (
-                <div className="flex items-center justify-center gap-2 text-emerald-600 text-sm font-medium bg-emerald-50 py-2.5 rounded-xl animate-in fade-in border border-emerald-100">
-                  <CheckCircle size={18} /> Profil berhasil diperbarui!
-                </div>
-              )}
             </div>
           </form>
         </div>
 
-        {/* Keamanan Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">
-          <div className="px-8 py-6 border-b border-gray-50 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-50 text-purple-600">
-              <Key size={24} strokeWidth={2.5} />
+        {/* Card 2: Keamanan Sandi */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+          <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3.5 bg-slate-50/50">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-50 text-purple-600 border border-purple-100 shrink-0">
+              <Key size={20} />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 m-0">Keamanan Sandi</h2>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 m-0">Keamanan Sandi</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Perbarui kata sandi akun secara berkala</p>
+            </div>
           </div>
-          <form onSubmit={handlePasswordSubmit} className="p-8 flex flex-col gap-6">
-            
+
+          <form onSubmit={handlePasswordSubmit} className="p-6 flex flex-col gap-5 flex-1">
             <FormField label="Password Baru" required>
               <div className="relative">
                 <input
                   type={showNewPassword ? 'text' : 'password'}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all focus:bg-white pr-12"
+                  className="input-std w-full px-4 py-2.5 pr-11 text-sm text-slate-900"
                   value={passwordForm.newPassword}
-                  onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                   placeholder="Minimal 6 karakter"
                   minLength={6}
                   required
                 />
-                <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors" onClick={() => setShowNewPassword(v => !v)} tabIndex={-1}>
-                  {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                <button 
+                  type="button" 
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors" 
+                  onClick={() => setShowNewPassword(v => !v)} 
+                  tabIndex={-1}
+                >
+                  {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </FormField>
 
-            <FormField label="Konfirmasi Password" required>
+            <FormField label="Konfirmasi Password Baru" required>
               <div className="relative">
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all focus:bg-white pr-12"
+                  className="input-std w-full px-4 py-2.5 pr-11 text-sm text-slate-900"
                   value={passwordForm.confirmPassword}
-                  onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
-                  placeholder="Ketik ulang password baru"
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  placeholder="Ulangi password baru"
                   minLength={6}
                   required
                 />
-                <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors" onClick={() => setShowConfirmPassword(v => !v)} tabIndex={-1}>
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                <button 
+                  type="button" 
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors" 
+                  onClick={() => setShowConfirmPassword(v => !v)} 
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </FormField>
 
-            <div className="flex flex-col gap-3 mt-auto">
-              <button type="submit" className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold rounded-xl hover:from-black hover:to-gray-800 shadow-md transition-all mt-2">
-                <Save size={18} /> Update Sandi
+            <div className="pt-4 border-t border-slate-100 mt-auto">
+              <button 
+                type="submit" 
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm font-semibold rounded-xl shadow-sm transition-all"
+                disabled={isSavingPassword}
+              >
+                {isSavingPassword ? <Loader2 className="animate-spin" size={16} /> : <ShieldCheck size={16} />}
+                <span>{isSavingPassword ? 'Memproses...' : 'Ubah Kata Sandi'}</span>
               </button>
-              {passwordSuccess && (
-                <div className="flex items-center justify-center gap-2 text-emerald-600 text-sm font-medium bg-emerald-50 py-2.5 rounded-xl animate-in fade-in border border-emerald-100">
-                  <CheckCircle size={18} /> Sandi berhasil diperbarui!
-                </div>
-              )}
             </div>
           </form>
         </div>
 
-        {/* Tanda Tangan Section (Terpadu: Otomatis sinkron untuk Kepala Sekolah & Pegawai/Guru) */}
-        {(employeeId || isPrincipal) && (
-          <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">
-            <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between bg-gray-50/30">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600">
-                  <PenTool size={24} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 m-0">
-                    {isPrincipal ? 'Tanda Tangan Digital (Kepala Sekolah)' : 'Tanda Tangan Digital'}
-                  </h2>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {isPrincipal 
-                      ? 'Tanda tangan resmi untuk pengesahan Rapor Siswa dan dokumen institusi sekolah' 
-                      : 'Tanda tangan digital untuk pengesahan Rapor Siswa sebagai Wali Kelas'}
-                  </p>
-                </div>
-              </div>
-              {isPrincipal && (
-                <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full border border-emerald-200">
-                  Resmi Kepala Sekolah
-                </span>
-              )}
+        {/* Card 3: Tanda Tangan Digital Resmi */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+          <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3.5 bg-slate-50/50">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600 border border-emerald-100 shrink-0">
+              <PenTool size={20} />
             </div>
-
-            <div className="p-8 flex flex-col gap-6">
-              <p className="text-sm text-gray-500 leading-relaxed max-w-3xl">
-                {isPrincipal
-                  ? 'Unggah tanda tangan resmi Anda sebagai Kepala Sekolah. Tanda tangan ini akan dibubuhkan secara otomatis pada seluruh dokumen rapor siswa dan pengesahan resmi sekolah. Sistem otomatis menyinkronkan tanda tangan ini dengan profil pegawai Anda.'
-                  : 'Unggah tanda tangan digital Anda untuk pengesahan dokumen otomatis (seperti Rapor Siswa sebagai Wali Kelas). Pastikan file gambar (PNG/JPG) memiliki latar belakang transparan.'}
-              </p>
-              
-              {sigMessage && (
-                <div className={`p-4 rounded-xl flex items-center gap-3 text-sm font-medium ${sigMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                  {sigMessage.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-                  {sigMessage.text}
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Kolom 1: Tanda Tangan Aktif Saat Ini */}
-                <FormField label="Tanda Tangan Aktif Saat Ini">
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 bg-gray-50 flex flex-col justify-center items-center min-h-[180px] relative">
-                    {currentSigUrl ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <img 
-                          src={`http://localhost:3000${currentSigUrl}`}
-                          alt="Tanda Tangan Aktif" 
-                          className="max-h-[140px] max-w-full object-contain drop-shadow-sm" 
-                        />
-                        <span className="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1 mt-1">
-                          <CheckCircle size={12} /> Tanda tangan tersimpan
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2 text-gray-400">
-                        <AlertCircle size={28} className="stroke-[1.5]" />
-                        <span className="text-sm font-medium">Belum ada tanda tangan</span>
-                        <span className="text-xs text-gray-400">Silakan pilih file di sebelah kanan</span>
-                      </div>
-                    )}
-                  </div>
-                </FormField>
-
-                {/* Kolom 2: Unggah Tanda Tangan Baru */}
-                <div className="flex flex-col gap-4">
-                  <FormField label="Pilih File Gambar Baru (PNG/JPG)">
-                    <input 
-                      type="file" 
-                      ref={sigInputRef}
-                      accept=".png, .jpg, .jpeg"
-                      onChange={handleSigChange}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition-colors cursor-pointer"
-                    />
-                  </FormField>
-
-                  {sigPreview && (
-                    <FormField label="Pratinjau File Baru">
-                      <div className="border-2 border-dashed border-blue-200 rounded-xl p-4 bg-blue-50/40 flex justify-center items-center min-h-[110px]">
-                        <img 
-                          src={sigPreview} 
-                          alt="Signature Preview" 
-                          className="max-h-[100px] max-w-full object-contain drop-shadow-sm" 
-                        />
-                      </div>
-                    </FormField>
-                  )}
-
-                  <div className="flex gap-3 mt-auto pt-2">
-                    <button
-                      onClick={handleSigUpload}
-                      disabled={!sigFile || isUploadingSig}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-700 hover:to-teal-700 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                    >
-                      <Save size={16} /> {isUploadingSig ? 'Menyimpan...' : 'Simpan Tanda Tangan'}
-                    </button>
-                    
-                    {sigFile && (
-                      <button
-                        onClick={handleSigClear}
-                        className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 font-semibold hover:bg-gray-100 hover:text-gray-900 transition-all text-sm"
-                      >
-                        Batal
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 m-0">Tanda Tangan Digital</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Pengesahan resmi e-Rapor & dokumen</p>
             </div>
           </div>
-        )}
-      </div>
 
+          <div className="p-6 flex flex-col gap-5 flex-1">
+            <p className="text-xs text-slate-500 leading-relaxed">
+              {isPrincipal 
+                ? 'Tanda tangan resmi Kepala Sekolah digunakan pada halaman pengesahan Rapor siswa dan dokumen dinas lainnya.' 
+                : 'Tanda tangan digital digunakan pada dokumen cetak absensi dan catatan dinas Anda.'}
+            </p>
+
+            {/* Preview Box */}
+            <div className="border border-slate-200/80 rounded-2xl p-4 bg-slate-50/50 flex flex-col items-center justify-center min-h-[140px] text-center relative overflow-hidden">
+              {sigPreview ? (
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">Pratinjau Baru</span>
+                  <img src={sigPreview} alt="Pratinjau TTD" className="max-h-24 max-w-full object-contain" />
+                </div>
+              ) : currentSigUrl ? (
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">TTD Tersimpan Aktif</span>
+                  <img src={`http://localhost:3000${currentSigUrl}`} alt="Tanda Tangan Aktif" className="max-h-24 max-w-full object-contain" />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-1.5 text-slate-400">
+                  <PenTool size={28} className="text-slate-300" />
+                  <p className="text-xs font-medium">Belum ada tanda tangan digital</p>
+                  <p className="text-[10px] text-slate-400">Format PNG transparan disarankan (Maks 1MB)</p>
+                </div>
+              )}
+            </div>
+
+            <input 
+              type="file" 
+              ref={sigInputRef} 
+              className="hidden" 
+              accept="image/png, image/jpeg, image/jpg" 
+              onChange={handleSigChange} 
+            />
+
+            <div className="flex gap-2 pt-2 border-t border-slate-100 mt-auto">
+              {!sigFile ? (
+                <button 
+                  type="button" 
+                  onClick={() => sigInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs md:text-sm font-semibold rounded-xl transition-all border border-slate-200 shadow-xs"
+                >
+                  <UploadCloud size={16} />
+                  <span>{currentSigUrl ? 'Ganti Tanda Tangan' : 'Unggah File TTD'}</span>
+                </button>
+              ) : (
+                <>
+                  <button 
+                    type="button" 
+                    onClick={handleSigUpload}
+                    disabled={isUploadingSig}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs md:text-sm font-semibold rounded-xl shadow-sm transition-all"
+                  >
+                    {isUploadingSig ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                    <span>{isUploadingSig ? 'Menyimpan...' : 'Simpan TTD'}</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={handleSigClear}
+                    disabled={isUploadingSig}
+                    className="p-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl transition-colors border border-rose-200"
+                    title="Batal pilih file"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

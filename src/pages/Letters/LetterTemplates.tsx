@@ -1,36 +1,88 @@
-import React, { useEffect, useState } from 'react';
-import { getLetterTemplates, createLetterTemplate, updateLetterTemplate, deleteLetterTemplate, uploadTemplateAttachment } from '../../api/letterService';
-import type { LetterTemplate } from '../../api/letterService';
-import { getSchoolProfile, updateSchoolProfile, uploadSchoolLogo } from '../../api/schoolProfileService';
-import { FileCode, Plus, Edit2, Trash2, Download, Settings, FileText } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { 
+  getLetterTemplates, 
+  createLetterTemplate, 
+  updateLetterTemplate, 
+  deleteLetterTemplate, 
+  uploadTemplateAttachment,
+  type LetterTemplate 
+} from '../../api/letterService';
+import { 
+  getSchoolProfile, 
+  updateSchoolProfile, 
+  uploadSchoolLogo, 
+  downloadTemplateDocx 
+} from '../../api/schoolProfileService';
+import { 
+  FileCode, 
+  Plus, 
+  Download, 
+  Settings, 
+  FileText, 
+  Filter, 
+  Search, 
+  RotateCcw,
+  Building2,
+  Loader2
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable, type Column } from '../../components/Common/DataTable';
+import { ActionButtons } from '../../components/Common/ActionButtons';
+import { Pagination } from '../../components/Common/Pagination';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
-import { Badge } from '../../components/ui/Badge';
+import { Badge, type BadgeVariant } from '../../components/ui/Badge';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { ContextAccessHeader } from '../../components/ui/ContextAccessHeader';
 import { generateLetterTemplateCode } from '../../utils/codeGenerator';
 import { usePermissions } from '../../hooks/usePermissions';
+import { notify } from '../../utils/feedback';
 
 export const LetterTemplates: React.FC = () => {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
   const canManageTemplates = hasPermission('letter_templates.manage') || hasPermission('letters.write');
   const canUpdateProfile = hasPermission('school_profile.update') || hasPermission('letters.write');
+  
   const [activeTab, setActiveTab] = useState<'KOP_SURAT' | 'TEMPLATE'>('KOP_SURAT');
   
   // Tab: KOP_SURAT
   const [profile, setProfile] = useState<any>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
   
   // Tab: TEMPLATE
   const [templates, setTemplates] = useState<LetterTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const { showConfirm, showAlert } = useDialog();
+  
+  // Filters & Search
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('ALL');
+  const [filterStatus, setFilterStatus] = useState('ALL');
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Confirm Dialog
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    variant: 'danger' | 'warning' | 'info';
+    action: () => Promise<void>;
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    variant: 'danger',
+    action: async () => {},
+  });
   
   const [formData, setFormData] = useState<Partial<LetterTemplate>>({
     name: '',
@@ -45,6 +97,16 @@ export const LetterTemplates: React.FC = () => {
     fetchData();
   }, [activeTab]);
 
+  useEffect(() => {
+    if (logoFile) {
+      const url = URL.createObjectURL(logoFile);
+      setLogoPreview(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setLogoPreview(null);
+    }
+  }, [logoFile]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -56,7 +118,7 @@ export const LetterTemplates: React.FC = () => {
         setTemplates(data);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat data');
+      notify.error(err, 'Gagal memuat data');
     } finally {
       setLoading(false);
     }
@@ -82,13 +144,30 @@ export const LetterTemplates: React.FC = () => {
         await uploadSchoolLogo(logoFile);
       }
       
-      showAlert('Pengaturan Kop Surat berhasil disimpan', 'Berhasil');
+      notify.success('Pengaturan Kop Surat berhasil disimpan');
       fetchData();
       setLogoFile(null);
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Gagal menyimpan profil', 'Gagal');
+      notify.error(err, 'Gagal menyimpan profil');
     } finally {
       setProfileSaving(false);
+    }
+  };
+
+  const handleDownloadDocx = async () => {
+    try {
+      const blob = await downloadTemplateDocx();
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'template_surat_kosong.docx');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      notify.success('Contoh template docx berhasil diunduh');
+    } catch (error: any) {
+      notify.error(error, 'Gagal mengunduh template docx');
     }
   };
 
@@ -134,6 +213,7 @@ export const LetterTemplates: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setIsSubmitting(true);
       let savedTemplate: any;
       if (editingId) {
         savedTemplate = await updateLetterTemplate(editingId, formData);
@@ -145,195 +225,440 @@ export const LetterTemplates: React.FC = () => {
         await uploadTemplateAttachment(savedTemplate.id, selectedFile);
       }
       
+      notify.success(editingId ? 'Template surat berhasil diperbarui' : 'Template surat berhasil ditambahkan');
       closeModal();
       fetchData();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Gagal menyimpan template surat');
+      notify.error(err, 'Gagal menyimpan template');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleDownloadDocx = async () => {
-    try {
-      const blob = await import('../../api/schoolProfileService').then(m => m.downloadTemplateDocx());
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'template_surat_kosong.docx');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      showAlert('Gagal mengunduh template docx', 'Gagal');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    showConfirm('Yakin ingin menghapus template ini?', async () => {
-      try {
-        await deleteLetterTemplate(id);
-        fetchData();
-      } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus template');
-      }
+  const handleDelete = (id: string, name: string) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Hapus Template Surat',
+      message: `Apakah Anda yakin ingin menghapus template surat "${name}"? Dokumen surat yang telah dicetak menggunakan template ini tidak akan terhapus.`,
+      variant: 'danger',
+      action: async () => {
+        try {
+          await deleteLetterTemplate(id);
+          notify.success('Template surat berhasil dihapus');
+          fetchData();
+        } catch (err: any) {
+          notify.error(err, 'Gagal menghapus template');
+        }
+      },
     });
   };
 
+  // Filtered & Paginated templates
+  const filteredTemplates = useMemo(() => {
+    return templates.filter((template) => {
+      const q = searchTerm.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        template.name.toLowerCase().includes(q) ||
+        template.code.toLowerCase().includes(q);
+
+      const matchesCategory =
+        filterCategory === 'ALL' || template.category === filterCategory;
+
+      const matchesStatus =
+        filterStatus === 'ALL' ||
+        (filterStatus === 'ACTIVE' && template.isActive) ||
+        (filterStatus === 'INACTIVE' && !template.isActive);
+
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [templates, searchTerm, filterCategory, filterStatus]);
+
+  const totalPages = Math.ceil(filteredTemplates.length / itemsPerPage) || 1;
+  const paginatedTemplates = useMemo(() => {
+    return filteredTemplates.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+  }, [filteredTemplates, currentPage, itemsPerPage]);
+
   const columns: Column<LetterTemplate>[] = [
-    { key: 'name', header: 'Nama Template', render: (item) => (
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-          <FileCode size={18} />
+    {
+      key: 'name',
+      header: 'Nama Template',
+      render: (item) => (
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 text-indigo-600">
+            <FileCode size={17} />
+          </div>
+          <div className="overflow-hidden">
+            <span className="font-bold text-sm text-slate-900 truncate block" title={item.name}>
+              {item.name}
+            </span>
+            <span className="text-xs font-mono text-indigo-700 bg-indigo-50/70 border border-indigo-200/60 px-2 py-0.5 rounded-md inline-block mt-1">
+              {item.code}
+            </span>
+          </div>
         </div>
-        <span className="font-bold text-gray-900">{item.name}</span>
-      </div>
-    )},
-    { key: 'category', header: 'Kategori', render: (item) => (
-      <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold border border-gray-200">
-        {item.category}
-      </span>
-    )},
-    { key: 'code', header: 'Kode', render: (item) => (
-      <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md font-mono text-sm border border-indigo-100 font-semibold">
-        {item.code}
-      </span>
-    )},
-    { key: 'status', header: 'Status', render: (item) => (
-      <Badge variant={item.isActive ? 'success' : 'default'}>
-        {item.isActive ? 'Aktif' : 'Nonaktif'}
-      </Badge>
-    )},
-    { key: 'file', header: 'File Master', render: (item) => (
-      item.attachmentUrl ? (
-        <a href={`http://localhost:3000${item.attachmentUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors w-max border border-blue-100">
-          <Download size={14} /> Unduh
-        </a>
-      ) : (
-        <span className="text-xs text-gray-400 italic bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 w-max inline-block">Belum ada file</span>
-      )
-    )},
-    ...(canManageTemplates ? [{
-      key: 'actions',
-      header: 'Aksi',
-      render: (item: LetterTemplate) => (
-        <div className="flex gap-2 justify-end">
-          <button onClick={() => openModal(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
-            <Edit2 size={16} />
-          </button>
-          <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
-            <Trash2 size={16} />
-          </button>
-        </div>
-      )
-    }] : [])
+      ),
+    },
+    {
+      key: 'category',
+      header: 'Kategori',
+      render: (item) => {
+        const categoryVariants: Record<string, BadgeVariant> = {
+          UMUM: 'default',
+          PANGGILAN: 'warning',
+          UNDANGAN: 'info',
+          KETERANGAN: 'purple',
+        };
+        return (
+          <Badge variant={categoryVariants[item.category] || 'default'} className="font-semibold">
+            {item.category}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (item) => (
+        <Badge variant={item.isActive ? 'success' : 'default'}>
+          {item.isActive ? 'Aktif' : 'Nonaktif'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'file',
+      header: 'File Master',
+      render: (item) =>
+        item.attachmentUrl ? (
+          <a
+            href={`http://localhost:3000${item.attachmentUrl}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl transition-all border border-indigo-200"
+          >
+            <Download size={13} /> Unduh File
+          </a>
+        ) : (
+          <span className="text-xs text-slate-400 italic bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/60 w-max inline-block">
+            Belum ada berkas
+          </span>
+        ),
+    },
+    ...(canManageTemplates
+      ? [
+          {
+            key: 'actions',
+            header: 'Aksi',
+            render: (item: LetterTemplate) => (
+              <div className="flex justify-end">
+                <ActionButtons
+                  onEdit={() => openModal(item)}
+                  onDelete={() => handleDelete(item.id, item.name)}
+                />
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto page-enter">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-        <PageHeader 
-          title="Template Surat" 
-          subtitle="Kelola Kop Surat dan Bank File Template"
-        />
-        {activeTab === 'TEMPLATE' && canManageTemplates && (
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => openModal()}>
-            <Plus size={18} />
-            <span>Upload Template Baru</span>
-          </button>
-        )}
-      </div>
+  const hasActiveFilters = searchTerm !== '' || filterCategory !== 'ALL' || filterStatus !== 'ALL';
 
-      <div className="flex bg-gray-100/80 p-1 rounded-xl w-max mb-6 border border-gray-200/50">
+  return (
+    <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
+      {/* 1. Header Halaman */}
+      <PageHeader
+        title="Template & Kop Surat"
+        subtitle="Kelola standardisasi format kop surat resmi dan bank template dokumen sekolah"
+      />
+
+      {/* 2. Modern Tab Switcher */}
+      <div className="flex bg-slate-100/80 p-1.5 rounded-2xl w-max border border-slate-200/60 shadow-inner">
         <button
-          className={`px-5 py-2.5 text-sm font-semibold rounded-lg flex items-center gap-2 transition-all ${
-            activeTab === 'KOP_SURAT' 
-              ? 'bg-white text-indigo-700 shadow-sm border border-gray-200/50' 
-              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+          className={`px-5 py-2.5 text-xs md:text-sm font-semibold rounded-xl flex items-center gap-2 transition-all ${
+            activeTab === 'KOP_SURAT'
+              ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
           }`}
           onClick={() => setActiveTab('KOP_SURAT')}
         >
-          <Settings size={16} /> Pengaturan Kop Surat
+          <Settings size={16} />
+          <span>Pengaturan Kop Surat</span>
         </button>
         <button
-          className={`px-5 py-2.5 text-sm font-semibold rounded-lg flex items-center gap-2 transition-all ${
-            activeTab === 'TEMPLATE' 
-              ? 'bg-white text-indigo-700 shadow-sm border border-gray-200/50' 
-              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+          className={`px-5 py-2.5 text-xs md:text-sm font-semibold rounded-xl flex items-center gap-2 transition-all ${
+            activeTab === 'TEMPLATE'
+              ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
           }`}
           onClick={() => setActiveTab('TEMPLATE')}
         >
-          <FileText size={16} /> Bank File Template
+          <FileText size={16} />
+          <span>Bank File Template</span>
         </button>
       </div>
 
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center text-gray-500 font-medium">Memuat data...</div>
-        ) : activeTab === 'KOP_SURAT' && profile ? (
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 md:px-8 md:py-6 bg-indigo-50/50 border-b border-indigo-100">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-white text-indigo-600 flex items-center justify-center shadow-sm border border-indigo-100/50">
-                  <Settings size={24} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">Informasi Kop Surat Sekolah</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">Data ini akan digunakan sebagai header pada setiap template surat keluar.</p>
-                </div>
-              </div>
+      {/* 3. ContextAccessHeader Adaptif */}
+      {activeTab === 'KOP_SURAT' ? (
+        <ContextAccessHeader
+          icon={<Building2 size={20} />}
+          title="Pengaturan Kop Surat Sekolah"
+          subtitle="Konfigurasi logo instansi dan baris header teks kop resmi yang otomatis dicetak pada lembar surat keluar."
+          badges={[
+            {
+              label: profile?.headerText ? 'Kop Terkonfigurasi' : 'Kop Belum Disetel',
+              variant: profile?.headerText ? 'success' : 'warning',
+            },
+            {
+              label: canUpdateProfile ? 'Akses Kelola Profil' : 'Mode Hanya-Baca',
+              variant: canUpdateProfile ? 'purple' : 'default',
+            },
+          ]}
+          actions={
+            <button
+              type="button"
+              onClick={handleDownloadDocx}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200/80 shadow-sm transition-all hover:shadow"
+            >
+              <Download size={14} />
+              <span>Unduh Contoh Kop</span>
+            </button>
+          }
+        />
+      ) : (
+        <ContextAccessHeader
+          icon={<FileCode size={20} />}
+          title="Bank File Template Surat"
+          subtitle={`Kelola berkas master template surat format docx/pdf. Menampilkan ${filteredTemplates.length} dari ${templates.length} template terdaftar.`}
+          badges={[
+            {
+              label: `${templates.length} Template`,
+              variant: 'info',
+            },
+            {
+              label: `${templates.filter((t) => t.isActive).length} Aktif`,
+              variant: 'success',
+            },
+            {
+              label: canManageTemplates ? 'Akses Kelola Template' : 'Mode Hanya-Baca',
+              variant: canManageTemplates ? 'purple' : 'default',
+            },
+          ]}
+          actions={
+            canManageTemplates ? (
+              <button
+                onClick={() => openModal()}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all hover:shadow"
+              >
+                <Plus size={16} />
+                <span>Upload Template Baru</span>
+              </button>
+            ) : undefined
+          }
+        />
+      )}
+
+      {/* 4. Tab Content Area */}
+      {activeTab === 'KOP_SURAT' ? (
+        <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+          {loading ? (
+            <div className="p-12 text-center text-slate-500 font-medium flex items-center justify-center gap-2">
+              <Loader2 className="animate-spin text-indigo-600" size={20} />
+              <span>Memuat profil sekolah...</span>
             </div>
-            
+          ) : profile ? (
             <form onSubmit={handleProfileSubmit} className="flex flex-col gap-6 p-6 md:p-8 max-w-4xl">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField label="Logo Sekolah (PNG/JPG)">
-                  <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-xl border border-gray-200">
-                    {profile.logoUrl && !logoFile && (
-                      <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                        <img src={`http://localhost:3000${profile.logoUrl}`} alt="Logo" className="max-w-full max-h-full object-contain" />
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      accept=".png,.jpg,.jpeg"
-                      onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                      className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer w-full"
-                    />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <FormField label="Logo Sekolah Resmi" hint="Format yang didukung: PNG atau JPG transparan (disarankan maks. 2MB).">
+                  <div className="flex items-center gap-4 bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80">
+                    {/* Preview Logo */}
+                    <div className="w-16 h-16 bg-white rounded-xl border border-slate-200/80 p-1 flex-shrink-0 flex items-center justify-center overflow-hidden shadow-inner">
+                      {logoPreview ? (
+                        <img src={logoPreview} alt="Pratinjau Baru" className="max-w-full max-h-full object-contain" />
+                      ) : profile.logoUrl ? (
+                        <img src={`http://localhost:3000${profile.logoUrl}`} alt="Logo Sekolah" className="max-w-full max-h-full object-contain" />
+                      ) : (
+                        <Building2 size={24} className="text-slate-300" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <input
+                        type="file"
+                        accept=".png,.jpg,.jpeg"
+                        onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                        className="text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer w-full text-slate-600"
+                        disabled={!canUpdateProfile}
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        {logoFile ? `File terpilih: ${logoFile.name}` : profile.logoUrl ? 'Logo saat ini aktif' : 'Belum ada logo terunggah'}
+                      </p>
+                    </div>
                   </div>
                 </FormField>
               </div>
 
-              <FormField label="Teks Header Kop Surat" hint="Teks ini otomatis dicetak rata tengah (center) pada kop surat PDF. Kosongkan jika menggunakan sistem bawaan.">
+              <FormField 
+                label="Teks Header Kop Surat" 
+                hint="Teks ini otomatis dicetak rata tengah (center) pada bagian kop surat. Gunakan baris baru (enter) untuk memisahkan setiap tingkatan instansi."
+              >
                 <textarea
                   name="headerText"
                   value={profile.headerText || ''}
                   onChange={handleProfileChange}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900 min-h-[140px] resize-none"
-                  placeholder={"PEMERINTAH KABUPATEN TASIKMALAYA\nDINAS PENDIDIKAN\nYAYASAN BINA UMMAT AL-QOMARIYAH\nSMK YASBU AL-QOMARIYAH"}
+                  disabled={!canUpdateProfile}
+                  className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 min-h-[150px] resize-none font-medium leading-relaxed"
+                  placeholder={"PEMERINTAH DAERAH PROVINSI JAWA BARAT\nDINAS PENDIDIKAN\nSMK NEGERI CONTOH\nJl. Pendidikan No. 123, Telp. (022) 123456"}
                 />
               </FormField>
 
-              <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row gap-3 mt-4">
+              <div className="pt-5 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-3">
                 {canUpdateProfile && (
-                  <button type="submit" className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm w-full sm:w-auto" disabled={profileSaving}>
-                    {profileSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}
+                  <button 
+                    type="submit" 
+                    className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-xs md:text-sm flex items-center justify-center gap-2 w-full sm:w-auto" 
+                    disabled={profileSaving}
+                  >
+                    {profileSaving && <Loader2 className="animate-spin" size={16} />}
+                    <span>{profileSaving ? 'Menyimpan Perubahan...' : 'Simpan Pengaturan Kop'}</span>
                   </button>
                 )}
-                <button type="button" className="px-5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors border border-gray-200 shadow-sm" onClick={handleDownloadDocx}>
-                  <Download size={16} /> Unduh Contoh Kop
+                <button 
+                  type="button" 
+                  className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs md:text-sm font-semibold flex items-center justify-center gap-2 transition-colors border border-slate-200 shadow-sm w-full sm:w-auto" 
+                  onClick={handleDownloadDocx}
+                >
+                  <Download size={16} /> 
+                  <span>Unduh Format Template Docx</span>
                 </button>
               </div>
             </form>
-          </div>
-        ) : (
-          <DataTable 
-            columns={columns}
-            data={templates}
-            loading={loading}
-            emptyMessage="Belum ada template surat"
-          />
-        )}
-      </div>
+          ) : (
+            <div className="p-8 text-center text-slate-500">Gagal memuat informasi profil sekolah.</div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Filter Bar Glassmorphism (Standar Pengumuman) */}
+          <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-4 md:p-5">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2 text-indigo-600">
+                <Filter size={18} />
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Filter & Pencarian Template
+                </h3>
+              </div>
+              {hasActiveFilters && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFilterCategory('ALL');
+                    setFilterStatus('ALL');
+                    setCurrentPage(1);
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs text-rose-600 hover:text-rose-700 font-medium px-2.5 py-1 rounded-lg hover:bg-rose-50 transition-colors"
+                >
+                  <RotateCcw size={13} />
+                  Reset Filter
+                </button>
+              )}
+            </div>
 
-      {/* Modal Form Template */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+              <div className="md:col-span-2">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">
+                  Pencarian
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Cari berdasarkan nama atau kode template..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="input-std w-full pl-9 pr-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">
+                  Kategori
+                </label>
+                <select
+                  value={filterCategory}
+                  onChange={(e) => {
+                    setFilterCategory(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="input-std w-full py-2 px-3 text-sm truncate"
+                >
+                  <option value="ALL">Semua Kategori</option>
+                  <option value="UMUM">UMUM</option>
+                  <option value="PANGGILAN">PANGGILAN</option>
+                  <option value="UNDANGAN">UNDANGAN</option>
+                  <option value="KETERANGAN">KETERANGAN</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">
+                  Status
+                </label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => {
+                    setFilterStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="input-std w-full py-2 px-3 text-sm truncate"
+                >
+                  <option value="ALL">Semua Status</option>
+                  <option value="ACTIVE">Aktif Saja</option>
+                  <option value="INACTIVE">Nonaktif Saja</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* DataTable Card */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+            <DataTable 
+              columns={columns}
+              data={paginatedTemplates}
+              loading={loading}
+              emptyMessage={
+                hasActiveFilters 
+                  ? "Tidak ada template surat yang cocok dengan filter yang dipilih." 
+                  : "Belum ada template surat yang terdaftar."
+              }
+            />
+
+            {/* Pagination Component */}
+            {!loading && filteredTemplates.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredTemplates.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(val) => {
+                  setItemsPerPage(val);
+                  setCurrentPage(1);
+                }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Form Template Surat */}
       <Modal
         open={isModalOpen}
         onClose={closeModal}
@@ -342,25 +667,29 @@ export const LetterTemplates: React.FC = () => {
       >
         <div className="p-6">
           <form id="template-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
-            {error && <div className="mb-2 p-4 bg-red-50 text-red-700 text-sm rounded-xl border border-red-200 font-medium">{error}</div>}
+            {error && (
+              <div className="p-4 bg-red-50 text-red-700 text-sm rounded-xl border border-red-200 font-medium">
+                {error}
+              </div>
+            )}
             
             <FormField label="Nama Template" required>
               <input
                 type="text"
                 name="name"
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900 font-bold"
+                className="input-std w-full px-4 py-2.5 text-sm font-bold text-slate-900"
                 value={formData.name}
                 onChange={handleInputChange}
                 required
-                placeholder="Misal: Surat Keterangan Aktif"
+                placeholder="Misal: Surat Keterangan Aktif Belajar"
               />
             </FormField>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField label="Kategori">
+              <FormField label="Kategori" required>
                 <select
                   name="category"
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer font-medium text-gray-900"
+                  className="input-std w-full px-4 py-2.5 text-sm font-medium text-slate-900"
                   value={formData.category}
                   onChange={handleInputChange}
                 >
@@ -376,7 +705,7 @@ export const LetterTemplates: React.FC = () => {
                   <input
                     type="text"
                     name="code"
-                    className="flex-1 min-w-0 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all uppercase font-mono font-semibold"
+                    className="input-std flex-1 min-w-0 px-4 py-2.5 text-sm uppercase font-mono font-semibold"
                     value={formData.code}
                     onChange={handleInputChange}
                     required
@@ -384,7 +713,7 @@ export const LetterTemplates: React.FC = () => {
                   />
                   <button
                     type="button"
-                    className="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors whitespace-nowrap shrink-0"
+                    className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 transition-colors whitespace-nowrap shrink-0"
                     onClick={() => setFormData(prev => ({ ...prev, code: generateLetterTemplateCode(prev.category, prev.name) }))}
                     title="Buat kode acak otomatis"
                   >
@@ -394,20 +723,26 @@ export const LetterTemplates: React.FC = () => {
               </FormField>
             </div>
 
-            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-              <FormField label="File Master (.docx / .pdf)" hint="Upload file surat master yang sudah terdapat layout kop/isi standar." required={!editingId}>
+            <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/70">
+              <FormField 
+                label="Berkas Master Template (.docx / .pdf)" 
+                hint="Unggah file surat master yang sudah memiliki format standar layout dokumen." 
+                required={!editingId}
+              >
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="text-sm mt-2 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition-colors w-full bg-white p-1 rounded-xl border border-gray-200"
+                  className="text-xs mt-2 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 transition-colors w-full bg-white p-1.5 rounded-xl border border-slate-200"
                   required={!editingId}
                 />
               </FormField>
             </div>
 
-            <div className="pt-2">
-              <label className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-colors w-full ${formData.isActive ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>
+            <div>
+              <label className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-colors w-full ${
+                formData.isActive ? 'bg-emerald-50/60 border-emerald-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+              }`}>
                 <input
                   type="checkbox"
                   name="isActive"
@@ -417,18 +752,47 @@ export const LetterTemplates: React.FC = () => {
                 />
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${formData.isActive ? 'bg-emerald-500' : 'bg-gray-400'}`}></div>
-                  <span className={`text-sm font-semibold ${formData.isActive ? 'text-emerald-900' : 'text-gray-700'}`}>Template Aktif (Dapat digunakan)</span>
+                  <span className={`text-sm font-semibold ${formData.isActive ? 'text-emerald-900' : 'text-slate-700'}`}>
+                    Template Aktif (Dapat dipilih saat pembuatan surat keluar)
+                  </span>
                 </div>
               </label>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100 mt-2">
-              <button type="button" className="px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-colors" onClick={closeModal}>Batal</button>
-              <button type="submit" className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm">Simpan Template</button>
+            <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 mt-2">
+              <button 
+                type="button" 
+                className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 transition-colors text-xs md:text-sm" 
+                onClick={closeModal}
+                disabled={isSubmitting}
+              >
+                Batal
+              </button>
+              <button 
+                type="submit" 
+                className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-xs md:text-sm flex items-center gap-2"
+                disabled={isSubmitting}
+              >
+                {isSubmitting && <Loader2 className="animate-spin" size={16} />}
+                <span>{editingId ? 'Simpan Perubahan' : 'Simpan Template'}</span>
+              </button>
             </div>
           </form>
         </div>
       </Modal>
+
+      {/* 5. Modern ConfirmDialog */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant={confirmDialog.variant}
+        onConfirm={async () => {
+          await confirmDialog.action();
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+        }}
+        onClose={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
+      />
     </div>
   );
 };

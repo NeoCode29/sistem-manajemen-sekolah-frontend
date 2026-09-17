@@ -1,15 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { type Employee, getPositions, type Position } from '../../api/employeeService';
 import { getRoles, type Role } from '../../api/rbacService';
 import { useEmployees } from '../../hooks/useEmployees';
 import { usePermissions } from '../../hooks/usePermissions';
-import { Plus, CheckCircle, XCircle, Search, Filter, ChevronDown, RefreshCw, Archive, UserCheck } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, RefreshCw, Archive, UserCheck, Loader2, Search, Filter, RotateCcw, Briefcase } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
-import { useDialog } from '../../contexts/DialogContext';
-import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import { PageHeader, Modal, FormField, Badge, Select, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/feedback';
 
 interface EmployeeForm {
   positionId: string;
@@ -39,6 +38,7 @@ export const Employees: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPosition, setFilterPosition] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const { items, meta, loading, create, update, remove, restore } = useEmployees({
     page: currentPage,
@@ -47,6 +47,7 @@ export const Employees: React.FC = () => {
     positionId: filterPosition || undefined,
     isDeleted: activeTab === 'deleted'
   });
+
   const { hasPermission } = usePermissions();
   const canCreateEmployee = hasPermission('employees.create') || hasPermission('employees.write');
   const canEditEmployee = hasPermission('employees.update') || hasPermission('employees.write');
@@ -55,10 +56,26 @@ export const Employees: React.FC = () => {
 
   const [positions, setPositions] = useState<Position[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const { showConfirm, showAlert } = useDialog();
 
   const [modal, setModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
   const [form, setForm] = useState<EmployeeForm>(DEFAULT_FORM);
+
+  // ConfirmDialog State
+  const [confirmConfig, setConfirmConfig] = useState<{
+    open: boolean;
+    variant: ConfirmVariant;
+    title: string;
+    message: React.ReactNode;
+    confirmText: string;
+    onConfirm: () => Promise<void> | void;
+  }>({
+    open: false,
+    variant: 'danger',
+    title: '',
+    message: '',
+    confirmText: 'Lanjutkan',
+    onConfirm: () => {},
+  });
 
   const setField = (field: keyof EmployeeForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
@@ -99,49 +116,57 @@ export const Employees: React.FC = () => {
 
   const handleToggle = async (emp: Employee) => {
     try { 
-      await update(emp.id, { isActive: !emp.isActive }); 
-      toast.success('Status pegawai berhasil diubah');
+      const nextStatus = !emp.isActive;
+      await update(emp.id, { isActive: nextStatus }); 
+      notify.success(`Status akun "${emp.fullName}" berhasil diubah menjadi ${nextStatus ? 'Aktif' : 'Nonaktif'}`);
     } 
     catch (err: any) { 
-      showAlert(err.response?.data?.message || 'Gagal merubah status pegawai', 'Error', 'error'); 
+      notify.error(err, 'Gagal mengubah status pegawai'); 
     }
   };
 
-  const handleRestore = (id: string) => {
-    showConfirm(
-      'Apakah Anda yakin ingin memulihkan (restore) data pegawai/guru ini dari Archive?',
-      async () => {
+  const handleRestore = (emp: Employee) => {
+    setConfirmConfig({
+      open: true,
+      variant: 'info',
+      title: `Pulihkan Pegawai "${emp.fullName}"`,
+      message: `Apakah Anda yakin ingin memulihkan data pegawai "${emp.fullName}" (NIP: ${emp.employeeNumber}) dari Archive kembali ke daftar Pegawai Aktif?`,
+      confirmText: 'Ya, Pulihkan Pegawai',
+      onConfirm: async () => {
         try {
-          await restore(id);
-          toast.success('Data pegawai berhasil dipulihkan dari Archive');
-          showAlert('Data pegawai berhasil dipulihkan dari Archive.', 'Berhasil', 'success');
+          await restore(emp.id);
+          notify.success(`Data pegawai "${emp.fullName}" berhasil dipulihkan dari Archive!`);
+          setConfirmConfig(prev => ({ ...prev, open: false }));
         } catch (err: any) {
-          showAlert(err.response?.data?.message || 'Gagal memulihkan data pegawai.', 'Gagal Memulihkan', 'error');
+          notify.error(err, 'Gagal memulihkan data pegawai');
         }
       },
-      'Konfirmasi Pemulihan'
-    );
+    });
   };
 
-  const handleDelete = (id: string) => {
-    showConfirm(
-      'Apakah Anda yakin ingin memindahkan data pegawai/guru ini ke dalam Archive?',
-      async () => {
+  const handleDelete = (emp: Employee) => {
+    setConfirmConfig({
+      open: true,
+      variant: 'danger',
+      title: `Arsipkan Pegawai "${emp.fullName}"`,
+      message: `Apakah Anda yakin ingin memindahkan pegawai "${emp.fullName}" (NIP: ${emp.employeeNumber}) ke dalam Archive? Pegawai tidak akan muncul pada daftar operasional harian.`,
+      confirmText: 'Ya, Arsipkan Data',
+      onConfirm: async () => {
         try {
-          await remove(id);
-          toast.success('Pegawai berhasil dipindahkan ke Archive');
-          showAlert('Data pegawai berhasil dipindahkan ke Archive.', 'Berhasil', 'success');
+          await remove(emp.id);
+          notify.success(`Pegawai "${emp.fullName}" berhasil dipindahkan ke Archive!`);
+          setConfirmConfig(prev => ({ ...prev, open: false }));
         } catch (err: any) {
-          showAlert(err.response?.data?.message || 'Gagal mengarsipkan data pegawai.', 'Peringatan Penghapusan', 'error');
+          notify.error(err, 'Gagal mengarsipkan data pegawai');
         }
       },
-      'Konfirmasi Hapus'
-    );
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setSubmitting(true);
       const payload: any = {
         positionId: form.positionId,
         employeeNumber: form.employeeNumber,
@@ -163,82 +188,165 @@ export const Employees: React.FC = () => {
 
       if (modal.editId) {
         await update(modal.editId, payload);
-        toast.success('Berhasil memperbarui data pegawai');
+        notify.success('Berhasil memperbarui data pegawai!');
       } else {
         await create(payload);
-        toast.success('Berhasil menambahkan pegawai');
+        notify.success('Berhasil menambahkan pegawai baru!');
       }
       closeModal();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
+      notify.error(err, 'Terjadi kesalahan saat menyimpan data pegawai');
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const positionOptions = useMemo(() => {
+    return [
+      { value: '', label: 'Semua Jabatan' },
+      ...positions.map(pos => ({ value: pos.id, label: pos.name }))
+    ];
+  }, [positions]);
+
   const columns: Column<Employee>[] = [
-    { key: 'employeeNumber', header: 'NIP/NIK', render: (emp) => <span className="font-semibold text-gray-700">{emp.employeeNumber}</span> },
-    { key: 'fullName', header: 'Nama Lengkap', render: (emp) => <span className="font-semibold text-gray-900">{emp.fullName}</span> },
-    { key: 'position', header: 'Jabatan', render: (emp) => emp.position?.name || <span className="text-gray-400 italic">Tidak ada</span> },
-    { key: 'contact', header: 'Kontak', render: (emp) => (
-      <div className="flex flex-col">
-        <span className="text-gray-900 font-medium">{emp.email || '-'}</span>
-        <span className="text-gray-500 text-xs">{emp.phone || '-'}</span>
-      </div>
-    ) },
-    { key: 'employmentStatus', header: 'Status Pegawai', render: (emp) => (
-      <Badge variant={emp.employmentStatus === 'Aktif' ? 'success' : emp.employmentStatus === 'Resign' ? 'danger' : 'warning'}>
-        {emp.employmentStatus || '-'}
-      </Badge>
-    ) },
-    { key: 'isActive', header: 'Status Akun', render: (emp) => (
-      <Badge variant={emp.isActive ? 'success' : 'default'}>{emp.isActive ? 'Aktif' : 'Tidak Aktif'}</Badge>
-    ) }
+    { 
+      key: 'employeeNumber', 
+      header: 'NIP / NIK', 
+      render: (emp) => (
+        <span className="font-mono text-xs font-semibold text-gray-700 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-200">
+          {emp.employeeNumber}
+        </span>
+      ) 
+    },
+    { 
+      key: 'fullName', 
+      header: 'Nama Lengkap', 
+      render: (emp) => (
+        <div className="flex flex-col">
+          <span 
+            className="font-semibold text-gray-900 block max-w-[180px] md:max-w-[220px] truncate" 
+            title={emp.fullName}
+          >
+            {emp.fullName}
+          </span>
+          <span className="text-xs text-gray-400">{emp.gender || '-'}</span>
+        </div>
+      ) 
+    },
+    { 
+      key: 'position', 
+      header: 'Jabatan', 
+      render: (emp) => (
+        emp.position?.name ? (
+          <span 
+            className="text-gray-700 font-medium block max-w-[150px] md:max-w-[180px] truncate" 
+            title={emp.position.name}
+          >
+            {emp.position.name}
+          </span>
+        ) : (
+          <span className="text-gray-400 italic text-xs">Belum ada jabatan</span>
+        )
+      )
+    },
+    { 
+      key: 'contact', 
+      header: 'Kontak', 
+      render: (emp) => (
+        <div className="flex flex-col text-xs">
+          <span 
+            className="text-gray-900 font-medium block max-w-[160px] md:max-w-[200px] truncate" 
+            title={emp.email || ''}
+          >
+            {emp.email || '-'}
+          </span>
+          <span className="text-gray-500">{emp.phone || '-'}</span>
+        </div>
+      ) 
+    },
+    { 
+      key: 'employmentStatus', 
+      header: 'Status Pegawai', 
+      render: (emp) => (
+        <Badge variant={emp.employmentStatus === 'Aktif' ? 'success' : emp.employmentStatus === 'Resign' ? 'danger' : 'warning'}>
+          {emp.employmentStatus || '-'}
+        </Badge>
+      ) 
+    },
+    { 
+      key: 'isActive', 
+      header: 'Status Akun', 
+      render: (emp) => (
+        <Badge variant={emp.isActive ? 'success' : 'default'}>
+          {emp.isActive ? 'Aktif' : 'Tidak Aktif'}
+        </Badge>
+      ) 
+    }
   ];
 
   if (hasActions) {
-    columns.push({ key: 'actions', header: 'Aksi', render: (emp) => (
-      <div className="flex items-center gap-1 justify-end">
-        {activeTab === 'active' ? (
-          <>
-            {canEditEmployee && (
-              <button 
-                className={`p-1.5 rounded-lg transition-colors ${emp.isActive ? 'text-red-500 hover:bg-red-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
-                onClick={() => handleToggle(emp)}
-                title={emp.isActive ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
-              >
-                {emp.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
-              </button>
-            )}
-            <ActionButtons 
-              onEdit={canEditEmployee ? () => openEdit(emp) : undefined} 
-              onDelete={canDeleteEmployee ? () => handleDelete(emp.id) : undefined} 
-            />
-          </>
-        ) : canDeleteEmployee ? (
-          <button
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-semibold transition-colors shadow-sm"
-            onClick={() => handleRestore(emp.id)}
-            title="Pulihkan Pegawai dari Archive"
-          >
-            <RefreshCw size={14} />
-            <span>Pulihkan</span>
-          </button>
-        ) : null}
-      </div>
-    ) });
+    columns.push({ 
+      key: 'actions', 
+      header: 'Aksi', 
+      render: (emp) => (
+        <div className="flex items-center gap-1.5 justify-end">
+          {activeTab === 'active' ? (
+            <>
+              {canEditEmployee && (
+                <button 
+                  type="button"
+                  className={`p-1.5 rounded-xl transition-colors ${
+                    emp.isActive ? 'text-gray-400 hover:text-red-600 hover:bg-red-50' : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50'
+                  }`}
+                  onClick={() => handleToggle(emp)}
+                  title={emp.isActive ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+                >
+                  {emp.isActive ? <XCircle size={16} /> : <CheckCircle size={16} />}
+                </button>
+              )}
+              <ActionButtons 
+                onEdit={canEditEmployee ? () => openEdit(emp) : undefined} 
+                onDelete={canDeleteEmployee ? () => handleDelete(emp) : undefined} 
+              />
+            </>
+          ) : canDeleteEmployee ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-xs font-semibold transition-colors shadow-sm"
+              onClick={() => handleRestore(emp)}
+              title="Pulihkan Pegawai dari Archive"
+            >
+              <RefreshCw size={13} />
+              <span>Pulihkan</span>
+            </button>
+          ) : null}
+        </div>
+      ) 
+    });
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto page-enter">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-        <PageHeader title="Pegawai & Guru" subtitle="Manajemen data pegawai dan tenaga pendidik" />
-        {canCreateEmployee && activeTab === 'active' && (
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm" onClick={openAdd}>
-            <Plus size={18} /> Tambah Pegawai Baru
-          </button>
-        )}
-      </div>
+    <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
+      {/* 1. Page Header */}
+      <PageHeader 
+        title="Pegawai & Guru" 
+        subtitle="Manajemen data pegawai, tenaga pendidik, dan akun sistem sekolah"
+        action={
+          canCreateEmployee && activeTab === 'active' ? (
+            <button 
+              type="button"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors" 
+              onClick={openAdd}
+            >
+              <Plus size={16} /> 
+              <span>Tambah Pegawai Baru</span>
+            </button>
+          ) : undefined
+        }
+      />
 
-      <div className="flex gap-6 mb-6 border-b border-gray-200">
+      {/* 2. Tabs Navigation (Aktif vs Archive) */}
+      <div className="flex gap-6 border-b border-gray-200">
         <button
           type="button"
           className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 ${
@@ -267,96 +375,253 @@ export const Employees: React.FC = () => {
         </button>
       </div>
 
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 p-4 flex flex-col md:flex-row gap-4">
-        <div className="flex-1 relative group">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-          <input type="text" className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" placeholder="Cari NIP, NIK, atau Nama Pegawai..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+      {/* 4. Filter Bar Pola Log Mesin (Hardware Logs Filter Pattern) */}
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-wrap gap-4 items-end">
+        <div className="flex-1 min-w-[220px]">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Pencarian Pegawai
+          </label>
+          <div className="relative group">
+            <Search 
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" 
+              size={16} 
+            />
+            <input
+              type="text"
+              placeholder="Cari NIP, NIK, atau Nama Pegawai..."
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
         </div>
+
         {activeTab === 'active' && (
-          <div className="w-full md:w-64 relative group">
-            <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors z-10" size={18} />
-            <select className="w-full pl-10 pr-10 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer relative z-0" value={filterPosition} onChange={(e) => setFilterPosition(e.target.value)}>
-              <option value="">Semua Jabatan</option>
-              {positions.map(pos => <option key={pos.id} value={pos.id}>{pos.name}</option>)}
-            </select>
-            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+          <div className="w-full sm:w-52 min-w-[180px]">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+              Jabatan / Posisi
+            </label>
+            <div className="relative group">
+              <Briefcase 
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" 
+                size={16} 
+              />
+              <select
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
+                value={filterPosition}
+                onChange={(e) => {
+                  setFilterPosition(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                {positionOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {(searchTerm || filterPosition) && (
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm('');
+                setFilterPosition('');
+                setCurrentPage(1);
+              }}
+              className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-rose-200 shadow-sm"
+              title="Reset Filter"
+            >
+              <RotateCcw size={14} />
+              <span>Reset</span>
+            </button>
           </div>
         )}
       </div>
 
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 flex flex-col">
+      {/* 5. Data Table */}
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
         <DataTable
-          containerClassName="w-full overflow-x-auto"
           columns={columns}
           data={items}
           loading={loading}
-          emptyMessage={activeTab === 'active' ? 'Belum ada data pegawai.' : 'Tidak ada data pegawai dalam archive.'}
+          emptyMessage={
+            activeTab === 'active' 
+              ? (searchTerm || filterPosition ? 'Tidak ada pegawai yang cocok dengan kriteria filter.' : 'Belum ada data pegawai.')
+              : 'Tidak ada data pegawai dalam archive.'
+          }
         />
 
         {!loading && meta?.totalPages > 0 && (
-          <Pagination currentPage={currentPage} totalPages={meta.totalPages} totalItems={meta.total} itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={(limit) => { setItemsPerPage(limit); setCurrentPage(1); }} />
+          <div className="p-4 border-t border-gray-100">
+            <Pagination 
+              currentPage={currentPage} 
+              totalPages={meta.totalPages} 
+              totalItems={meta.total} 
+              itemsPerPage={itemsPerPage} 
+              onPageChange={setCurrentPage} 
+              onItemsPerPageChange={(limit) => { setItemsPerPage(limit); setCurrentPage(1); }} 
+            />
+          </div>
         )}
       </div>
 
+      {/* 5. Modal Tambah / Edit Pegawai */}
       <Modal 
         open={modal.open} 
         onClose={closeModal} 
-        title={modal.editId ? 'Edit Pegawai' : 'Tambah Pegawai'} 
+        title={modal.editId ? 'Edit Data Pegawai' : 'Tambah Pegawai Baru'} 
         size="lg"
-        footer={
-          <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
-            <button type="button" className="btn-std-secondary" onClick={closeModal}>Batal</button>
-            <button type="button" className="btn-std-primary" onClick={handleSubmit}>Simpan Data</button>
-          </div>
-        }
       >
         <form id="employee-form" onSubmit={handleSubmit} className="flex flex-col gap-6 p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="md:col-span-2">
               <FormField label="Jabatan Utama" required>
-                <select className="input-std" value={form.positionId} onChange={setField('positionId')} required>
-                  <option value="">-- Pilih Jabatan --</option>
-                  {positions.map(pos => <option key={pos.id} value={pos.id}>{pos.name}</option>)}
-                </select>
+                <Select
+                  wrapperClassName="w-full"
+                  value={form.positionId}
+                  onChange={setField('positionId')}
+                  options={[
+                    { value: '', label: '-- Pilih Jabatan --' },
+                    ...positions.map(pos => ({ value: pos.id, label: pos.name }))
+                  ]}
+                  required
+                />
               </FormField>
             </div>
-            <FormField label="NIP / NIK / No. Induk" required><input type="text" className="input-std" value={form.employeeNumber} onChange={setField('employeeNumber')} required /></FormField>
-            <FormField label="Nama Lengkap" required><input type="text" className="input-std" value={form.fullName} onChange={setField('fullName')} required /></FormField>
-            <FormField label="Email"><input type="email" className="input-std" value={form.email} onChange={setField('email')} /></FormField>
-            <FormField label="No. HP / Telepon"><input type="text" className="input-std" value={form.phone} onChange={setField('phone')} /></FormField>
+            
+            <FormField label="NIP / NIK / No. Induk" required>
+              <input 
+                type="text" 
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono" 
+                value={form.employeeNumber} 
+                onChange={setField('employeeNumber')} 
+                placeholder="Contoh: 198501012010011001"
+                required 
+              />
+            </FormField>
+
+            <FormField label="Nama Lengkap" required>
+              <input 
+                type="text" 
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+                value={form.fullName} 
+                onChange={setField('fullName')} 
+                placeholder="Nama lengkap beserta gelar"
+                required 
+              />
+            </FormField>
+
+            <FormField label="Email">
+              <input 
+                type="email" 
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+                value={form.email} 
+                onChange={setField('email')} 
+                placeholder="email@sekolah.sch.id"
+              />
+            </FormField>
+
+            <FormField label="No. HP / WhatsApp">
+              <input 
+                type="text" 
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+                value={form.phone} 
+                onChange={setField('phone')} 
+                placeholder="08123456789"
+              />
+            </FormField>
+
             <FormField label="Jenis Kelamin">
-              <select className="input-std" value={form.gender} onChange={setField('gender')}>
-                <option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option>
-              </select>
+              <Select
+                wrapperClassName="w-full"
+                value={form.gender}
+                onChange={setField('gender')}
+                options={[
+                  { value: 'Laki-laki', label: 'Laki-laki' },
+                  { value: 'Perempuan', label: 'Perempuan' }
+                ]}
+              />
             </FormField>
+
             <FormField label="Status Kepegawaian">
-              <select className="input-std" value={form.employmentStatus} onChange={setField('employmentStatus')}>
-                <option value="Aktif">Aktif Bekerja</option><option value="Cuti">Sedang Cuti</option><option value="Resign">Resign</option><option value="Pensiun">Pensiun</option>
-              </select>
+              <Select
+                wrapperClassName="w-full"
+                value={form.employmentStatus}
+                onChange={setField('employmentStatus')}
+                options={[
+                  { value: 'Aktif', label: 'Aktif Bekerja' },
+                  { value: 'Cuti', label: 'Sedang Cuti' },
+                  { value: 'Resign', label: 'Resign' },
+                  { value: 'Pensiun', label: 'Pensiun' }
+                ]}
+              />
             </FormField>
+
             <div className="md:col-span-2">
-              <FormField label="URL / Path Tanda Tangan (Opsional)">
-                <input type="text" className="input-std" value={form.signatureUrl} onChange={setField('signatureUrl')} placeholder="Contoh: /uploads/signatures/guru1.png" />
-                <p className="text-xs text-gray-500 mt-1.5">Digunakan untuk ttd otomatis di Raport jika bertugas sebagai Wali Kelas.</p>
+              <FormField label="URL / Path Tanda Tangan (Opsional)" hint="Digunakan untuk tanda tangan otomatis di Raport jika bertugas sebagai Wali Kelas.">
+                <input 
+                  type="text" 
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+                  value={form.signatureUrl} 
+                  onChange={setField('signatureUrl')} 
+                  placeholder="Contoh: /uploads/signatures/guru1.png" 
+                />
               </FormField>
             </div>
 
             {!modal.editId ? (
-              <div className="md:col-span-2 bg-indigo-50/50 border border-indigo-100 rounded-xl p-5 mt-2">
-                <label className="flex items-center gap-3 cursor-pointer font-medium text-gray-800 mb-4">
-                  <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked={form.createAccount} onChange={setField('createAccount')} />
+              <div className="md:col-span-2 bg-indigo-50/50 border border-indigo-100 rounded-2xl p-5 mt-2">
+                <label className="flex items-center gap-3 cursor-pointer font-semibold text-gray-900 mb-4">
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" 
+                    checked={form.createAccount} 
+                    onChange={setField('createAccount')} 
+                  />
                   Buat Akun Login untuk Pegawai Ini
                 </label>
                 {form.createAccount && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
-                    <FormField label="Username" required><input type="text" className="input-std" value={form.username} onChange={setField('username')} required={form.createAccount} placeholder="Contoh: guru_budi" /></FormField>
-                    <FormField label="Password" required><input type="password" className="input-std" value={form.password} onChange={setField('password')} required={form.createAccount} placeholder="Minimal 6 karakter" /></FormField>
+                    <FormField label="Username" required>
+                      <input 
+                        type="text" 
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+                        value={form.username} 
+                        onChange={setField('username')} 
+                        required={form.createAccount} 
+                        placeholder="Contoh: guru_budi" 
+                      />
+                    </FormField>
+                    <FormField label="Password" required>
+                      <input 
+                        type="password" 
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+                        value={form.password} 
+                        onChange={setField('password')} 
+                        required={form.createAccount} 
+                        placeholder="Minimal 6 karakter" 
+                      />
+                    </FormField>
                     <div className="md:col-span-2">
-                      <FormField label="Peran (Role)" required>
-                        <select className="input-std" value={form.roleId} onChange={setField('roleId')} required={form.createAccount}>
-                          <option value="">-- Pilih Peran --</option>
-                          {roles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
-                        </select>
+                      <FormField label="Peran Akun (Role)" required>
+                        <Select
+                          wrapperClassName="w-full"
+                          value={form.roleId}
+                          onChange={setField('roleId')}
+                          options={[
+                            { value: '', label: '-- Pilih Peran Akun --' },
+                            ...roles.map(role => ({ value: role.id, label: role.name }))
+                          ]}
+                          required={form.createAccount}
+                        />
                       </FormField>
                     </div>
                   </div>
@@ -365,14 +630,60 @@ export const Employees: React.FC = () => {
             ) : (
               <div className="md:col-span-2">
                 <label className="flex items-center gap-3 cursor-pointer text-gray-700 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                  <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked={form.isActive} onChange={setField('isActive')} />
-                  <span className="text-sm font-medium">Status Pegawai Aktif <span className="font-normal text-gray-500 block mt-0.5">(Menonaktifkan ini akan mematikan akun loginnya juga)</span></span>
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" 
+                    checked={form.isActive} 
+                    onChange={setField('isActive')} 
+                  />
+                  <span className="text-sm font-medium">
+                    Status Pegawai Aktif 
+                    <span className="font-normal text-gray-500 block mt-0.5">
+                      (Menonaktifkan ini akan menonaktifkan akun login terkait)
+                    </span>
+                  </span>
                 </label>
               </div>
             )}
           </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+            <button 
+              type="button" 
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              onClick={closeModal}
+              disabled={submitting}
+            >
+              Batal
+            </button>
+            <button 
+              type="submit" 
+              disabled={submitting}
+              className="inline-flex items-center justify-center px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm text-sm transition-colors disabled:opacity-50"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                'Simpan Data'
+              )}
+            </button>
+          </div>
         </form>
       </Modal>
+
+      {/* 6. Standard ConfirmDialog */}
+      <ConfirmDialog
+        open={confirmConfig.open}
+        onClose={() => setConfirmConfig(prev => ({ ...prev, open: false }))}
+        variant={confirmConfig.variant}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmText={confirmConfig.confirmText}
+        onConfirm={confirmConfig.onConfirm}
+      />
     </div>
   );
 };

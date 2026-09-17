@@ -72,6 +72,29 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Premium Shimmer Wave Animation */
+@keyframes shimmerWave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #f3f4f6 0%,
+    #e5e7eb 25%,
+    #f9fafb 50%,
+    #e5e7eb 75%,
+    #f3f4f6 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmerWave 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 /* React Quill Custom Styles (Pengecualian: karena ini library pihak ketiga) */
 .ql-toolbar.ql-snow {
   @apply !bg-gray-50 !border-t-0 !border-l-0 !border-r-0 !border-b !border-indigo-100 !p-3;

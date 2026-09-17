@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { getAttendanceSetting, updateAttendanceSetting } from '../../api/attendanceService';
-import { Clock, Save, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
+import { Clock, Save, MapPin, AlertTriangle, ShieldCheck, Loader2, CheckCircle2 } from 'lucide-react';
 import { Can } from '../../components/Common/Can';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { MapLocationPicker } from '../../components/widgets/MapLocationPicker';
+import { notify } from '../../utils/feedback';
 
 export const AttendanceSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   // Form State
   const [minCheckinTime, setMinCheckinTime] = useState('');
@@ -30,28 +30,53 @@ export const AttendanceSettings: React.FC = () => {
       setLoading(true);
       const data = await getAttendanceSetting();
       if (data) {
-        setMinCheckinTime(data.minCheckinTime);
-        setMaxCheckinTime(data.maxCheckinTime);
-        setMinCheckoutTime(data.minCheckoutTime);
-        setMaxCheckoutTime(data.maxCheckoutTime);
-        setLateThreshold(data.lateThreshold);
+        setMinCheckinTime(data.minCheckinTime || '');
+        setMaxCheckinTime(data.maxCheckinTime || '');
+        setMinCheckoutTime(data.minCheckoutTime || '');
+        setMaxCheckoutTime(data.maxCheckoutTime || '');
+        setLateThreshold(data.lateThreshold || '');
         setLatitude(data.latitude ?? '');
         setLongitude(data.longitude ?? '');
         setRadiusMeter(data.radiusMeter ?? '');
-        setIsActive(data.isActive);
+        setIsActive(data.isActive ?? true);
       }
-      setError('');
     } catch (err: any) {
       if (err.response?.status !== 404) {
-        setError(err.response?.data?.message || 'Gagal memuat pengaturan absensi');
+        notify.error(err, 'Gagal memuat pengaturan absensi');
       }
     } finally {
       setLoading(false);
     }
   };
 
+  const validateTimes = (): boolean => {
+    if (!minCheckinTime || !maxCheckinTime || !lateThreshold || !minCheckoutTime || !maxCheckoutTime) {
+      notify.error('Seluruh kolom rentang jam absensi wajib diisi.');
+      return false;
+    }
+
+    if (minCheckinTime >= lateThreshold) {
+      notify.error('Waktu mulai check-in harus lebih awal dari batas keterlambatan.');
+      return false;
+    }
+
+    if (lateThreshold >= maxCheckinTime) {
+      notify.error('Batas toleransi keterlambatan harus lebih awal dari batas akhir check-in masuk.');
+      return false;
+    }
+
+    if (minCheckoutTime >= maxCheckoutTime) {
+      notify.error('Waktu mulai check-out pulang harus lebih awal dari batas akhir pulang.');
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateTimes()) return;
+
     try {
       setSaving(true);
       const payload = {
@@ -67,239 +92,285 @@ export const AttendanceSettings: React.FC = () => {
       };
 
       await updateAttendanceSetting(payload);
-      setSuccess('Pengaturan jam absensi berhasil disimpan!');
-      setTimeout(() => setSuccess(''), 3000);
-      setError('');
+      notify.success('Pengaturan jam dan lokasi absensi berhasil disimpan!');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan pengaturan');
+      notify.error(err, 'Gagal menyimpan pengaturan absensi');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto page-enter">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Pengaturan Jam Absensi</h1>
-          <p className="text-gray-500 mt-1">Atur batas waktu check-in, check-out, dan keterlambatan</p>
+    <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
+      {/* 1. Header Halaman */}
+      <PageHeader
+        title="Pengaturan Presensi"
+        subtitle="Konfigurasi rentang jam absensi kedatangan & kepulangan, toleransi keterlambatan, dan batas radius geofencing sekolah"
+        action={
+          <Can permission={['attendance_settings.manage', 'attendance.write']}>
+            <button
+              type="submit"
+              form="attendance-settings-form"
+              disabled={saving || loading}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors"
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
+            </button>
+          </Can>
+        }
+      />
+
+      {loading ? (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-16 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
+          <Loader2 className="animate-spin text-indigo-600" size={32} />
+          <p className="text-sm font-medium">Memuat konfigurasi pengaturan absensi...</p>
         </div>
-      </div>
-
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-center gap-2">
-          <AlertCircle size={18} />
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="mb-6 p-4 bg-green-50 text-green-700 border border-green-200 rounded-xl flex items-center gap-2">
-          <CheckCircle size={18} />
-          {success}
-        </div>
-      )}
-
-      <div className="bg-white/80 backdrop-blur-xl border border-white shadow-xl shadow-slate-200/40 rounded-3xl p-6 md:p-8 mb-8 transition-all duration-300 hover:shadow-2xl hover:shadow-slate-200/50">
-        <div className="flex items-center gap-3 mb-6 text-indigo-600 border-b border-indigo-100/50 pb-4">
-          <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600 shadow-sm border border-indigo-100/50">
-            <Clock size={22} className="stroke-[2.5]" />
-          </div>
-          <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-blue-600">
-            Konfigurasi Waktu Absensi
-          </h2>
-        </div>
-
-        {loading ? (
-          <div className="p-8 text-center text-gray-500">Memuat pengaturan...</div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-2 gap-6">
-
-              {/* Check-in Section */}
-              <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/80 p-6 rounded-2xl border border-blue-100/50 shadow-inner hover:shadow-md transition-all duration-300 group">
-                <div className="flex items-center gap-3 mb-5">
-                  <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-bold text-sm shadow-sm border border-blue-200/50">
-                    Masuk
-                  </span>
-                  <h3 className="font-bold text-blue-900 text-lg group-hover:text-blue-700 transition-colors">Waktu Kedatangan</h3>
-                </div>
-                <div className="grid grid-cols-1 gap-5 relative">
-                  <div className="absolute left-4 top-0 bottom-0 w-px bg-blue-200/50 -z-10 hidden sm:block"></div>
-                  <div className="form-group">
-                    <label className="text-sm font-medium text-gray-700">Mulai Check-in Masuk</label>
-                    <input
-                      type="time"
-                      className="input-std mt-1"
-                      value={minCheckinTime}
-                      onChange={(e) => setMinCheckinTime(e.target.value)}
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Waktu paling awal siswa/pegawai bisa absen masuk.</p>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="text-sm font-medium text-gray-700">Batas Check-in Masuk</label>
-                    <input
-                      type="time"
-                      className="input-std mt-1"
-                      value={maxCheckinTime}
-                      onChange={(e) => setMaxCheckinTime(e.target.value)}
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Waktu paling akhir untuk absen masuk.</p>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="text-sm font-medium text-red-600">Batas Terlambat (Late Threshold) *</label>
-                    <input
-                      type="time"
-                      className="input-std mt-1"
-                      value={lateThreshold}
-                      onChange={(e) => setLateThreshold(e.target.value)}
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Jika check-in melewati jam ini, status otomatis menjadi Terlambat.</p>
-                  </div>
-                </div>
+      ) : (
+        <form id="attendance-settings-form" onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* Card 1: Waktu & Rentang Jam Absensi */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+            {/* Standard Header Section */}
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3.5 bg-slate-50/50">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-indigo-50 text-indigo-600 border border-indigo-100 shrink-0">
+                <Clock size={20} />
               </div>
-
-              {/* Check-out Section */}
-              <div className="bg-gradient-to-br from-emerald-50/80 to-teal-50/80 p-6 rounded-2xl border border-emerald-100/50 shadow-inner hover:shadow-md transition-all duration-300 group">
-                <div className="flex items-center gap-3 mb-5">
-                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-sm shadow-sm border border-emerald-200/50">
-                    Pulang
-                  </span>
-                  <h3 className="font-bold text-emerald-900 text-lg group-hover:text-emerald-700 transition-colors">Waktu Kepulangan</h3>
-                </div>
-                <div className="grid grid-cols-1 gap-5 relative">
-                  <div className="absolute left-4 top-0 bottom-0 w-px bg-emerald-200/50 -z-10 hidden sm:block"></div>
-                  <div className="form-group">
-                    <label className="text-sm font-medium text-gray-700">Mulai Check-out Pulang</label>
-                    <input
-                      type="time"
-                      className="input-std mt-1"
-                      value={minCheckoutTime}
-                      onChange={(e) => setMinCheckoutTime(e.target.value)}
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Waktu paling awal diperbolehkan absen pulang.</p>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="text-sm font-medium text-gray-700">Batas Check-out Pulang</label>
-                    <input
-                      type="time"
-                      className="input-std mt-1"
-                      value={maxCheckoutTime}
-                      onChange={(e) => setMaxCheckoutTime(e.target.value)}
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Waktu paling akhir untuk absen pulang.</p>
-                  </div>
-                </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900 m-0">Waktu & Rentang Jam Absensi</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Batas waktu check-in kedatangan, toleransi keterlambatan, dan kepulangan</p>
               </div>
             </div>
 
-            {/* Geofencing Section */}
-            <div className="mt-8 pt-8 relative">
-              <div className="absolute top-0 left-10 right-10 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
-              
-              <div className="flex items-center gap-3 mb-6 text-purple-600">
-                <div className="p-2.5 bg-purple-50 rounded-xl text-purple-600 shadow-sm border border-purple-100/50">
-                  <MapPin size={22} className="stroke-[2.5]" />
+            {/* Body */}
+            <div className="p-6 md:p-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Sesi Masuk */}
+                <div className="bg-blue-50/40 p-5 md:p-6 rounded-2xl border border-blue-100/80 space-y-4">
+                  <div className="flex items-center gap-2 pb-3 border-b border-blue-100/80">
+                    <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold text-[11px] border border-blue-200/60">
+                      Sesi Masuk
+                    </span>
+                    <h3 className="font-bold text-slate-900 text-sm">Waktu Kedatangan</h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                        Mulai Check-in Masuk <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="time"
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono font-semibold text-slate-900"
+                        value={minCheckinTime}
+                        onChange={(e) => setMinCheckinTime(e.target.value)}
+                        required
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">Waktu paling awal siswa/pegawai dapat absen masuk.</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-amber-800 block mb-1.5 flex items-center gap-1">
+                        <AlertTriangle size={13} className="text-amber-600" />
+                        <span>Batas Toleransi Terlambat (Late Threshold) <span className="text-red-500">*</span></span>
+                      </label>
+                      <input
+                        type="time"
+                        className="w-full px-4 py-2.5 bg-amber-50/50 border border-amber-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-mono font-bold text-amber-950"
+                        value={lateThreshold}
+                        onChange={(e) => setLateThreshold(e.target.value)}
+                        required
+                      />
+                      <p className="text-[11px] text-amber-700 mt-1">Check-in setelah jam ini otomatis berstatus Terlambat.</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                        Batas Akhir Check-in Masuk <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="time"
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono font-semibold text-slate-900"
+                        value={maxCheckinTime}
+                        onChange={(e) => setMaxCheckinTime(e.target.value)}
+                        required
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">Waktu batas paling akhir diperbolehkan absen masuk.</p>
+                    </div>
+                  </div>
                 </div>
-                <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-pink-600">
-                  Pengaturan Lokasi (Geofencing)
-                </h2>
+
+                {/* Sesi Pulang */}
+                <div className="bg-emerald-50/40 p-5 md:p-6 rounded-2xl border border-emerald-100/80 space-y-4">
+                  <div className="flex items-center gap-2 pb-3 border-b border-emerald-100/80">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[11px] border border-emerald-200/60">
+                      Sesi Pulang
+                    </span>
+                    <h3 className="font-bold text-slate-900 text-sm">Waktu Kepulangan</h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                        Mulai Check-out Pulang <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="time"
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono font-semibold text-slate-900"
+                        value={minCheckoutTime}
+                        onChange={(e) => setMinCheckoutTime(e.target.value)}
+                        required
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">Waktu paling awal diperbolehkan absen pulang.</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                        Batas Akhir Check-out Pulang <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="time"
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono font-semibold text-slate-900"
+                        value={maxCheckoutTime}
+                        onChange={(e) => setMaxCheckoutTime(e.target.value)}
+                        required
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">Waktu paling akhir gerbang presensi pulang dibuka.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              
-              <div className="bg-gradient-to-br from-purple-50/80 to-fuchsia-50/80 p-6 rounded-2xl border border-purple-100/50 shadow-inner hover:shadow-md transition-all duration-300">
-                <p className="text-sm text-purple-800/80 font-medium mb-5 bg-white/50 p-3 rounded-xl inline-block border border-purple-100">
-                  <span className="mr-2">📍</span> Fitur ini membatasi area di mana siswa atau pegawai dapat melakukan absensi melalui GPS.
+
+              {/* Toggle Status Validasi Jam */}
+              <div className="bg-slate-50/70 p-4 md:p-5 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-white rounded-xl border border-slate-200 text-indigo-600 mt-0.5 shadow-2xs">
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-slate-900 cursor-pointer flex items-center gap-2">
+                      <span>Validasi Aturan Jam Absensi</span>
+                      {isActive ? (
+                        <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Aktif</span>
+                      ) : (
+                        <span className="text-[11px] font-semibold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">Nonaktif</span>
+                      )}
+                    </label>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Jika aktif, sistem dan mesin biometrik akan memberlakukan validasi jam masuk dan pulang secara otomatis.
+                    </p>
+                  </div>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer shrink-0 self-end sm:self-center">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Lokasi & Geofencing GPS */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+            {/* Standard Header Section */}
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3.5 bg-slate-50/50">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-50 text-purple-600 border border-purple-100 shrink-0">
+                <MapPin size={20} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900 m-0">Lokasi & Geofencing GPS</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Titik koordinat sekolah dan batas radius meter toleransi presensi</p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 md:p-8 space-y-6">
+              {/* Info callout */}
+              <div className="bg-purple-50/60 p-4 rounded-xl border border-purple-100 flex items-center gap-3 text-purple-900 text-xs">
+                <span className="text-base">📍</span>
+                <p className="font-medium leading-relaxed">
+                  Pilih lokasi titik pusat sekolah pada peta interaktif di bawah atau masukkan koordinat lintang/bujur secara manual. Presensi mobile hanya dapat dilakukan jika pengguna berada di dalam radius toleransi.
                 </p>
-                <div className="mb-6">
-                  <MapLocationPicker
-                    position={latitude !== '' && longitude !== '' ? [Number(latitude), Number(longitude)] : null}
-                    radius={radiusMeter !== '' ? Number(radiusMeter) : null}
-                    onLocationSelect={(lat, lng) => {
-                      setLatitude(lat);
-                      setLongitude(lng);
-                    }}
+              </div>
+
+              {/* Interactive Leaflet Map Container */}
+              <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-2xs">
+                <MapLocationPicker
+                  position={latitude !== '' && longitude !== '' ? [Number(latitude), Number(longitude)] : null}
+                  radius={radiusMeter !== '' ? Number(radiusMeter) : null}
+                  onLocationSelect={(lat, lng) => {
+                    setLatitude(lat);
+                    setLongitude(lng);
+                  }}
+                />
+              </div>
+
+              {/* Coordinates and Radius Inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Latitude (Lintang)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium"
+                    value={latitude}
+                    onChange={(e) => setLatitude(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="-6.200000"
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="form-group">
-                    <label className="text-sm font-medium text-gray-700">Latitude</label>
-                    <input
-                      type="number"
-                      step="any"
-                      className="input-std mt-1"
-                      value={latitude}
-                      onChange={(e) => setLatitude(e.target.value === '' ? '' : Number(e.target.value))}
-                      placeholder="-6.200000"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="text-sm font-medium text-gray-700">Longitude</label>
-                    <input
-                      type="number"
-                      step="any"
-                      className="input-std mt-1"
-                      value={longitude}
-                      onChange={(e) => setLongitude(e.target.value === '' ? '' : Number(e.target.value))}
-                      placeholder="106.816666"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="text-sm font-medium text-gray-700">Radius (Meter)</label>
-                    <input
-                      type="number"
-                      className="input-std mt-1"
-                      value={radiusMeter}
-                      onChange={(e) => setRadiusMeter(e.target.value === '' ? '' : Number(e.target.value))}
-                      placeholder="100"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
 
-
-            <div className="mt-8 pt-6 relative">
-              <div className="absolute top-0 left-10 right-10 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
-              
-              <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <label className="flex items-center gap-3 cursor-pointer font-bold text-gray-800 group">
-                    <div className="relative flex items-center justify-center">
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 rounded-md text-indigo-600 border-gray-300 focus:ring-indigo-500/30 transition-all peer"
-                        checked={isActive}
-                        onChange={(e) => setIsActive(e.target.checked)}
-                      />
-                      <div className="absolute w-8 h-8 rounded-full bg-indigo-100/50 opacity-0 peer-hover:opacity-100 transition-opacity -z-10 scale-0 peer-hover:scale-100 duration-300"></div>
-                    </div>
-                    <span className="group-hover:text-indigo-700 transition-colors">Aktifkan Aturan Jam Absensi</span>
-                  </label>
-                  <p className="text-sm text-gray-500 ml-8 mt-1.5 font-medium">Sistem akan memvalidasi absensi berdasarkan jam masuk & pulang ini.</p>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Longitude (Bujur)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium"
+                    value={longitude}
+                    onChange={(e) => setLongitude(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="106.816666"
+                  />
                 </div>
-                
-                <Can permission={['attendance_settings.manage', 'attendance.write']}>
-                <button
-                  type="submit"
-                  className="btn-std-primary flex items-center gap-2 px-6 py-2.5 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 transition-all duration-300 w-full sm:w-auto justify-center"
-                  disabled={saving}
-                >
-                  <Save size={18} className={saving ? 'animate-pulse' : ''} />
-                  <span className="font-semibold">{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
-                </button>
-                </Can>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Radius Geofencing (Meter)</label>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium"
+                    value={radiusMeter}
+                    onChange={(e) => setRadiusMeter(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="100"
+                  />
+                </div>
               </div>
             </div>
-          </form>
-        )}
-      </div>
+          </div>
+
+          {/* Bottom Action Card */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 md:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <CheckCircle2 size={16} className="text-emerald-500" />
+              <span>Pastikan seluruh waktu berurutan logis sebelum menyimpan pengaturan.</span>
+            </div>
+
+            <Can permission={['attendance_settings.manage', 'attendance.write']}>
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-all hover:shadow-md w-full sm:w-auto justify-center"
+              >
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
+              </button>
+            </Can>
+          </div>
+        </form>
+      )}
     </div>
   );
 };

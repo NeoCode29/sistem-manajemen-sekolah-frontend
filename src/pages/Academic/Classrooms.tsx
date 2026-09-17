@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users, Search, Filter, ChevronDown } from 'lucide-react';
+import { Plus, RefreshCw, Loader2, Search, Filter, RotateCcw, Users, GraduationCap } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useClassrooms } from '../../hooks/useClassrooms';
 import { usePermissions } from '../../hooks/usePermissions';
 import type { Classroom } from '../../api/academicService';
-import { useDialog } from '../../contexts/DialogContext';
-import { PageHeader, Modal, FormField } from '../../components/ui';
+import { PageHeader, Modal, FormField, Select, Badge, ConfirmDialog } from '../../components/ui';
 import { generateUniqueCode } from '../../utils/codeGenerator';
+import { notify } from '../../utils/feedback';
 
 export const Classrooms: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +26,7 @@ export const Classrooms: React.FC = () => {
     updateClassroom,
     deleteClassroom
   } = useClassrooms(filterGradeId);
+
   const { hasPermission } = usePermissions();
   const canCreateClassroom = hasPermission('classrooms.create') || hasPermission('classrooms.manage');
   const canEditClassroom = hasPermission('classrooms.update') || hasPermission('classrooms.manage');
@@ -34,6 +34,7 @@ export const Classrooms: React.FC = () => {
 
   // Modal & Form State
   const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState('');
   
@@ -42,7 +43,19 @@ export const Classrooms: React.FC = () => {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [capacity, setCapacity] = useState(30);
-  const { showConfirm, showAlert } = useDialog();
+
+  // ConfirmDialog State
+  const [confirmConfig, setConfirmConfig] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => Promise<void> | void;
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -81,12 +94,19 @@ export const Classrooms: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    showConfirm('Are you sure you want to delete this classroom?', async () => {
-      try {
-        await deleteClassroom(id);
-      } catch (error) {
-        showAlert('Failed to delete classroom', 'Gagal');
+  const handleDelete = (classroom: Classroom) => {
+    setConfirmConfig({
+      open: true,
+      title: `Hapus Rombel "${classroom.name}"`,
+      message: `Apakah Anda yakin ingin menghapus rombongan belajar "${classroom.name}" (Kode: ${classroom.code})? Data jadwal pelajaran dan penempatan siswa pada kelas ini dapat terpengaruh.`,
+      onConfirm: async () => {
+        try {
+          await deleteClassroom(classroom.id);
+          notify.success(`Rombel "${classroom.name}" berhasil dihapus!`);
+          setConfirmConfig(prev => ({ ...prev, open: false }));
+        } catch (error: any) {
+          notify.error(error, 'Gagal menghapus rombel kelas');
+        }
       }
     });
   };
@@ -94,6 +114,7 @@ export const Classrooms: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setSubmitting(true);
       const payload: any = {
         gradeId: Number(gradeId),
         majorId: majorId ? Number(majorId) : null,
@@ -104,13 +125,17 @@ export const Classrooms: React.FC = () => {
 
       if (isEditing) {
         await updateClassroom(editId, payload);
+        notify.success('Data rombel berhasil diperbarui!');
       } else {
         await createClassroom(payload);
+        notify.success('Rombel baru berhasil ditambahkan!');
       }
       
       handleCloseModal();
     } catch (error: any) {
-      showAlert(error.message || 'Failed to save classroom', 'Gagal');
+      notify.error(error, 'Gagal menyimpan rombel kelas');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -121,144 +146,333 @@ export const Classrooms: React.FC = () => {
     setShowModal(true);
   };
 
-  const filteredClassrooms = classrooms.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredClassrooms = useMemo(() => {
+    if (!searchTerm.trim()) return classrooms;
+    const q = searchTerm.toLowerCase();
+    return classrooms.filter(c => 
+      c.name.toLowerCase().includes(q) || 
+      c.code.toLowerCase().includes(q) ||
+      (c.major?.name && c.major.name.toLowerCase().includes(q))
+    );
+  }, [classrooms, searchTerm]);
   
-  const paginatedClassrooms = filteredClassrooms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedClassrooms = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredClassrooms.slice(start, start + itemsPerPage);
+  }, [filteredClassrooms, currentPage, itemsPerPage]);
+
   const totalPages = Math.ceil(filteredClassrooms.length / itemsPerPage);
+
+  const gradeOptions = useMemo(() => {
+    return [
+      { value: '', label: 'Semua Tingkat' },
+      ...grades.map(g => ({ value: g.id, label: `${g.name} (${g.educationLevel})` }))
+    ];
+  }, [grades]);
 
   // DataTable Columns Configuration
   const classroomColumns: Column<Classroom>[] = [
-    { key: 'code', header: 'Kode', render: (row) => <span className="font-semibold">{row.code}</span> },
-    { key: 'name', header: 'Nama Rombel' },
-    { key: 'major', header: 'Jurusan', render: (row) => row.major?.name || '-' },
-    { key: 'grade', header: 'Tingkat', render: (row) => <span className="grade-badge">{row.grade?.name || '-'}</span> },
-    { key: 'capacity', header: 'Kapasitas', render: (row) => (
-        <span className="text-gray-700">
+    { 
+      key: 'code', 
+      header: 'Kode', 
+      render: (row) => (
+        <span className="font-mono text-xs font-semibold text-gray-900 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-200">
+          {row.code}
+        </span>
+      ) 
+    },
+    { 
+      key: 'name', 
+      header: 'Nama Rombel',
+      render: (row) => (
+        <span 
+          className="font-semibold text-gray-900 block max-w-[180px] md:max-w-[220px] truncate" 
+          title={row.name}
+        >
+          {row.name}
+        </span>
+      )
+    },
+    { 
+      key: 'grade', 
+      header: 'Tingkat', 
+      render: (row) => (
+        <Badge variant="purple" className="max-w-[140px] truncate">
+          {row.grade?.name || '-'}
+        </Badge>
+      ) 
+    },
+    { 
+      key: 'major', 
+      header: 'Jurusan', 
+      render: (row) => {
+        const majorName = row.major?.name || '-';
+        return (
+          <span 
+            className="text-xs text-gray-600 font-medium block max-w-[180px] md:max-w-[240px] truncate" 
+            title={majorName}
+          >
+            {majorName}
+          </span>
+        );
+      } 
+    },
+    { 
+      key: 'capacity', 
+      header: 'Kapasitas', 
+      render: (row) => (
+        <span className="text-xs text-gray-700 font-medium">
           {row.capacity || 0} Siswa
         </span>
       ) 
+    },
+    { 
+      key: 'actions', 
+      header: 'Aksi', 
+      render: (row) => (
+        <ActionButtons 
+          onView={() => navigate(`/academic/classrooms/${row.id}`)}
+          onEdit={canEditClassroom ? () => handleEdit(row) : undefined}
+          onDelete={canDeleteClassroom ? () => handleDelete(row) : undefined}
+        />
+      )
     }
   ];
 
-  classroomColumns.push({ 
-    key: 'actions', 
-    header: 'Aksi', 
-    render: (row) => (
-      <ActionButtons 
-        onView={() => navigate(`/academic/classrooms/${row.id}`)}
-        onEdit={canEditClassroom ? () => handleEdit(row) : undefined}
-        onDelete={canDeleteClassroom ? () => handleDelete(row.id) : undefined}
-      />
-    )
-  });
-
   return (
-    <div className="p-6 max-w-7xl mx-auto page-enter">
+    <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
+      {/* 1. Page Header */}
       <PageHeader
         title="Rombongan Belajar (Kelas)"
-        subtitle="Kelola master data Rombel/Ruang Kelas"
-        action={canCreateClassroom ? <button onClick={openAddModal} className="btn-std-primary"><Plus size={18} /> Tambah Data</button> : undefined}
+        subtitle="Kelola master data Rombel, ruang kelas, dan kapasitas siswa"
+        action={
+          canCreateClassroom ? (
+            <button 
+              type="button"
+              onClick={openAddModal} 
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors"
+            >
+              <Plus size={16} />
+              <span>Tambah Rombel</span>
+            </button>
+          ) : undefined
+        }
       />
 
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mt-6 mb-6 p-4 flex flex-col md:flex-row gap-4">
-        <div className="flex-1 relative group">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-          <input type="text" className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" placeholder="Cari Kode atau Nama Rombel..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+      {/* 2. Filter Bar Pola Log Mesin (Hardware Logs Filter Pattern) */}
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-wrap gap-4 items-end">
+        <div className="flex-1 min-w-[220px]">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Pencarian Rombel
+          </label>
+          <div className="relative group">
+            <Search 
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" 
+              size={16} 
+            />
+            <input
+              type="text"
+              placeholder="Cari kode, nama rombel, atau jurusan..."
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
         </div>
-        <div className="w-full md:w-64 relative group">
-          <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors z-10" size={18} />
-          <select className="w-full pl-10 pr-10 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer relative z-0" value={filterGradeId} onChange={(e) => { setFilterGradeId(e.target.value); setCurrentPage(1); }}>
-            <option value="">Semua Tingkat</option>
-            {grades.map(g => (
-              <option key={g.id} value={g.id}>{g.name} ({g.educationLevel})</option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+
+        <div className="w-full sm:w-52 min-w-[180px]">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Tingkat Kelas
+          </label>
+          <div className="relative group">
+            <GraduationCap 
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" 
+              size={16} 
+            />
+            <select
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
+              value={filterGradeId}
+              onChange={(e) => {
+                setFilterGradeId(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              {gradeOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        {(searchTerm || filterGradeId) && (
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm('');
+                setFilterGradeId('');
+                setCurrentPage(1);
+              }}
+              className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-rose-200 shadow-sm"
+              title="Reset Filter"
+            >
+              <RotateCcw size={14} />
+              <span>Reset</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 flex flex-col">
+      {/* 4. Data Table */}
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
         <DataTable 
           columns={classroomColumns} 
           data={paginatedClassrooms} 
           loading={loading}
-          emptyMessage="Belum ada data Rombel."
+          emptyMessage={
+            searchTerm || filterGradeId
+              ? 'Tidak ada rombel yang cocok dengan kriteria filter.'
+              : 'Belum ada data Rombel. Klik tombol Tambah Rombel untuk membuat baru.'
+          }
           containerClassName="w-full overflow-x-auto"
         />
         
-        {!loading && filteredClassrooms.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredClassrooms.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={(limit) => {
-              setItemsPerPage(limit);
-              setCurrentPage(1);
-            }}
-          />
+        {!loading && filteredClassrooms.length > itemsPerPage && (
+          <div className="p-4 border-t border-gray-100">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredClassrooms.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(limit) => {
+                setItemsPerPage(limit);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
         )}
       </div>
 
+      {/* 4. Form Modal */}
       <Modal 
         open={showModal} 
         onClose={handleCloseModal} 
-        title={isEditing ? 'Edit Rombel / Kelas' : 'Tambah Rombel / Kelas'}
-        footer={
-          <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
-            <button type="button" className="btn-std-secondary" onClick={handleCloseModal}>Batal</button>
-            <button type="button" className="btn-std-primary" onClick={handleSubmit}>Simpan</button>
-          </div>
-        }
+        title={isEditing ? 'Edit Rombel / Kelas' : 'Tambah Rombel / Kelas Baru'}
       >
-        <form id="classroom-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+        <form id="classroom-form" onSubmit={handleSubmit} className="flex flex-col gap-5 p-6">
           <FormField label="Tingkat / Level" required>
-            <select className="input-std" value={gradeId} onChange={(e) => setGradeId(e.target.value)} required>
-              {grades.map(g => (
-                <option key={g.id} value={g.id}>{g.name} ({g.educationLevel})</option>
-              ))}
-            </select>
+            <Select
+              wrapperClassName="w-full"
+              value={gradeId}
+              onChange={(e) => setGradeId(e.target.value)}
+              options={[
+                { value: '', label: '-- Pilih Tingkat Kelas --' },
+                ...grades.map(g => ({ value: g.id, label: `${g.name} (${g.educationLevel})` }))
+              ]}
+              required
+            />
           </FormField>
-          <FormField label="Jurusan">
-            <select className="input-std" value={majorId} onChange={(e) => setMajorId(e.target.value)}>
-              <option value="">-- Tidak Ada Jurusan --</option>
-              {majors.filter(m => m.isActive).map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
+
+          <FormField label="Jurusan (Opsional)">
+            <Select
+              wrapperClassName="w-full"
+              value={majorId}
+              onChange={(e) => setMajorId(e.target.value)}
+              options={[
+                { value: '', label: 'Umum / Tidak Ada Jurusan' },
+                ...majors.map(m => ({ value: m.id, label: `${m.name} (${m.code})` }))
+              ]}
+            />
           </FormField>
-          <FormField label="Kode" required>
+
+          <FormField label="Kode Rombel" required>
             <div className="flex gap-2">
               <input 
                 type="text" 
-                className="input-std flex-1" 
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono" 
                 value={code} 
                 onChange={(e) => setCode(e.target.value)} 
-                placeholder="Contoh: 10-IPA-1" 
+                placeholder="Contoh: X-IPA-1" 
                 required 
               />
               <button 
                 type="button" 
-                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors whitespace-nowrap"
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 transition-colors whitespace-nowrap"
                 onClick={handleGenerateCode}
-                title="Buat kode acak otomatis"
+                title="Generate kode unik otomatis"
               >
-                Buat Otomatis
+                <RefreshCw size={13} />
+                Generate
               </button>
             </div>
           </FormField>
+
           <FormField label="Nama Rombel" required>
-            <input type="text" className="input-std" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: X MIPA 1" required />
+            <input 
+              type="text" 
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="Contoh: Kelas X MIPA 1" 
+              required 
+            />
           </FormField>
-          <FormField label="Kapasitas Maksimal Siswa">
-            <input type="number" className="input-std" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} />
+
+          <FormField label="Kapasitas Maksimal Siswa" required>
+            <input 
+              type="number" 
+              min="1" 
+              max="100" 
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+              value={capacity} 
+              onChange={(e) => setCapacity(Number(e.target.value))} 
+              required 
+            />
           </FormField>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+            <button 
+              type="button" 
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              onClick={handleCloseModal}
+              disabled={submitting}
+            >
+              Batal
+            </button>
+            <button 
+              type="submit" 
+              disabled={submitting}
+              className="inline-flex items-center justify-center px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm text-sm transition-colors disabled:opacity-50"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                'Simpan Data'
+              )}
+            </button>
+          </div>
         </form>
       </Modal>
+
+      {/* 5. Standard ConfirmDialog */}
+      <ConfirmDialog
+        open={confirmConfig.open}
+        onClose={() => setConfirmConfig(prev => ({ ...prev, open: false }))}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        variant="danger"
+        confirmText="Ya, Hapus Rombel"
+        onConfirm={confirmConfig.onConfirm}
+      />
     </div>
   );
 };

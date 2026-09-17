@@ -25,16 +25,17 @@ import {
   type Classroom, 
   type Subject 
 } from '../../api/academicService';
-import { Plus, Search, Calendar, Users, BookOpen, Target, Settings, Lock, RotateCcw, CheckCircle2, UserCheck, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Calendar, Users, BookOpen, Target, Lock, RotateCcw, GraduationCap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getSubjectAssignments, type SubjectAssignment } from '../../api/schedulingService';
-import { useDialog } from '../../contexts/DialogContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { Pagination } from '../../components/Common/Pagination';
 import { usePermissions } from '../../hooks/usePermissions';
+import { notify } from '../../utils/feedback';
 
 interface ExamForm {
   academicYearId: string;
@@ -83,7 +84,6 @@ export const Exams: React.FC = () => {
   const { hasPermission } = usePermissions();
   const canManageExams = hasPermission('assessments.input') || hasPermission('assessment.write');
   const canReadScores = hasPermission('assessments.read') || hasPermission('assessment.read') || canManageExams;
-  const { showConfirm, showAlert } = useDialog();
   
   // Filters
   const [filterAcademicYearId, setFilterAcademicYearId] = useState('');
@@ -105,6 +105,21 @@ export const Exams: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalClassrooms, setModalClassrooms] = useState<Classroom[]>([]);
   
+  // ConfirmDialog State
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    variant: 'danger' | 'warning' | 'info';
+    action: () => Promise<void>;
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    variant: 'danger',
+    action: async () => {}
+  });
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -168,21 +183,22 @@ export const Exams: React.FC = () => {
     if (isFiltersComplete) {
       fetchExams();
       fetchLockStatus();
+      fetchComponents();
     } else {
       setExams([]);
       setLockStatus(null);
+      setComponents([]);
     }
   }, [filterAcademicYearId, filterSemesterId, filterClassroomId, filterSubjectId, search]);
 
   const fetchDependencies = async () => {
     try {
-      const [ayData, semData, grData, subjData, typesData, compData, classroomsData] = await Promise.all([
+      const [ayData, semData, grData, subjData, typesData, classroomsData] = await Promise.all([
         getAcademicYears(),
         getSemesters(),
         getGrades(),
         getSubjects(),
         getAssessmentTypes(),
-        getAssessmentComponents(),
         getClassrooms()
       ]);
       setAcademicYears(ayData);
@@ -190,7 +206,6 @@ export const Exams: React.FC = () => {
       setGrades(grData);
       setSubjects(subjData);
       setTypes(typesData);
-      setComponents(compData);
       setClassrooms(classroomsData);
       
       const activeAy = ayData.find(a => a.isActive);
@@ -198,8 +213,25 @@ export const Exams: React.FC = () => {
       if (activeAy) setFilterAcademicYearId(activeAy.id);
       if (activeSem) setFilterSemesterId(activeSem.id);
     } catch (err) {
-      console.error(err);
-      showAlert('Gagal memuat data referensi', 'Error');
+      notify.error(err, 'Gagal memuat data referensi');
+    }
+  };
+
+  const fetchComponents = async () => {
+    if (!filterClassroomId || !filterSubjectId || !filterAcademicYearId || !filterSemesterId) {
+      setComponents([]);
+      return;
+    }
+    try {
+      const data = await getAssessmentComponents({
+        classroomId: filterClassroomId,
+        subjectId: filterSubjectId,
+        academicYearId: filterAcademicYearId,
+        semesterId: filterSemesterId,
+      });
+      setComponents(data);
+    } catch (err) {
+      console.error('Failed to fetch components', err);
     }
   };
 
@@ -237,7 +269,7 @@ export const Exams: React.FC = () => {
       const data = await getExams(params);
       setExams(data);
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Gagal memuat agenda penilaian', 'Error');
+      notify.error(err, 'Gagal memuat agenda penilaian');
     } finally {
       setLoading(false);
     }
@@ -245,7 +277,7 @@ export const Exams: React.FC = () => {
 
   const handleOpenModal = (exam?: Exam) => {
     if (!isTeacherOrAdmin) {
-      showAlert(`Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) atau Administrator yang berwenang membuat atau mengedit agenda penilaian untuk mata pelajaran ini.`, 'Akses Ditolak');
+      notify.error(`Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) atau Administrator yang berwenang membuat atau mengedit agenda penilaian untuk mata pelajaran ini.`);
       return;
     }
 
@@ -289,7 +321,7 @@ export const Exams: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isTeacherOrAdmin) {
-      showAlert(`Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) atau Administrator yang berwenang menyimpan agenda penilaian.`, 'Akses Ditolak');
+      notify.error(`Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) atau Administrator yang berwenang menyimpan agenda penilaian.`);
       return;
     }
 
@@ -306,37 +338,45 @@ export const Exams: React.FC = () => {
 
       if (modal.editId) {
         await updateExam(modal.editId, payload);
+        notify.success('Agenda penilaian berhasil diperbarui');
       } else {
         await createExam(payload);
+        notify.success('Agenda penilaian baru berhasil dibuat');
       }
       
       await fetchExams();
       handleCloseModal();
     } catch (err: any) {
-      const message = err.response?.data?.message;
-      showAlert(Array.isArray(message) ? message.join(', ') : (message || 'Gagal menyimpan agenda penilaian'), 'Error');
+      notify.error(err, 'Gagal menyimpan agenda penilaian');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (!isTeacherOrAdmin) {
-      showAlert(`Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) atau Administrator yang berwenang menghapus agenda penilaian.`, 'Akses Ditolak');
+      notify.error(`Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) atau Administrator yang berwenang menghapus agenda penilaian.`);
       return;
     }
 
     if (lockStatus?.isLocked) {
-      showAlert('Agenda penilaian tidak dapat dihapus karena nilai sudah divalidasi/disahkan', 'Peringatan');
+      notify.error('Agenda penilaian tidak dapat dihapus karena nilai sudah divalidasi/disahkan');
       return;
     }
 
-    showConfirm('Yakin ingin menghapus agenda penilaian ini? Semua nilai yang sudah diinput akan ikut terhapus.', async () => {
-      try {
-        await deleteExam(id);
-        await fetchExams();
-      } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus agenda penilaian', 'Error');
+    setConfirmDialog({
+      open: true,
+      title: 'Hapus Agenda Penilaian',
+      message: 'Apakah Anda yakin ingin menghapus agenda penilaian ini? Semua nilai siswa yang sudah diinput untuk agenda ini akan ikut terhapus.',
+      variant: 'danger',
+      action: async () => {
+        try {
+          await deleteExam(id);
+          notify.success('Agenda penilaian berhasil dihapus');
+          await fetchExams();
+        } catch (err: any) {
+          notify.error(err, 'Gagal menghapus agenda penilaian');
+        }
       }
     });
   };
@@ -354,14 +394,13 @@ export const Exams: React.FC = () => {
         semesterId: filterSemesterId,
         reason: reopenReason.trim(),
       });
-      showAlert('Kunci penilaian berhasil dibuka untuk revisi. Guru dapat mengedit nilai atau menambah agenda.', 'Berhasil');
+      notify.success('Kunci penilaian berhasil dibuka untuk revisi. Guru dapat mengedit nilai atau menambah agenda.');
       setReopenModal(false);
       setReopenReason('');
       await fetchExams();
       await fetchLockStatus();
     } catch (err: any) {
-      const msg = err.response?.data?.message;
-      showAlert(Array.isArray(msg) ? msg.join(', ') : (msg || 'Gagal membuka kunci penilaian'), 'Error');
+      notify.error(err, 'Gagal membuka kunci penilaian');
     } finally {
       setIsReopening(false);
     }
@@ -373,11 +412,13 @@ export const Exams: React.FC = () => {
       header: 'Judul Penilaian',
       render: (row) => (
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-            <Target size={18} className="text-indigo-600" />
+          <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0 text-indigo-600">
+            <Target size={18} />
           </div>
           <div>
-            <div className="font-semibold text-gray-900">{row.title}</div>
+            <div className="font-semibold text-gray-900 truncate block max-w-[220px]" title={row.title}>
+              {row.title}
+            </div>
             <div className="text-xs text-gray-500">
               Maks: <span className="font-bold text-gray-700">{row.maxScore}</span> poin
             </div>
@@ -391,7 +432,7 @@ export const Exams: React.FC = () => {
       render: (row) => (
         <div className="flex items-center gap-2">
           <Badge variant="default">{row.examType || 'Ujian'}</Badge>
-          <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+          <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
             {row.component?.weight || 0}%
           </span>
         </div>
@@ -401,14 +442,18 @@ export const Exams: React.FC = () => {
       key: 'class_subject', 
       header: 'Kelas & Mapel',
       render: (row) => (
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5 text-sm text-gray-700">
-            <Users size={14} className="text-gray-400" />
-            <span className="font-medium">{row.classroom?.name || classrooms.find(c => c.id === row.classroomId)?.name || 'Unknown Class'}</span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-gray-700">
+            <Users size={13} className="text-gray-400" />
+            <span className="truncate block max-w-[160px]" title={row.classroom?.name || classrooms.find(c => c.id === row.classroomId)?.name || 'Unknown Class'}>
+              {row.classroom?.name || classrooms.find(c => c.id === row.classroomId)?.name || 'Unknown Class'}
+            </span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            <BookOpen size={14} className="text-gray-400" />
-            <span>{row.subject?.name || subjects.find(s => s.id === row.subjectId)?.name || 'Unknown Subject'}</span>
+            <BookOpen size={13} className="text-gray-400" />
+            <span className="truncate block max-w-[160px]" title={row.subject?.name || subjects.find(s => s.id === row.subjectId)?.name || 'Unknown Subject'}>
+              {row.subject?.name || subjects.find(s => s.id === row.subjectId)?.name || 'Unknown Subject'}
+            </span>
           </div>
         </div>
       )
@@ -417,9 +462,9 @@ export const Exams: React.FC = () => {
       key: 'schedule', 
       header: 'Jadwal Penilaian',
       render: (row) => (
-        <div className="flex items-center gap-1.5 text-sm text-gray-700">
-          <Calendar size={14} className="text-indigo-500" />
-          <span>{row.examDate ? new Date(row.examDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</span>
+        <div className="flex items-center gap-1.5 text-xs text-gray-700">
+          <Calendar size={13} className="text-indigo-500" />
+          <span>{row.examDate ? new Date(row.examDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</span>
         </div>
       )
     }
@@ -440,9 +485,9 @@ export const Exams: React.FC = () => {
           <div className="flex justify-end items-center gap-2">
             <Link 
               to={`/assessment/exams/${row.id}/scores`}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all border shadow-sm ${
                 canInputThisExam
-                  ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border-indigo-100'
+                  ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border-indigo-200'
                   : 'text-slate-600 bg-slate-50 hover:bg-slate-100 border-slate-200'
               }`}
             >
@@ -454,9 +499,7 @@ export const Exams: React.FC = () => {
                   <ActionButtons onEdit={() => handleOpenModal(row)} onDelete={() => handleDelete(row.id)} />
                 ) : null
               ) : (
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-400 border border-slate-200">
-                  Terkunci
-                </span>
+                <Badge variant="warning">Terkunci</Badge>
               )
             )}
           </div>
@@ -466,8 +509,11 @@ export const Exams: React.FC = () => {
   }
 
   const filteredComponents = components.filter(c => 
-    (!form.classroomId || c.classroomId === form.classroomId) &&
-    (!form.subjectId || c.subjectId === form.subjectId)
+    (!form.academicYearId || String(c.academicYearId) === String(form.academicYearId)) &&
+    (!form.semesterId || String(c.semesterId) === String(form.semesterId)) &&
+    (!form.classroomId || String(c.classroomId) === String(form.classroomId)) &&
+    (!form.subjectId || String(c.subjectId) === String(form.subjectId)) &&
+    (c.isActive !== false || c.id === form.componentId)
   );
 
   // Pagination Logic
@@ -475,187 +521,198 @@ export const Exams: React.FC = () => {
   const paginatedExams = exams.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto page-enter">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 page-enter">
       <PageHeader
         title="Agenda Penilaian"
         subtitle="Kelola agenda penilaian, ujian, dan tugas untuk setiap kelas dan mata pelajaran."
-        action={
-          canManageExams ? (
-            <button 
-              className={`btn-std-primary ${(!canCreateExam) ? 'opacity-50 cursor-not-allowed' : ''}`} 
-              onClick={() => handleOpenModal()}
-              disabled={!canCreateExam}
-              title={
-                !isFiltersComplete 
-                  ? 'Pilih filter terlebih dahulu' 
-                  : lockStatus?.isLocked 
-                  ? 'Agenda ditutup karena nilai sudah disahkan' 
-                  : !isTeacherOrAdmin
-                  ? `Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) yang dapat membuat agenda`
-                  : 'Buat Agenda Baru'
-              }
-            >
-              {lockStatus?.isLocked ? <Lock size={18} /> : <Plus size={20} />}
-              <span>{lockStatus?.isLocked ? 'Agenda Ditutup' : 'Buat Agenda Baru'}</span>
-            </button>
-          ) : undefined
-        }
       />
 
-      {/* Modern Filter Section */}
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-6 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Settings size={18} className="text-indigo-600" />
-          <h2 className="text-lg font-bold text-gray-900">Parameter Agenda Penilaian</h2>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tahun Ajaran</label>
-            <select className="input-std bg-slate-50 border-slate-200 cursor-pointer" value={filterAcademicYearId} onChange={e => setFilterAcademicYearId(e.target.value)}>
-              <option value="">Pilih Tahun Ajaran...</option>
-              {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}</option>)}
-            </select>
+      {/* Parameter Filter Bar (Glassmorphism Standard - No Header, Icon Group Focus) */}
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Tahun Ajaran</label>
+            <div className="relative group">
+              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
+              <select
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate"
+                value={filterAcademicYearId}
+                onChange={e => setFilterAcademicYearId(e.target.value)}
+              >
+                <option value="">Pilih Tahun Ajaran...</option>
+                {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}{ay.isActive ? ' (Aktif)' : ''}</option>)}
+              </select>
+            </div>
           </div>
           
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Semester</label>
-            <select 
-              className="input-std bg-slate-50 border-slate-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
-              value={filterSemesterId} 
-              onChange={e => setFilterSemesterId(e.target.value)}
-              disabled={!filterAcademicYearId}
-            >
-              <option value="">Pilih Semester...</option>
-              {semesters.filter(s => s.academicYearId === filterAcademicYearId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Semester</label>
+            <div className="relative group">
+              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
+              <select 
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate disabled:opacity-50 disabled:cursor-not-allowed" 
+                value={filterSemesterId} 
+                onChange={e => setFilterSemesterId(e.target.value)}
+                disabled={!filterAcademicYearId}
+              >
+                <option value="">Pilih Semester...</option>
+                {semesters.filter(s => s.academicYearId === filterAcademicYearId).map(s => <option key={s.id} value={s.id}>{s.name}{s.isActive ? ' (Aktif)' : ''}</option>)}
+              </select>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tingkat Kelas</label>
-            <select className="input-std bg-slate-50 border-slate-200 cursor-pointer" value={filterGradeId} onChange={e => setFilterGradeId(e.target.value)}>
-              <option value="">Pilih Tingkat...</option>
-              {grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-            </select>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Tingkat Kelas</label>
+            <div className="relative group">
+              <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
+              <select
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate"
+                value={filterGradeId}
+                onChange={e => setFilterGradeId(e.target.value)}
+              >
+                <option value="">Pilih Tingkat...</option>
+                {grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Rombel / Kelas</label>
-            <select className="input-std bg-slate-50 border-slate-200 cursor-pointer disabled:opacity-50" value={filterClassroomId} onChange={e => setFilterClassroomId(e.target.value)} disabled={!filterGradeId}>
-              <option value="">Pilih Rombel...</option>
-              {filterClassrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Rombel / Kelas</label>
+            <div className="relative group">
+              <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
+              <select
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate disabled:opacity-50 disabled:cursor-not-allowed"
+                value={filterClassroomId}
+                onChange={e => setFilterClassroomId(e.target.value)}
+                disabled={!filterGradeId}
+              >
+                <option value="">Pilih Rombel...</option>
+                {filterClassrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mata Pelajaran</label>
-            <select className="input-std bg-slate-50 border-slate-200 cursor-pointer" value={filterSubjectId} onChange={e => setFilterSubjectId(e.target.value)}>
-              <option value="">Pilih Mapel...</option>
-              {subjects.map(s => {
-                const isTaughtByMe = user?.employeeId && classAssignments.some(
-                  a => a.subjectId === s.id && String(a.employeeId) === String(user.employeeId)
-                );
-                return (
-                  <option key={s.id} value={s.id}>
-                    {isTaughtByMe ? '★ ' : ''}{s.name} ({s.code}){isTaughtByMe ? ' [Mapel Anda]' : ''}
-                  </option>
-                );
-              })}
-            </select>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Mata Pelajaran</label>
+            <div className="relative group">
+              <BookOpen className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
+              <select
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate"
+                value={filterSubjectId}
+                onChange={e => setFilterSubjectId(e.target.value)}
+              >
+                <option value="">Pilih Mapel...</option>
+                {subjects.map(s => {
+                  const isTaughtByMe = user?.employeeId && classAssignments.some(
+                    a => a.subjectId === s.id && String(a.employeeId) === String(user.employeeId)
+                  );
+                  return (
+                    <option key={s.id} value={s.id}>
+                      {isTaughtByMe ? '★ ' : ''}{s.name} ({s.code}){isTaughtByMe ? ' [Mapel Anda]' : ''}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Table Section */}
+      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        {/* Table Toolbar Header */}
+        <div className="p-4 md:p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/40">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 m-0">Daftar Agenda Penilaian</h3>
+              {isFiltersComplete && (
+                <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  {classrooms.find(c => c.id === filterClassroomId)?.name || 'Kelas'} • {subjects.find(s => s.id === filterSubjectId)?.name || 'Mapel'}
+                </span>
+              )}
+              {isFiltersComplete && lockStatus?.isLocked && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                  {lockStatus.lockReason === 'APPROVED_BY_PRINCIPAL' ? 'Terkunci KS' : 'Terkunci Wali Kelas'}
+                </span>
+              )}
+              {isFiltersComplete && (
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                  isAssignedTeacher 
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                    : isSuperAdmin 
+                    ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                }`}>
+                  {isAssignedTeacher ? 'Anda Guru Pengampu' : isSuperAdmin ? 'Akses Admin' : 'Mode Hanya-Baca'}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {lockStatus?.isLocked 
+                ? 'Agenda ditutup karena nilai telah divalidasi/disahkan. Mode hanya-baca aktif.'
+                : isAssignedTeacher 
+                ? `Anda adalah Guru Pengampu mata pelajaran ini (${assignedTeacher?.fullName || 'Pengampu'}).`
+                : assignedTeacher 
+                ? `Diampu oleh ${assignedTeacher.fullName}${assignedTeacher.employeeNumber ? ` (${assignedTeacher.employeeNumber})` : ''}.`
+                : 'Kelola agenda penilaian, ujian, dan tugas untuk kelas dan mata pelajaran terpilih.'}
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-2 self-end md:self-auto">
+            {lockStatus?.canUnlock && (
+              <button
+                type="button"
+                onClick={() => setReopenModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-white text-amber-900 border border-amber-300 hover:bg-amber-50 active:scale-95 transition-all shadow-sm cursor-pointer"
+              >
+                <RotateCcw size={14} /> Buka Kunci (Revisi)
+              </button>
+            )}
+            {canManageExams && isFiltersComplete && (
+              <button 
+                className={`btn-std-primary flex items-center gap-1.5 px-4 py-2 text-xs shadow-sm transition-all ${(!canCreateExam) ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                onClick={() => handleOpenModal()}
+                disabled={!canCreateExam}
+                title={
+                  lockStatus?.isLocked 
+                    ? 'Agenda ditutup karena nilai sudah disahkan' 
+                    : !isTeacherOrAdmin
+                    ? `Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) yang dapat membuat agenda`
+                    : 'Buat Agenda Baru'
+                }
+              >
+                {lockStatus?.isLocked ? <Lock size={15} /> : <Plus size={15} />}
+                <span>{lockStatus?.isLocked ? 'Agenda Ditutup' : 'Buat Agenda Baru'}</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Teacher Assignment Status Banner */}
+        {/* Search & Count strip when filter complete */}
         {isFiltersComplete && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                isAssignedTeacher 
-                  ? 'bg-emerald-100 text-emerald-700' 
-                  : assignedTeacher 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'bg-amber-100 text-amber-700'
-              }`}>
-                <Users size={18} />
-              </div>
-              <div>
-                <span className="text-xs text-slate-500 font-medium">Guru Pengampu Mata Pelajaran:</span>
-                <div className="font-semibold text-slate-800 flex items-center gap-2 flex-wrap">
-                  <span>{assignedTeacher?.fullName || 'Belum Ditugaskan'}</span>
-                  {assignedTeacher?.employeeNumber && (
-                    <span className="text-xs font-normal text-slate-500">({assignedTeacher.employeeNumber})</span>
-                  )}
-                  {isAssignedTeacher ? (
-                    <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      Anda Guru Pengampu
-                    </span>
-                  ) : isSuperAdmin ? (
-                    <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-200">
-                      Akses Admin
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                      Mode Hanya-Baca
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="relative w-full sm:w-72">
+          <div className="px-5 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/60">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400" size={15} />
               <input 
                 type="text" 
-                className="input-std pl-10 w-full text-sm" 
+                className="w-full bg-slate-50/80 border border-slate-200/80 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-700 outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all" 
                 placeholder="Cari judul penilaian..." 
                 value={search} 
                 onChange={e => setSearch(e.target.value)} 
               />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+            </div>
+            <div className="text-xs text-slate-500 font-medium">
+              Total <span className="font-bold text-slate-800">{exams.length}</span> Agenda Terdaftar
             </div>
           </div>
         )}
-      </div>
-
-      {/* Lock Banner Warning */}
-      {isFiltersComplete && lockStatus?.isLocked && (
-        <div className="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm backdrop-blur-sm">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
-              <Lock size={22} />
-            </div>
-            <div>
-              <div className="font-bold text-amber-950 text-base flex items-center gap-2">
-                Agenda Penilaian Ditutup
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-900 uppercase tracking-wider">
-                  {lockStatus.lockReason === 'APPROVED_BY_PRINCIPAL' ? 'Disahkan Kepala Sekolah' : 'Divalidasi Wali Kelas'}
-                </span>
-              </div>
-              <div className="text-xs text-amber-800 mt-0.5 leading-relaxed">
-                Rekap nilai untuk mata pelajaran ini telah divalidasi/disahkan. Pengisian dan perubahan agenda dinonaktifkan (mode hanya-baca).
-              </div>
-            </div>
-          </div>
-          {lockStatus.canUnlock && (
-            <button
-              type="button"
-              onClick={() => setReopenModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-white text-amber-900 border border-amber-300 hover:bg-amber-100/60 active:scale-95 transition-all shadow-sm shrink-0 cursor-pointer"
-            >
-              <RotateCcw size={16} /> Buka Kunci / Revisi
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Main Table / Placeholder Section */}
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden mb-6">
         {!isFiltersComplete ? (
-          <div className="p-24 text-center flex flex-col items-center justify-center">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center mb-6 shadow-sm">
-              <Target size={36} className="text-indigo-600" />
+          <div className="p-16 text-center flex flex-col items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center mb-4 shadow-sm text-indigo-600">
+              <Target size={30} />
             </div>
-            <div className="text-xl font-extrabold text-slate-800">Pilih Parameter Penilaian</div>
-            <div className="text-sm text-slate-500 mt-2 max-w-md leading-relaxed">
+            <div className="text-lg font-bold text-slate-800">Pilih Parameter Penilaian</div>
+            <div className="text-xs text-slate-500 mt-1.5 max-w-md leading-relaxed">
               Silakan pilih Tahun Ajaran, Semester, Tingkat, Rombel/Kelas, dan Mata Pelajaran terlebih dahulu untuk menampilkan atau mengelola agenda penilaian.
             </div>
           </div>
@@ -715,7 +772,7 @@ export const Exams: React.FC = () => {
               ))}
             </select>
             {filteredComponents.length === 0 && (
-              <span className="text-xs text-red-500 mt-1">
+              <span className="text-xs text-rose-500 mt-1">
                 Belum ada komponen penilaian untuk kelas & mapel ini. Silakan atur di menu Komponen Penilaian.
               </span>
             )}
@@ -791,6 +848,16 @@ export const Exams: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Dialog Konfirmasi Terstandarisasi */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.action}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant={confirmDialog.variant}
+      />
     </div>
   );
 };

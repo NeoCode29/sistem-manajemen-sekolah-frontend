@@ -7,7 +7,15 @@ export function useStudents(filter?: { page?: number; limit?: number; search?: s
   const [meta, setMeta] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const filterKey = JSON.stringify(filter);
+  const sanitizedFilter = {
+    page: filter?.page,
+    limit: filter?.limit,
+    search: typeof filter?.search === 'string' ? filter.search : undefined,
+    status: typeof filter?.status === 'string' ? filter.status : undefined,
+    isDeleted: Boolean(filter?.isDeleted)
+  };
+
+  const filterKey = JSON.stringify(sanitizedFilter);
 
   const load = useCallback(async () => {
     setLoading(true);

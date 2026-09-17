@@ -11,9 +11,14 @@ import {
 } from '../../api/assessmentService';
 import { getStudents } from '../../api/studentService';
 import { getSubjectAssignments, type SubjectAssignment } from '../../api/schedulingService';
-import { Save, ArrowLeft, Award, Users, BookOpen, Calendar, CheckCircle2, AlertCircle, Lock, AlertTriangle } from 'lucide-react';
+import { Save, ArrowLeft, Award, Users, BookOpen, Calendar, CheckCircle2, Lock, AlertTriangle, TrendingUp, Sparkles, RotateCcw } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../context/AuthContext';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Badge } from '../../components/ui/Badge';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { TableSkeleton } from '../../components/Common/TableSkeleton';
+import { notify } from '../../utils/feedback';
 
 interface ScoreRow {
   studentId: string;
@@ -33,14 +38,14 @@ export const ExamScores: React.FC = () => {
 
   const [exam, setExam] = useState<Exam | null>(null);
   const [rows, setRows] = useState<ScoreRow[]>([]);
+  const [originalRows, setOriginalRows] = useState<ScoreRow[]>([]);
   const [lockStatus, setLockStatus] = useState<AssessmentLockStatus | null>(null);
   const [assignedTeacher, setAssignedTeacher] = useState<any>(null);
   const [isAssignedTeacher, setIsAssignedTeacher] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const isTeacherOrAdmin = isSuperAdmin || isAssignedTeacher;
   const isLocked = lockStatus?.isLocked ?? false;
@@ -55,7 +60,6 @@ export const ExamScores: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      setError('');
       
       // 1. Fetch Exam info
       const examData = await getExamById(examId!);
@@ -102,7 +106,7 @@ export const ExamScores: React.FC = () => {
       const scoreMap = new Map<string, ExamScore>();
       scoresData.forEach(s => scoreMap.set(s.studentId, s));
       
-      const newRows = studentsData.map(student => {
+      const newRows: ScoreRow[] = studentsData.map(student => {
         const existingScore = scoreMap.get(student.id);
         return {
           studentId: student.id,
@@ -114,8 +118,9 @@ export const ExamScores: React.FC = () => {
       });
       
       setRows(newRows);
+      setOriginalRows(JSON.parse(JSON.stringify(newRows)));
     } catch (err: any) {
-      setError('Gagal memuat data ujian atau daftar siswa');
+      notify.error(err, 'Gagal memuat data ujian atau daftar siswa');
     } finally {
       setLoading(false);
     }
@@ -126,7 +131,6 @@ export const ExamScores: React.FC = () => {
     const updatedRows = [...rows];
     
     if (field === 'score') {
-      // Allow empty string or valid number <= maxScore
       if (value === '') {
         updatedRows[index].score = '';
       } else {
@@ -142,17 +146,45 @@ export const ExamScores: React.FC = () => {
     setRows(updatedRows);
   };
 
-  const handleSave = async () => {
+  const handleSetKKMToEmpty = () => {
+    if (isReadOnly || !exam) return;
+    const kkmValue = exam.subject?.kkm ? Number(exam.subject.kkm) : 75;
+    let count = 0;
+
+    const updated = rows.map(r => {
+      if (r.score === '' || r.score === null || r.score === undefined) {
+        count++;
+        return { ...r, score: kkmValue };
+      }
+      return r;
+    });
+
+    setRows(updated);
+    notify.info(`${count} siswa yang belum memiliki nilai telah diisi nilai KKM (${kkmValue}).`);
+  };
+
+  const handleReset = () => {
+    setRows(JSON.parse(JSON.stringify(originalRows)));
+    notify.info('Perubahan nilai telah dikembalikan ke kondisi awal.');
+  };
+
+  const handleOpenConfirm = () => {
+    if (!examId || isReadOnly) return;
+    const validScores = rows.filter(r => r.score !== '' && r.score !== null && r.score !== undefined);
+    if (validScores.length === 0) {
+      notify.error('Tidak ada nilai siswa untuk disimpan.');
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
+  const handleExecuteSave = async () => {
     if (!examId || isReadOnly) return;
     
     try {
       setSaving(true);
-      setError('');
-      setSuccess('');
-      
-      // Only send rows that have a score inputted
       const validScores = rows
-        .filter(r => r.score !== '')
+        .filter(r => r.score !== '' && r.score !== null && r.score !== undefined)
         .map(r => ({
           studentId: r.studentId,
           score: Number(r.score),
@@ -160,11 +192,11 @@ export const ExamScores: React.FC = () => {
         }));
       
       await upsertExamScoresBatch(examId, validScores);
-      setSuccess('Nilai berhasil disimpan secara permanen!');
-      setTimeout(() => setSuccess(''), 3000);
-      
+      notify.success(`Nilai untuk ${validScores.length} siswa berhasil disimpan secara permanen!`);
+      setConfirmOpen(false);
+      setOriginalRows(JSON.parse(JSON.stringify(rows)));
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal menyimpan nilai');
+      notify.error(err, 'Gagal menyimpan nilai');
     } finally {
       setSaving(false);
     }
@@ -172,354 +204,254 @@ export const ExamScores: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-8 text-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-        <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-        <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#64748b' }}>Memuat data penilaian...</span>
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <TableSkeleton rows={8} columns={5} />
       </div>
     );
   }
 
   if (!exam) {
     return (
-      <div className="p-8 text-center" style={{ padding: '6rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div className="text-red-500 mb-4 font-bold text-xl">Agenda Penilaian tidak ditemukan.</div>
-        <button className="btn-std-secondary" onClick={() => navigate('/assessment/exams')} style={{ padding: '0.75rem 2rem' }}>Kembali ke Daftar Agenda</button>
+      <div className="p-16 max-w-7xl mx-auto text-center flex flex-col items-center justify-center">
+        <div className="text-rose-500 mb-4 font-bold text-lg">Agenda Penilaian tidak ditemukan.</div>
+        <button className="btn-std-secondary" onClick={() => navigate('/assessment/exams')}>
+          <ArrowLeft size={16} className="mr-2" /> Kembali ke Daftar Agenda
+        </button>
       </div>
     );
   }
 
+  const kkm = exam.subject?.kkm ? Number(exam.subject.kkm) : 75;
   const totalStudents = rows.length;
-  const completedCount = rows.filter(r => r.score !== '' && r.score !== null && r.score !== undefined).length;
+  const filledRows = rows.filter(r => r.score !== '' && r.score !== null && r.score !== undefined && !isNaN(Number(r.score)));
+  const completedCount = filledRows.length;
   const missingCount = totalStudents - completedCount;
 
+  const filledScores = filledRows.map(r => Number(r.score));
+  const avgScore = filledScores.length > 0 ? (filledScores.reduce((a, b) => a + b, 0) / filledScores.length).toFixed(1) : '-';
+  const maxClassScore = filledScores.length > 0 ? Math.max(...filledScores) : '-';
+  const minClassScore = filledScores.length > 0 ? Math.min(...filledScores) : '-';
+  const passedCount = filledScores.filter(s => s >= kkm).length;
+  const passPercentage = filledScores.length > 0 ? Math.round((passedCount / filledScores.length) * 100) : 0;
+
   return (
-    <div className="p-6 max-w-7xl mx-auto page-enter">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8" style={{ marginBottom: '2rem' }}>
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 page-enter">
+      {/* Page Header (Clean Standard - No ContextAccessHeader) */}
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-            <button 
-              onClick={() => navigate('/assessment/exams')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', fontWeight: 600, color: '#4f46e5', backgroundColor: '#e0e7ff', padding: '0.35rem 0.75rem', borderRadius: '99px', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#c7d2fe'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e0e7ff'}
-            >
-              <ArrowLeft size={14} /> Daftar Agenda
-            </button>
-            <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>/</span>
-            <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>Input Nilai</span>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight" style={{ fontSize: '2rem' }}>{exam.title}</h1>
-            {isReadOnly && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
-                <Lock size={13} /> {isLocked ? 'Terkunci' : (!isTeacherOrAdmin ? 'Bukan Pengampu (Hanya-Baca)' : 'Hanya-Baca')}
+          <button 
+            type="button"
+            onClick={() => navigate('/assessment/exams')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors mb-3 shadow-2xs cursor-pointer"
+          >
+            <ArrowLeft size={13} /> Kembali ke Daftar Agenda
+          </button>
+          
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900 leading-tight">{exam.title}</h1>
+            {isLocked && (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                Terkunci (Hanya-Baca)
               </span>
             )}
-          </div>
-          <p className="page-description" style={{ fontSize: '1rem', marginTop: '0.25rem' }}>
-            {isLocked
-              ? 'Agenda penilaian telah divalidasi/disahkan. Formulir dalam mode hanya-baca.'
-              : !isTeacherOrAdmin
-              ? `Mata pelajaran ini diampu oleh ${assignedTeacher?.fullName || 'Guru Pengampu lain'}. Anda berada dalam mode hanya-baca.`
-              : !canInputScore
-              ? 'Anda tidak memiliki hak akses untuk mengubah nilai.'
-              : 'Masukkan skor pencapaian siswa untuk agenda ini.'}
-          </p>
-        </div>
-        <div className="header-actions">
-          <button 
-            className="btn-std-primary" 
-            onClick={handleSave}
-            disabled={saving || rows.length === 0 || isReadOnly}
-            style={{ 
-              padding: '0.875rem 1.75rem', 
-              borderRadius: '12px', 
-              fontSize: '0.95rem', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              opacity: (saving || rows.length === 0 || isReadOnly) ? 0.6 : 1,
-              cursor: isReadOnly ? 'not-allowed' : 'pointer',
-              backgroundColor: isReadOnly ? '#94a3b8' : undefined
-            }}
-            title={isReadOnly ? (isLocked ? 'Agenda terkunci karena sudah divalidasi atau disahkan' : (!isTeacherOrAdmin ? `Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) yang dapat menginput nilai` : 'Anda tidak memiliki hak akses untuk menginput nilai')) : undefined}
-          >
-            {isReadOnly ? (
-              <>
-                <Lock size={18} />
-                {!canInputScore ? 'Hanya-Baca (Tidak Ada Izin)' : (!isTeacherOrAdmin ? 'Hanya-Baca (Bukan Pengampu)' : 'Terkunci (Hanya-Baca)')}
-              </>
-            ) : (
-              <>
-                <Save size={18} />
-                {saving ? 'Menyimpan...' : 'Simpan Semua Nilai'}
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Teacher Ownership Notice if not assigned teacher */}
-      {!isSuperAdmin && !isAssignedTeacher && (
-        <div className="mb-6 p-4 rounded-2xl bg-slate-100 border border-slate-200 text-slate-800 flex items-start sm:items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center flex-shrink-0 text-slate-700">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-slate-900 text-sm sm:text-base">Mode Hanya-Baca: Bukan Guru Pengampu</h4>
-              <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
-                Mata pelajaran ini diampu oleh <strong>{assignedTeacher?.fullName || 'Guru Pengampu lain'}</strong>. Hanya guru pengampu yang berwenang untuk menginput atau mengubah nilai siswa.
-              </p>
-            </div>
-          </div>
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-700 shrink-0">
-            Read Only
-          </span>
-        </div>
-      )}
-
-      {/* Lock Banner if locked */}
-      {isLocked && (
-        <div className="mb-6 p-4 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-900 flex items-start sm:items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-amber-700">
-              <Lock className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-amber-900 text-sm sm:text-base">Penilaian Terkunci (Mode Hanya-Baca)</h4>
-              <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-                {lockStatus?.validation?.status === 'VALIDATED' && (
-                  <span>Divalidasi oleh Wali Kelas ({lockStatus.validation.validatedBy?.fullName || 'Wali Kelas'}). </span>
-                )}
-                {lockStatus?.approval?.status === 'APPROVED' && (
-                  <span>Disahkan oleh Kepala Sekolah ({lockStatus.approval.approvedBy?.fullName || 'Kepala Sekolah'}). </span>
-                )}
-                Nilai agenda ini tidak dapat diedit kecuali dibuka revisi dari daftar agenda penilaian oleh pihak yang berwenang.
-              </p>
-            </div>
-          </div>
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-200/80 text-amber-900 shrink-0">
-            Read Only
-          </span>
-        </div>
-      )}
-
-      {error && (
-        <div className="alert flex items-center gap-3" style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '1.5rem', fontWeight: 500 }}>
-          <AlertCircle size={20} className="text-red-500" />
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="alert flex items-center gap-3" style={{ background: '#ecfdf5', color: '#065f46', padding: '1rem', borderRadius: '12px', border: '1px solid #a7f3d0', marginBottom: '1.5rem', fontWeight: 500 }}>
-          <CheckCircle2 size={20} className="text-emerald-500" />
-          {success}
-        </div>
-      )}
-
-      {/* Modern Info Section */}
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6" style={{ padding: '1.5rem', marginBottom: '2rem', borderRadius: '16px' }}>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <BookOpen size={20} style={{ color: '#3b82f6' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Mata Pelajaran</div>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', marginTop: '0.15rem' }}>{exam.subject?.name}</div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
-                Pengampu: <strong style={{ color: '#334155' }}>{assignedTeacher?.fullName || 'Belum Ditugaskan'}</strong>
-              </div>
-            </div>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Users size={20} style={{ color: '#8b5cf6' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Kelas</div>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', marginTop: '0.15rem' }}>{exam.classroom?.name}</div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Calendar size={20} style={{ color: '#10b981' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Jenis & Tanggal</div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', marginTop: '0.15rem' }}>{exam.examType} &bull; {new Date(exam.examDate).toLocaleDateString('id-ID')}</div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Award size={20} style={{ color: '#f59e0b' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Skor Maksimal</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', lineHeight: 1, marginTop: '0.15rem' }}>{exam.maxScore}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Table Section */}
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 overflow-hidden" style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.8)' }}>
-        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.4)', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Daftar Siswa</h3>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0.2rem 0 0 0' }}>Data nilai yang belum disimpan tidak akan hilang saat Anda mengubah angka di baris lain.</p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#f8fafc', padding: '0.4rem 0.8rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', color: '#475569' }}>
-              <span>Total:</span>
-              <strong style={{ color: '#0f172a' }}>{totalStudents} Siswa</strong>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#ecfdf5', padding: '0.4rem 0.8rem', borderRadius: '10px', border: '1px solid #a7f3d0', fontSize: '0.8rem', color: '#065f46' }}>
-              <CheckCircle2 size={14} className="text-emerald-600" />
-              <span>Dinilai:</span>
-              <strong style={{ color: '#065f46' }}>{completedCount}</strong>
-            </div>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.4rem', 
-              backgroundColor: missingCount > 0 ? '#fffbeb' : '#f8fafc', 
-              padding: '0.4rem 0.8rem', 
-              borderRadius: '10px', 
-              border: missingCount > 0 ? '1px solid #fde68a' : '1px solid #e2e8f0', 
-              fontSize: '0.8rem', 
-              color: missingCount > 0 ? '#92400e' : '#64748b' 
-            }}>
-              {missingCount > 0 && <AlertTriangle size={14} className="text-amber-600" />}
-              <span>Belum Dinilai:</span>
-              <strong style={{ color: missingCount > 0 ? '#b45309' : '#64748b' }}>{missingCount}</strong>
-            </div>
-          </div>
-        </div>
-
-        {/* Missing score notice banner */}
-        {missingCount > 0 && (
-          <div style={{ margin: '1rem 2rem', padding: '0.75rem 1rem', borderRadius: '12px', backgroundColor: '#fffbeb', border: '1px solid #fef3c7', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.825rem', color: '#92400e' }}>
-            <AlertTriangle size={18} className="text-amber-600 shrink-0" />
-            <span>
-              <strong>Perhatian:</strong> Terdapat <strong>{missingCount} siswa</strong> yang belum memiliki nilai. Siswa yang belum dinilai ditandai dengan label kuning di bawah.
+            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+              isAssignedTeacher 
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                : isSuperAdmin 
+                ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                : 'bg-slate-100 text-slate-600 border-slate-200'
+            }`}>
+              {isAssignedTeacher ? 'Anda Guru Pengampu' : isSuperAdmin ? 'Akses Admin' : 'Bukan Pengampu (Hanya-Baca)'}
             </span>
           </div>
-        )}
-        
-        {rows.length === 0 ? (
-          <div style={{ padding: '6rem 2rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#64748b' }}>Belum ada siswa yang terdaftar di kelas ini.</div>
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ background: 'rgba(248, 250, 252, 0.7)', borderBottom: '2px solid #e2e8f0' }}>
-                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', width: '60px', textAlign: 'center' }}>No</th>
-                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', width: '120px' }}>NIS</th>
-                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nama Lengkap Siswa</th>
-                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', width: '170px', textAlign: 'center' }}>Skor (Max: {exam.maxScore})</th>
-                  <th style={{ padding: '1rem 2rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', width: '300px' }}>Catatan Khusus (Opsional)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, index) => {
-                  const isMissing = row.score === '' || row.score === null || row.score === undefined;
-                  const isBelowPassing = row.score !== '' && Number(row.score) < (exam.maxScore * 0.6);
+          
+          <p className="text-xs md:text-sm text-gray-500 mt-1.5">
+            {exam.subject?.name || 'Mata Pelajaran'} • Kelas {exam.classroom?.name || 'Rombel'} • KKM: <span className="font-semibold text-slate-700">{kkm}</span> • Skor Maks: <span className="font-semibold text-slate-700">{exam.maxScore}</span>
+          </p>
+        </div>
 
-                  return (
-                    <tr 
-                      key={row.studentId} 
-                      style={{ 
-                        borderBottom: '1px solid #f1f5f9', 
-                        transition: 'all 0.2s',
-                        backgroundColor: isMissing ? 'rgba(254, 243, 199, 0.25)' : undefined
-                      }} 
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isMissing ? 'rgba(254, 243, 199, 0.45)' : '#f8fafc'} 
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isMissing ? 'rgba(254, 243, 199, 0.25)' : 'transparent'}
-                    >
-                      <td style={{ padding: '1.25rem 2rem', color: '#64748b', fontWeight: 500, textAlign: 'center', verticalAlign: 'middle' }}>{index + 1}</td>
-                      
-                      <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
-                        <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#475569', backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '6px', display: 'inline-block' }}>
-                          {row.nis}
-                        </div>
-                      </td>
-
-                      <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.95rem' }}>{row.studentName}</span>
-                          {isMissing && (
-                            <span style={{ 
-                              fontSize: '0.68rem', 
-                              fontWeight: 700, 
-                              padding: '0.15rem 0.5rem', 
-                              borderRadius: '99px', 
-                              backgroundColor: '#fef3c7', 
-                              color: '#92400e', 
-                              border: '1px solid #fde68a' 
-                            }}>
-                              Belum Dinilai
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      
-                      <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
-                        <input 
-                          type="number" 
-                          className="input-std"
-                          disabled={isReadOnly}
-                          style={{ 
-                            textAlign: 'center', 
-                            fontWeight: 800, 
-                            fontSize: '1.1rem',
-                            height: '46px',
-                            color: isReadOnly ? '#64748b' : (isBelowPassing ? '#dc2626' : '#0f172a'),
-                            backgroundColor: isReadOnly ? '#f1f5f9' : (isMissing ? '#fffbeb' : (isBelowPassing ? '#fef2f2' : '#f8fafc')),
-                            borderColor: isReadOnly ? '#cbd5e1' : (isMissing ? '#fcd34d' : (isBelowPassing ? '#fca5a5' : '#e2e8f0')),
-                            cursor: isReadOnly ? 'not-allowed' : 'text',
-                          }}
-                          value={row.score}
-                          onChange={(e) => handleRowChange(index, 'score', e.target.value)}
-                          placeholder="-"
-                          min={0}
-                          max={exam.maxScore}
-                        />
-                      </td>
-
-                      <td style={{ padding: '1.25rem 2rem', verticalAlign: 'middle' }}>
-                        <input 
-                          type="text" 
-                          className="input-std"
-                          disabled={isReadOnly}
-                          style={{ 
-                            height: '46px', 
-                            backgroundColor: isReadOnly ? '#f1f5f9' : '#f8fafc', 
-                            borderColor: isReadOnly ? '#cbd5e1' : '#e2e8f0',
-                            fontSize: '0.9rem',
-                            cursor: isReadOnly ? 'not-allowed' : 'text',
-                            color: isReadOnly ? '#64748b' : undefined
-                          }}
-                          value={row.notes}
-                          onChange={(e) => handleRowChange(index, 'notes', e.target.value)}
-                          placeholder={isLocked ? '-' : "Tuliskan catatan..."}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="flex items-center gap-2 self-end md:self-start shrink-0">
+          {isReadOnly ? (
+            <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-50 text-amber-900 border border-amber-300 shadow-sm">
+              <Lock size={14} />
+              <span>{isLocked ? 'Terkunci (Hanya-Baca)' : 'Mode Hanya-Baca'}</span>
+            </div>
+          ) : (
+            <button 
+              type="button"
+              className="btn-std-primary flex items-center gap-2 px-5 py-2 text-xs shadow-md shadow-indigo-600/20 hover:shadow-lg transition-all duration-200"
+              onClick={handleOpenConfirm}
+              disabled={saving || rows.length === 0}
+            >
+              <Save size={15} className={saving ? 'animate-pulse' : ''} />
+              <span className="font-semibold">{saving ? 'Menyimpan...' : 'Simpan Semua Nilai'}</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* 2. Kartu Statistik Nilai Realtime (KPI Grid) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div className="bg-white border border-indigo-200/80 rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+            <TrendingUp size={20} />
+          </div>
+          <div>
+            <p className="text-xs text-indigo-600 font-medium">Rata-Rata Kelas</p>
+            <p className="text-2xl font-black text-indigo-950">{avgScore}</p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-emerald-200/80 rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+            <Award size={20} />
+          </div>
+          <div>
+            <p className="text-xs text-emerald-600 font-medium">Nilai Tertinggi</p>
+            <p className="text-2xl font-black text-emerald-950">{maxClassScore}</p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-amber-200/80 rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+            <AlertTriangle size={20} />
+          </div>
+          <div>
+            <p className="text-xs text-amber-600 font-medium">Nilai Terendah</p>
+            <p className="text-2xl font-black text-amber-950">{minClassScore}</p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-sky-200/80 rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600 shrink-0">
+            <CheckCircle2 size={20} />
+          </div>
+          <div>
+            <p className="text-xs text-sky-600 font-medium">Tuntas KKM ({kkm})</p>
+            <p className="text-2xl font-black text-sky-950">{passPercentage}% <span className="text-xs font-semibold text-slate-500">({passedCount}/{completedCount})</span></p>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Spreadsheet-like Score Input Table */}
+      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/40">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 m-0">Daftar Penilaian Siswa</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Total: {totalStudents} Siswa • Terisi: {completedCount} • Belum: {missingCount}</p>
+          </div>
+
+          {!isReadOnly && (
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={handleSetKKMToEmpty}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors flex items-center gap-1.5"
+                title={`Isi nilai ${kkm} untuk semua siswa yang belum dinilai`}
+              >
+                <Sparkles size={14} />
+                Isi KKM ({kkm}) ke Kosong
+              </button>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors flex items-center gap-1.5"
+              >
+                <RotateCcw size={14} />
+                Reset
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-gray-50/70 text-gray-600 font-semibold border-b border-gray-100">
+              <tr>
+                <th className="w-12 text-center py-3.5 px-3">No</th>
+                <th className="w-32 py-3.5 px-3">NIS</th>
+                <th className="py-3.5 px-3">Nama Siswa</th>
+                <th className="w-36 py-3.5 px-3 text-center">Skor (Maks {exam.maxScore})</th>
+                <th className="w-32 py-3.5 px-3 text-center">Status KKM</th>
+                <th className="py-3.5 px-4">Catatan Perkembangan Siswa</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 animate-in fade-in duration-300">
+              {rows.map((row, index) => {
+                const hasScore = row.score !== '' && row.score !== null && row.score !== undefined && !isNaN(Number(row.score));
+                const numScore = hasScore ? Number(row.score) : null;
+                const isPassed = numScore !== null && numScore >= kkm;
+
+                return (
+                  <tr key={row.studentId} className="hover:bg-indigo-50/20 transition-colors">
+                    <td className="text-center text-gray-400 py-3 px-3 font-mono text-xs">{index + 1}</td>
+                    <td className="font-mono text-xs text-gray-500 py-3 px-3">{row.nis}</td>
+                    <td className="py-3 px-3">
+                      <span 
+                        className="font-bold text-gray-800 truncate block max-w-[220px]" 
+                        title={row.studentName}
+                      >
+                        {row.studentName}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <input 
+                        type="number" 
+                        disabled={isReadOnly}
+                        min={0}
+                        max={exam.maxScore}
+                        step="any"
+                        placeholder="0"
+                        className={`w-24 text-center py-1.5 px-2 rounded-xl font-mono text-sm font-bold shadow-sm transition-all outline-none border ${
+                          isReadOnly ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' :
+                          !hasScore ? 'bg-white text-gray-400 border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100' :
+                          isPassed ? 'bg-emerald-50 text-emerald-900 border-emerald-300 font-extrabold focus:ring-emerald-200' :
+                          'bg-rose-50 text-rose-900 border-rose-300 font-extrabold focus:ring-rose-200'
+                        }`}
+                        value={row.score}
+                        onChange={(e) => handleRowChange(index, 'score', e.target.value)}
+                      />
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {!hasScore ? (
+                        <Badge variant="default">Belum Ada</Badge>
+                      ) : isPassed ? (
+                        <Badge variant="success">Tuntas</Badge>
+                      ) : (
+                        <Badge variant="danger">Remedial</Badge>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <input 
+                        type="text" 
+                        disabled={isReadOnly}
+                        className={`input-std py-1.5 px-3 text-xs shadow-sm w-full transition-colors ${
+                          isReadOnly ? 'bg-gray-100 cursor-not-allowed opacity-80' : 'bg-white/70 focus:bg-white'
+                        }`}
+                        value={row.notes}
+                        onChange={(e) => handleRowChange(index, 'notes', e.target.value)}
+                        placeholder={isReadOnly ? "-" : "Keterangan tugas, materi remedial..."}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Dialog Konfirmasi Simpan Nilai */}
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleExecuteSave}
+        title="Simpan Nilai Penilaian"
+        message={`Apakah Anda yakin ingin menyimpan nilai untuk ${completedCount} siswa pada agenda "${exam.title}"? Data akan diperbarui ke pangkalan data nilai kurikulum.`}
+        variant="info"
+        confirmText={saving ? 'Menyimpan...' : 'Ya, Simpan Nilai'}
+      />
     </div>
   );
 };
+export default ExamScores;

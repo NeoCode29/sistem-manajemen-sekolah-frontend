@@ -17,7 +17,6 @@ import {
   Check, 
   CheckSquare, 
   Square, 
-  AlertCircle, 
   Save,
   GraduationCap,
   Calendar,
@@ -28,14 +27,13 @@ import {
   Award,
   Mail,
   Sliders,
-  RotateCcw
+  RotateCcw,
+  Loader2
 } from 'lucide-react';
-import { useDialog } from '../../contexts/DialogContext';
-import { PageHeader } from '../../components/ui/PageHeader';
-import { Modal } from '../../components/ui/Modal';
-import { FormField } from '../../components/ui/FormField';
+import { PageHeader, Modal, FormField, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_GROUPS, type PermissionGroup } from '../../constants/permissionsCatalog';
+import { notify } from '../../utils/feedback';
 
 const SYSTEM_ROLES = [
   'Super Admin',
@@ -52,7 +50,6 @@ export const Roles: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { canManageRbac } = usePermissions();
-  const { showConfirm, showAlert } = useDialog();
 
   // Selected Role & Permissions State
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
@@ -65,8 +62,25 @@ export const Roles: React.FC = () => {
 
   // Create Role Modal State
   const [showModal, setShowModal] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
   const [name, setName] = useState('');
   const [guardName, setGuardName] = useState('jwt');
+
+  // ConfirmDialog State
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState<{
+    variant: ConfirmVariant;
+    title: string;
+    message: React.ReactNode;
+    confirmText: string;
+    onConfirm: () => Promise<void> | void;
+  }>({
+    variant: 'danger',
+    title: '',
+    message: '',
+    confirmText: 'Lanjutkan',
+    onConfirm: () => {},
+  });
 
   // Map of permission name to permission object (with id from backend)
   const permNameToObject = useMemo(() => {
@@ -98,6 +112,7 @@ export const Roles: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to fetch roles data:', error);
+      notify.error(error, 'Gagal memuat data peran & hak akses');
     } finally {
       setLoading(false);
     }
@@ -121,28 +136,32 @@ export const Roles: React.FC = () => {
     return selectedPermIds.some(id => !originalSet.has(id));
   }, [selectedPermIds, originalPermIds, isSuperAdmin]);
 
-  // Handle Role Selection (with unsaved changes check)
-  const handleSelectRole = (role: Role) => {
-    if (role.id === selectedRoleId) return;
-
-    if (isDirty) {
-      showConfirm(
-        'Ada perubahan hak akses yang belum disimpan. Tetap ingin berpindah peran?',
-        () => {
-          doSelectRole(role);
-        },
-        'Peringatan Perubahan'
-      );
-    } else {
-      doSelectRole(role);
-    }
-  };
-
   const doSelectRole = (role: Role) => {
     setSelectedRoleId(role.id);
     const permIds = role.permissions?.map(p => p.id) || [];
     setSelectedPermIds(permIds);
     setOriginalPermIds(permIds);
+  };
+
+  // Handle Role Selection (with unsaved changes check)
+  const handleSelectRole = (role: Role) => {
+    if (role.id === selectedRoleId) return;
+
+    if (isDirty) {
+      setConfirmConfig({
+        variant: 'warning',
+        title: 'Perubahan Belum Disimpan',
+        message: `Ada perubahan hak akses pada peran "${selectedRole?.name}" yang belum disimpan. Tetap ingin berpindah ke peran "${role.name}" tanpa menyimpan?`,
+        confirmText: 'Ya, Tinggalkan Perubahan',
+        onConfirm: () => {
+          doSelectRole(role);
+          setConfirmOpen(false);
+        }
+      });
+      setConfirmOpen(true);
+    } else {
+      doSelectRole(role);
+    }
   };
 
   // Toggle Single Permission
@@ -205,9 +224,9 @@ export const Roles: React.FC = () => {
         return r;
       }));
 
-      showAlert(`Hak akses untuk "${selectedRole.name}" berhasil disimpan!`, 'Berhasil');
+      notify.success(`Hak akses untuk "${selectedRole.name}" berhasil disimpan!`);
     } catch (error: any) {
-      showAlert(error.response?.data?.message || 'Gagal menyimpan hak akses', 'Gagal');
+      notify.error(error, 'Gagal menyimpan hak akses peran');
     } finally {
       setSaving(false);
     }
@@ -217,34 +236,41 @@ export const Roles: React.FC = () => {
   const handleCreateRole = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setCreateSubmitting(true);
       const newRole = await createRole({ name, guardName });
       setShowModal(false);
       setName('');
       setGuardName('jwt');
       await fetchData();
       setSelectedRoleId(newRole.id);
-      showAlert(`Peran "${newRole.name}" berhasil ditambahkan!`, 'Berhasil');
+      notify.success(`Peran baru "${newRole.name}" berhasil ditambahkan!`);
     } catch (error: any) {
-      showAlert(error.response?.data?.message || 'Gagal membuat peran baru', 'Gagal');
+      notify.error(error, 'Gagal membuat peran baru');
+    } finally {
+      setCreateSubmitting(false);
     }
   };
 
   // Delete Role
-  const handleDeleteRole = async (role: Role, e: React.MouseEvent) => {
+  const handleDeleteRole = (role: Role, e: React.MouseEvent) => {
     e.stopPropagation();
-    showConfirm(
-      `Apakah Anda yakin ingin menghapus peran "${role.name}"? Aksi ini tidak dapat dibatalkan.`,
-      async () => {
+    setConfirmConfig({
+      variant: 'danger',
+      title: `Hapus Peran "${role.name}"`,
+      message: `Apakah Anda yakin ingin menghapus peran "${role.name}"? Pengguna dengan peran ini akan kehilangan hak akses terkait. Tindakan ini tidak dapat dibatalkan.`,
+      confirmText: 'Ya, Hapus Peran',
+      onConfirm: async () => {
         try {
           await deleteRole(role.id);
-          showAlert('Peran berhasil dihapus', 'Berhasil');
+          notify.success(`Peran "${role.name}" berhasil dihapus!`);
           await fetchData();
+          setConfirmOpen(false);
         } catch (error: any) {
-          showAlert(error.response?.data?.message || 'Gagal menghapus peran', 'Gagal');
+          notify.error(error, 'Gagal menghapus peran');
         }
-      },
-      'Hapus Peran'
-    );
+      }
+    });
+    setConfirmOpen(true);
   };
 
   // Filtered Roles
@@ -270,28 +296,29 @@ export const Roles: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto page-enter">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <PageHeader 
-          title="Peran & Hak Akses (Roles & Permissions)" 
-          subtitle="Atur daftar peran dan konfigurasi wewenang granular per submodul"
-        />
-        {canManageRbac && (
-          <button 
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-sm transition-all shadow-sm shadow-indigo-200"
-          >
-            <Plus size={18} /> Tambah Peran Baru
-          </button>
-        )}
-      </div>
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
+      {/* 1. Page Header */}
+      <PageHeader 
+        title="Peran & Hak Akses (Roles & Permissions)" 
+        subtitle="Atur daftar peran dan konfigurasi wewenang granular per submodul"
+        action={
+          canManageRbac ? (
+            <button 
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="btn-std-primary flex items-center gap-2"
+            >
+              <Plus size={18} /> Tambah Peran Baru
+            </button>
+          ) : undefined
+        }
+      />
 
-      {/* 2-Panel Master-Detail Layout */}
+      {/* 2. 2-Panel Master-Detail Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* PANEL KIRI: DAFTAR ROLE (Master ~35% / 4 cols) */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+        <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
           <div className="p-4 border-b border-gray-100 bg-gray-50/70">
             <div className="flex items-center justify-between mb-2.5">
               <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
@@ -300,14 +327,14 @@ export const Roles: React.FC = () => {
               </h3>
             </div>
             {/* Role Search */}
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <div className="relative group">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" />
               <input 
                 type="text"
                 placeholder="Cari peran..."
                 value={roleSearch}
                 onChange={(e) => setRoleSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-800 font-medium"
               />
             </div>
           </div>
@@ -366,9 +393,10 @@ export const Roles: React.FC = () => {
                       )}
                       {!isSystem && canManageRbac && (
                         <button
+                          type="button"
                           onClick={(e) => handleDeleteRole(role, e)}
                           title="Hapus Peran"
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -386,7 +414,7 @@ export const Roles: React.FC = () => {
           {selectedRole ? (
             <>
               {/* Sticky Top Header Panel Kanan */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 sticky top-4 z-10">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sticky top-4 z-10">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
                   <div>
                     <div className="flex items-center gap-2">
@@ -411,6 +439,7 @@ export const Roles: React.FC = () => {
                     <div className="flex items-center gap-2">
                       {isDirty && (
                         <button
+                          type="button"
                           onClick={handleReset}
                           className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors"
                           title="Batalkan perubahan"
@@ -419,6 +448,7 @@ export const Roles: React.FC = () => {
                         </button>
                       )}
                       <button
+                        type="button"
                         onClick={handleSavePermissions}
                         disabled={saving || !isDirty}
                         className={`inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm ${
@@ -427,7 +457,15 @@ export const Roles: React.FC = () => {
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
                         }`}
                       >
-                        <Save size={14} /> {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                        {saving ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" /> Menyimpan...
+                          </>
+                        ) : (
+                          <>
+                            <Save size={14} /> Simpan Perubahan
+                          </>
+                        )}
                       </button>
                     </div>
                   )}
@@ -436,27 +474,29 @@ export const Roles: React.FC = () => {
                 {/* Filter & Batch Actions */}
                 {!isSuperAdmin && (
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3">
-                    <div className="relative flex-1">
-                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <div className="relative flex-1 group">
+                      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" />
                       <input 
                         type="text"
-                        placeholder="Filter hak akses (misal: 'siswa', 'kelas.manage')..."
+                        placeholder="Filter hak akses (misal: 'siswa', 'academic', 'kelas')..."
                         value={permSearch}
                         onChange={(e) => setPermSearch(e.target.value)}
-                        className="w-full pl-9 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                        className="w-full pl-9 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-800 font-medium"
                       />
                     </div>
                     {canManageRbac && (
                       <div className="flex items-center gap-2 shrink-0 text-xs">
                         <button 
+                          type="button"
                           onClick={handleSelectAll}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors"
                         >
                           <CheckSquare size={13} className="text-indigo-600" /> Centang Semua
                         </button>
                         <button 
+                          type="button"
                           onClick={handleDeselectAll}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors"
                         >
                           <Square size={13} className="text-gray-400" /> Hapus Semua
                         </button>
@@ -510,7 +550,7 @@ export const Roles: React.FC = () => {
                   );
 
                   return (
-                    <div key={group.id} className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+                    <div key={group.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                       {/* Group Header */}
                       <div className="p-4 bg-gray-50/70 border-b border-gray-100 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
@@ -522,8 +562,8 @@ export const Roles: React.FC = () => {
                               <h3 className="text-sm font-bold text-gray-900">{group.name}</h3>
                               <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                                 activeInGroup > 0 
-                                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' 
-                                  : 'bg-gray-100 text-gray-500'
+                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' 
+                                : 'bg-gray-100 text-gray-500'
                               }`}>
                                 {activeInGroup} / {group.permissions.length} Aktif
                               </span>
@@ -536,7 +576,7 @@ export const Roles: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => toggleGroup(group)}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg border border-gray-200 bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-colors text-gray-600"
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-xl border border-gray-200 bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-colors text-gray-600"
                           >
                             {allGroupSelected ? (
                               <>
@@ -568,7 +608,7 @@ export const Roles: React.FC = () => {
                               } ${isSuperAdmin ? 'cursor-default opacity-85' : ''}`}
                             >
                               <input 
-                                type="checkbox"
+                                type="checkbox" 
                                 checked={isChecked}
                                 disabled={isSuperAdmin || !canManageRbac || !permId}
                                 onChange={() => permId && togglePermission(permId)}
@@ -595,7 +635,7 @@ export const Roles: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="p-12 text-center bg-white rounded-2xl border border-gray-200">
+            <div className="p-12 text-center bg-white rounded-2xl border border-gray-200 shadow-sm">
               <Shield size={36} className="text-gray-300 mx-auto mb-3" />
               <p className="text-sm font-medium text-gray-700">Pilih salah satu peran di panel kiri untuk mengatur hak akses.</p>
             </div>
@@ -614,7 +654,7 @@ export const Roles: React.FC = () => {
           <FormField label="Nama Peran" required>
             <input 
               type="text" 
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" 
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
               value={name} 
               onChange={(e) => setName(e.target.value)} 
               placeholder="Contoh: Waka Kurikulum" 
@@ -625,7 +665,7 @@ export const Roles: React.FC = () => {
           <FormField label="Guard Name" required>
             <input 
               type="text" 
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" 
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
               value={guardName} 
               onChange={(e) => setGuardName(e.target.value)} 
               placeholder="jwt" 
@@ -636,20 +676,40 @@ export const Roles: React.FC = () => {
           <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-gray-100">
             <button 
               type="button" 
-              className="px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-xs hover:bg-gray-50 transition-colors" 
+              className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-xs hover:bg-gray-50 transition-colors" 
               onClick={() => setShowModal(false)}
+              disabled={createSubmitting}
             >
               Batal
             </button>
             <button 
               type="submit" 
-              className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-xs"
+              disabled={createSubmitting}
+              className="inline-flex items-center justify-center px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm text-xs transition-colors disabled:opacity-50"
             >
-              Simpan Peran
+              {createSubmitting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                'Simpan Peran'
+              )}
             </button>
           </div>
         </form>
       </Modal>
+
+      {/* Standard ConfirmDialog */}
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        variant={confirmConfig.variant}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmText={confirmConfig.confirmText}
+        onConfirm={confirmConfig.onConfirm}
+      />
     </div>
   );
 };

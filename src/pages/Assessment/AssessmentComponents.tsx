@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { getAcademicYears, getSemesters, getGrades, getClassrooms, getSubjects, type AcademicYear, type Semester, type Grade, type Classroom, type Subject } from '../../api/academicService';
 import { getAssessmentComponents, createAssessmentComponent, updateAssessmentComponent, deleteAssessmentComponent, getAssessmentTypes, generateDefaultComponents, type AssessmentComponent, type AssessmentType } from '../../api/assessmentService';
-import { Plus, Settings, Target, BookOpen, PieChart, CheckCircle2, Sparkles } from 'lucide-react';
-import { useDialog } from '../../contexts/DialogContext';
-import { PageHeader, Modal, FormField } from '../../components/ui';
+import { Plus, Target, BookOpen, PieChart, CheckCircle2, Sparkles, Calendar, GraduationCap, Users } from 'lucide-react';
+import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { usePermissions } from '../../hooks/usePermissions';
+import { notify } from '../../utils/feedback';
 
 interface ComponentForm {
   typeId: string;
@@ -40,7 +41,6 @@ export const AssessmentComponents: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { hasPermission } = usePermissions();
   const canManageAssessmentComponents = hasPermission('assessment_components.manage') || hasPermission('assessment.write');
-  const { showConfirm, showAlert } = useDialog();
 
   // Filters
   const [filterAcademicYearId, setFilterAcademicYearId] = useState('');
@@ -55,6 +55,21 @@ export const AssessmentComponents: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [modalClassrooms, setModalClassrooms] = useState<Classroom[]>([]);
+
+  // ConfirmDialog State
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    variant: 'danger' | 'warning' | 'info';
+    action: () => Promise<void>;
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    variant: 'info',
+    action: async () => {}
+  });
 
   useEffect(() => {
     fetchDependencies();
@@ -97,8 +112,7 @@ export const AssessmentComponents: React.FC = () => {
       if (activeAy) setFilterAcademicYearId(activeAy.id);
       if (activeSem) setFilterSemesterId(activeSem.id);
     } catch (err) {
-      console.error(err);
-      showAlert('Gagal memuat data referensi', 'Error');
+      notify.error(err, 'Gagal memuat data referensi');
     }
   };
 
@@ -107,7 +121,7 @@ export const AssessmentComponents: React.FC = () => {
       const data = await getClassrooms(gid);
       setClassrooms(data);
     } catch (err) {
-      console.error(err);
+      notify.error(err, 'Gagal memuat daftar rombel');
     }
   };
 
@@ -127,7 +141,7 @@ export const AssessmentComponents: React.FC = () => {
       });
       setComponents(data);
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Gagal memuat komponen penilaian', 'Error');
+      notify.error(err, 'Gagal memuat komponen penilaian');
     } finally {
       setLoading(false);
     }
@@ -140,7 +154,7 @@ export const AssessmentComponents: React.FC = () => {
         weight: comp.weight || 0,
         academicYearId: comp.academicYearId || '',
         semesterId: comp.semesterId || '',
-        gradeId: '', // Note: we might not know gradeId from component directly if backend doesn't return it
+        gradeId: '',
         classroomId: comp.classroomId || '',
         subjectId: comp.subjectId || ''
       });
@@ -169,7 +183,7 @@ export const AssessmentComponents: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.classroomId || !form.subjectId || !form.academicYearId || !form.semesterId) {
-      showAlert('Pilih kelas, mata pelajaran, tahun ajaran, dan semester terlebih dahulu.', 'Peringatan');
+      notify.error('Pilih kelas, mata pelajaran, tahun ajaran, dan semester terlebih dahulu.');
       return;
     }
 
@@ -189,28 +203,35 @@ export const AssessmentComponents: React.FC = () => {
         await updateAssessmentComponent(modal.editId, {
           weight: Number(form.weight)
         });
+        notify.success('Komponen penilaian berhasil diperbarui');
       } else {
         await createAssessmentComponent(payload);
+        notify.success('Komponen penilaian berhasil ditambahkan');
       }
 
-      
       await fetchComponents();
       handleCloseModal();
     } catch (err: any) {
-      const message = err.response?.data?.message;
-      showAlert(Array.isArray(message) ? message.join(', ') : (message || 'Gagal menyimpan komponen penilaian'), 'Error');
+      notify.error(err, 'Gagal menyimpan komponen penilaian');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    showConfirm('Yakin ingin menghapus komponen penilaian ini?', async () => {
-      try {
-        await deleteAssessmentComponent(id);
-        await fetchComponents();
-      } catch (err: any) {
-        showAlert(err.response?.data?.message || 'Gagal menghapus komponen', 'Error');
+  const handleDelete = (id: string) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Hapus Komponen Penilaian',
+      message: 'Apakah Anda yakin ingin menghapus komponen penilaian ini? Komponen yang sudah memiliki nilai terkait mungkin akan terpengaruh.',
+      variant: 'danger',
+      action: async () => {
+        try {
+          await deleteAssessmentComponent(id);
+          notify.success('Komponen penilaian berhasil dihapus');
+          await fetchComponents();
+        } catch (err: any) {
+          notify.error(err, 'Gagal menghapus komponen');
+        }
       }
     });
   };
@@ -221,12 +242,15 @@ export const AssessmentComponents: React.FC = () => {
   const existingTypeIds = new Set(components.map(c => (c.typeId || c.type?.id)?.toString()));
   const isAllTypesCreated = isFiltersComplete && activeTypes.length > 0 && activeTypes.every(t => existingTypeIds.has(t.id.toString()));
 
-  const handleGenerateDefault = async () => {
+  const handleGenerateDefault = () => {
     if (!isFiltersComplete || isAllTypesCreated || isGenerating) return;
 
-    showConfirm(
-      'Generate otomatis semua jenis penilaian aktif yang belum ada untuk kelas & mapel ini dengan nilai bobot awal 0%?',
-      async () => {
+    setConfirmDialog({
+      open: true,
+      title: 'Generate Komponen Otomatis',
+      message: 'Generate otomatis semua jenis penilaian aktif yang belum ada untuk kelas & mapel ini dengan nilai bobot awal 0%?',
+      variant: 'info',
+      action: async () => {
         try {
           setIsGenerating(true);
           await generateDefaultComponents({
@@ -235,15 +259,15 @@ export const AssessmentComponents: React.FC = () => {
             academicYearId: filterAcademicYearId,
             semesterId: filterSemesterId
           });
+          notify.success('Komponen penilaian default berhasil dibuat');
           await fetchComponents();
         } catch (err: any) {
-          const message = err.response?.data?.message;
-          showAlert(Array.isArray(message) ? message.join(', ') : (message || 'Gagal generate komponen penilaian'), 'Error');
+          notify.error(err, 'Gagal generate komponen penilaian');
         } finally {
           setIsGenerating(false);
         }
       }
-    );
+    });
   };
 
   const columns: Column<AssessmentComponent>[] = [
@@ -252,11 +276,13 @@ export const AssessmentComponents: React.FC = () => {
       header: 'Jenis Penilaian',
       render: (row) => (
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center">
-            <BookOpen size={18} className="text-indigo-600" />
+          <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+            <BookOpen size={18} />
           </div>
           <div>
-            <div className="font-semibold text-gray-900">{row.type?.name || 'Unknown'}</div>
+            <div className="font-semibold text-gray-900 truncate block max-w-[200px]" title={row.type?.name || 'Unknown'}>
+              {row.type?.name || 'Unknown'}
+            </div>
             <div className="text-xs text-gray-500">Komponen Penilaian</div>
           </div>
         </div>
@@ -276,7 +302,7 @@ export const AssessmentComponents: React.FC = () => {
       key: 'weight',
       header: 'Bobot (%)',
       render: (row) => (
-        <div className="text-lg font-extrabold text-slate-900 text-center">{row.weight}%</div>
+        <div className="text-base font-extrabold text-slate-900 text-center">{row.weight}%</div>
       )
     }
   ];
@@ -290,148 +316,230 @@ export const AssessmentComponents: React.FC = () => {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto page-enter">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 page-enter">
       <PageHeader
         title="Komponen Penilaian"
         subtitle="Atur struktur penilaian, jenis ujian, dan proporsi bobot untuk perhitungan nilai akhir."
-        action={
-          canManageAssessmentComponents ? (
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleGenerateDefault}
-                disabled={!isFiltersComplete || isAllTypesCreated || isGenerating}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm ${
-                  isAllTypesCreated
-                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-                    : !isFiltersComplete
-                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
-                    : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 active:scale-95 cursor-pointer shadow-indigo-100'
-                }`}
-                title={
-                  !isFiltersComplete
-                    ? 'Lengkapi pilihan filter terlebih dahulu'
-                    : isAllTypesCreated
-                    ? 'Semua jenis penilaian aktif sudah dibuat'
-                    : 'Buat otomatis seluruh jenis penilaian dengan bobot 0%'
-                }
-              >
-                <Sparkles size={18} className={isGenerating ? 'animate-spin' : ''} />
-                <span>{isAllTypesCreated ? 'Komponen Lengkap' : 'Generate Otomatis'}</span>
-              </button>
-              <button className="btn-std-primary" onClick={() => handleOpenModal()}>
-                <Plus size={20} /> Tambah Komponen
-              </button>
-            </div>
-          ) : undefined
-        }
       />
 
-      {/* Modern Filter Section */}
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-6 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Settings size={18} className="text-indigo-600" />
-          <h2 className="text-lg font-bold text-gray-900">Parameter Penilaian</h2>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tahun Ajaran</label>
-            <select className="input-std bg-slate-50 border-slate-200 cursor-pointer" value={filterAcademicYearId} onChange={e => setFilterAcademicYearId(e.target.value)}>
-              <option value="">Pilih Tahun Ajaran...</option>
-              {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}</option>)}
-            </select>
+      {/* Parameter Filter Bar (Glassmorphism Standard - No Header, Icon Group Focus) */}
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Tahun Ajaran</label>
+            <div className="relative group">
+              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
+              <select
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate"
+                value={filterAcademicYearId}
+                onChange={e => setFilterAcademicYearId(e.target.value)}
+              >
+                <option value="">Pilih Tahun Ajaran...</option>
+                {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}{ay.isActive ? ' (Aktif)' : ''}</option>)}
+              </select>
+            </div>
           </div>
           
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Semester</label>
-            <select 
-              className="input-std bg-slate-50 border-slate-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
-              value={filterSemesterId} 
-              onChange={e => setFilterSemesterId(e.target.value)}
-              disabled={!filterAcademicYearId}
-            >
-              <option value="">Pilih Semester...</option>
-              {semesters.filter(s => s.academicYearId === filterAcademicYearId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Semester</label>
+            <div className="relative group">
+              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
+              <select 
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate disabled:opacity-50 disabled:cursor-not-allowed" 
+                value={filterSemesterId} 
+                onChange={e => setFilterSemesterId(e.target.value)}
+                disabled={!filterAcademicYearId}
+              >
+                <option value="">Pilih Semester...</option>
+                {semesters.filter(s => s.academicYearId === filterAcademicYearId).map(s => <option key={s.id} value={s.id}>{s.name}{s.isActive ? ' (Aktif)' : ''}</option>)}
+              </select>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tingkat Kelas</label>
-            <select className="input-std bg-slate-50 border-slate-200 cursor-pointer" value={filterGradeId} onChange={e => setFilterGradeId(e.target.value)}>
-              <option value="">Pilih Tingkat...</option>
-              {grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-            </select>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Tingkat Kelas</label>
+            <div className="relative group">
+              <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
+              <select
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate"
+                value={filterGradeId}
+                onChange={e => setFilterGradeId(e.target.value)}
+              >
+                <option value="">Pilih Tingkat...</option>
+                {grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Rombel / Kelas</label>
-            <select className="input-std bg-slate-50 border-slate-200 cursor-pointer disabled:opacity-50" value={filterClassroomId} onChange={e => setFilterClassroomId(e.target.value)} disabled={!filterGradeId}>
-              <option value="">Pilih Rombel...</option>
-              {classrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Rombel / Kelas</label>
+            <div className="relative group">
+              <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
+              <select
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate disabled:opacity-50 disabled:cursor-not-allowed"
+                value={filterClassroomId}
+                onChange={e => setFilterClassroomId(e.target.value)}
+                disabled={!filterGradeId}
+              >
+                <option value="">Pilih Rombel...</option>
+                {classrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mata Pelajaran</label>
-            <select className="input-std bg-slate-50 border-slate-200 cursor-pointer" value={filterSubjectId} onChange={e => setFilterSubjectId(e.target.value)}>
-              <option value="">Pilih Mapel...</option>
-              {subjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
-            </select>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Mata Pelajaran</label>
+            <div className="relative group">
+              <BookOpen className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
+              <select
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate"
+                value={filterSubjectId}
+                onChange={e => setFilterSubjectId(e.target.value)}
+              >
+                <option value="">Pilih Mapel...</option>
+                {subjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm mb-6 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white/40">
+      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-4 md:p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/40">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 m-0">Daftar Komponen</h3>
-            <p className="text-sm text-slate-500 mt-1">Sebaran bobot persentase penilaian siswa</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 m-0">Daftar Komponen</h3>
+              {isFiltersComplete && (
+                <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  {classrooms.find(c => c.id === filterClassroomId)?.name || 'Kelas'} • {subjects.find(s => s.id === filterSubjectId)?.name || 'Mapel'}
+                </span>
+              )}
+              {isFiltersComplete && (
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                  isAllTypesCreated 
+                    ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                }`}>
+                  {isAllTypesCreated ? 'Komponen Lengkap' : 'Komponen Sebagian'}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Sebaran bobot persentase penilaian siswa</p>
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className={`text-xs font-bold uppercase tracking-wider ${totalWeight === 100 ? 'text-emerald-600' : 'text-red-600'}`}>Total Bobot</div>
-              <div className={`text-2xl font-black leading-none ${totalWeight === 100 ? 'text-emerald-500' : 'text-red-500'}`}>{totalWeight}%</div>
-            </div>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${totalWeight === 100 ? 'bg-emerald-100' : 'bg-red-100'}`}>
-              <PieChart size={24} className={totalWeight === 100 ? 'text-emerald-500' : 'text-red-500'} />
-            </div>
+          <div className="flex flex-wrap items-center gap-3 self-end md:self-auto">
+            {/* Total Bobot KPI Indicator */}
+            {isFiltersComplete && (
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border ${
+                totalWeight === 100 
+                  ? 'bg-emerald-50/70 border-emerald-200' 
+                  : totalWeight > 100 
+                  ? 'bg-rose-50/70 border-rose-200' 
+                  : 'bg-amber-50/70 border-amber-200'
+              }`}>
+                <div className="text-right">
+                  <div className={`text-[10px] font-bold uppercase tracking-wider ${
+                    totalWeight === 100 ? 'text-emerald-700' : totalWeight > 100 ? 'text-rose-700' : 'text-amber-700'
+                  }`}>
+                    Total Bobot
+                  </div>
+                  <div className={`text-base font-black leading-none ${
+                    totalWeight === 100 ? 'text-emerald-700' : totalWeight > 100 ? 'text-rose-700' : 'text-amber-700'
+                  }`}>
+                    {totalWeight}%
+                  </div>
+                </div>
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                  totalWeight === 100 ? 'bg-emerald-100 text-emerald-700' : totalWeight > 100 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                }`}>
+                  <PieChart size={15} />
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            {canManageAssessmentComponents && isFiltersComplete && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleGenerateDefault}
+                  disabled={isAllTypesCreated || isGenerating}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm ${
+                    isAllTypesCreated
+                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 active:scale-95 cursor-pointer shadow-indigo-100'
+                  }`}
+                  title={
+                    isAllTypesCreated
+                      ? 'Semua jenis penilaian aktif sudah dibuat'
+                      : 'Buat otomatis seluruh jenis penilaian dengan bobot 0%'
+                  }
+                >
+                  <Sparkles size={15} className={isGenerating ? 'animate-spin' : ''} />
+                  <span>{isAllTypesCreated ? 'Komponen Lengkap' : 'Generate Otomatis'}</span>
+                </button>
+                <button 
+                  className="btn-std-primary flex items-center gap-1.5 px-4 py-2 text-xs shadow-sm transition-all" 
+                  onClick={() => handleOpenModal()}
+                >
+                  <Plus size={15} /> <span>Tambah Komponen</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Warning Banner if total weight is not 100% */}
+        {isFiltersComplete && totalWeight !== 100 && (
+          <div className="px-5 py-2.5 bg-amber-50/90 border-b border-amber-200/80 flex items-center gap-2 text-xs text-amber-800">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+            <span>
+              Total pembobotan saat ini <strong>{totalWeight}%</strong>. Sesuaikan bobot masing-masing komponen agar mencapai tepat <strong>100%</strong> untuk perhitungan nilai akhir rapor.
+            </span>
+          </div>
+        )}
+
         {!isFiltersComplete ? (
-          <div className="p-24 text-center flex flex-col items-center justify-center">
-             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center mb-6 shadow-sm">
-                <Target size={36} className="text-indigo-600" />
+          <div className="p-16 text-center flex flex-col items-center justify-center">
+             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center mb-4 shadow-sm text-indigo-600">
+                <Target size={30} />
              </div>
-             <div className="text-xl font-extrabold text-slate-800">Pilih Parameter Penilaian</div>
-             <div className="text-sm text-slate-500 mt-2 max-w-md leading-relaxed">
+             <div className="text-lg font-bold text-slate-800">Pilih Parameter Penilaian</div>
+             <div className="text-xs text-slate-500 mt-1.5 max-w-md leading-relaxed">
                Silakan pilih Tahun Ajaran, Semester, Rombel/Kelas, dan Mata Pelajaran terlebih dahulu untuk menampilkan atau mengatur bobot komponen penilaian.
              </div>
           </div>
         ) : (
-          <DataTable columns={columns} data={components} loading={loading} emptyMessage="Belum ada komponen penilaian yang diatur untuk kelas dan mapel ini. Silakan tambah komponen baru." />
+          <DataTable 
+            columns={columns} 
+            data={components} 
+            loading={loading} 
+            emptyMessage="Belum ada komponen penilaian yang diatur untuk kelas dan mapel ini. Silakan tambah komponen baru." 
+          />
         )}
 
         {/* Progress Bar Footer */}
         {(components.length > 0) && (
-          <div className="p-6 bg-slate-50/80 border-t border-slate-200">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-sm font-semibold text-slate-600">Distribusi Total Bobot</span>
+          <div className="p-5 bg-slate-50/80 border-t border-slate-200">
+            <div className="flex justify-between items-center mb-2.5">
+              <span className="text-xs font-semibold text-slate-600">Distribusi Total Bobot</span>
               {totalWeight === 100 ? (
-                <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-500">
-                  <CheckCircle2 size={16} /> Konfigurasi Sempurna
-                </span>
+                <Badge variant="success" className="flex items-center gap-1">
+                  <CheckCircle2 size={13} /> Konfigurasi Sempurna (100%)
+                </Badge>
+              ) : totalWeight > 100 ? (
+                <Badge variant="danger">
+                  Melebihi 100% (+{totalWeight - 100}%)
+                </Badge>
               ) : (
-                <span className="text-sm font-semibold text-red-500">
-                  Sisa {100 - totalWeight}% yang belum dialokasikan
-                </span>
+                <Badge variant="warning">
+                  Sisa {100 - totalWeight}% belum dialokasikan
+                </Badge>
               )}
             </div>
-            <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+            <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
               <div 
-                className={`h-full rounded-full transition-all duration-500 ease-in-out ${totalWeight === 100 ? 'bg-emerald-500' : (totalWeight > 100 ? 'bg-red-500' : 'bg-indigo-600')}`}
+                className={`h-full rounded-full transition-all duration-500 ease-in-out ${totalWeight === 100 ? 'bg-emerald-500' : (totalWeight > 100 ? 'bg-rose-500' : 'bg-amber-500')}`}
                 style={{ width: `${Math.min(totalWeight, 100)}%` }}
               ></div>
             </div>
@@ -520,6 +628,16 @@ export const AssessmentComponents: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Dialog Konfirmasi Terstandarisasi */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.action}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant={confirmDialog.variant}
+      />
     </div>
   );
 };
