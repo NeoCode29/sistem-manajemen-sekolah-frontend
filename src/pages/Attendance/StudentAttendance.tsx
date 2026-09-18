@@ -509,30 +509,14 @@ export const StudentAttendancePage: React.FC = () => {
 
       {/* Peringatan jika akses kelas dibatasi kebijakan wali kelas */}
       {homeroomNotice && (
-        <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-start sm:items-center justify-between gap-4 text-amber-900 shadow-xs animate-in fade-in duration-300">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
-              <AlertTriangle size={18} />
-            </div>
-            <div className="text-xs">
-              <p className="font-bold text-amber-950">Akses Terbatas: Kebijakan Wali Kelas</p>
-              <p className="text-amber-800/90 mt-0.5">{homeroomNotice}</p>
-            </div>
+        <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-center gap-3 text-amber-900 shadow-xs animate-in fade-in duration-300">
+          <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+            <AlertTriangle size={18} />
           </div>
-          {homeroomClassId && selectedClassroomId !== homeroomClassId && (
-            <button
-              type="button"
-              onClick={() => {
-                const hrClass = classrooms.find(c => c.id === homeroomClassId);
-                if (hrClass) {
-                  setSelectedClassroomId(homeroomClassId);
-                }
-              }}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs shadow-xs transition-all cursor-pointer"
-            >
-              Ke Kelas Perwalian
-            </button>
-          )}
+          <div className="text-xs">
+            <p className="font-bold text-amber-950">Akses Terbatas: Kebijakan Wali Kelas</p>
+            <p className="text-amber-800/90 mt-0.5">{homeroomNotice}</p>
+          </div>
         </div>
       )}
 
