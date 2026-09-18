@@ -134,8 +134,16 @@ export const deleteEnrollment = async (studentId: string, id: string): Promise<v
 };
 
 // ==========================================
-// IMPORT EXCEL
+// IMPORT & EXPORT EXCEL
 // ==========================================
+export const exportStudents = async (params?: Record<string, any>): Promise<Blob> => {
+  const response = await api.get('/students/export', {
+    params,
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
 export const downloadImportTemplate = async (): Promise<void> => {
   const response = await api.get('/students/import-template', { responseType: 'blob' });
   const url = window.URL.createObjectURL(new Blob([response.data]));

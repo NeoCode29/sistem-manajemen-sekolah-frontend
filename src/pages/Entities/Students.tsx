@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, ChevronLeft, ChevronRight, FileUp, RefreshCw, User, Archive, Eye, Loader2, Search, Filter, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, FileUp, FileDown, RefreshCw, User, Archive, Eye, Loader2, Search, Filter, RotateCcw } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { ImportStudentModal } from './ImportStudentModal';
 import { useStudents } from '../../hooks/useStudents';
@@ -9,6 +9,7 @@ import { DataTable, type Column } from '../../components/Common/DataTable';
 import { PageHeader, Modal, FormField, Badge, Select, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { notify } from '../../utils/feedback';
 import { getAcademicYears, getSemesters, getClassrooms, getMajors, type AcademicYear, type Semester, type Classroom, type Major } from '../../api/academicService';
+import { exportStudents } from '../../api/studentService';
 
 interface WizardForm {
   nis: string;
@@ -58,6 +59,7 @@ export const Students: React.FC = () => {
   const canDeleteStudent = hasPermission('students.delete') || hasPermission('students.write');
   const canImportExport = hasPermission('students.export_import') || hasPermission('students.write');
 
+  const [isExporting, setIsExporting] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [wizardModal, setWizardModal] = useState({ open: false, step: 1 });
   const [submittingWizard, setSubmittingWizard] = useState(false);
@@ -196,6 +198,33 @@ export const Students: React.FC = () => {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const blob = await exportStudents({
+        search: searchTerm || undefined,
+        status: filterStatus || undefined,
+        isDeleted: activeTab === 'deleted',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      const todayStr = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `data-siswa-${todayStr}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      notify.success('Data siswa berhasil diekspor ke Excel!');
+    } catch (err: any) {
+      notify.error(err, 'Gagal mengekspor data siswa');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const columns: Column<any>[] = [
     { 
       key: 'nis', 
@@ -321,30 +350,39 @@ export const Students: React.FC = () => {
         title="Siswa & Wali Murid" 
         subtitle="Pendaftaran dan manajemen riwayat siswa terpadu"
         action={
-          activeTab === 'active' ? (
-            <div className="flex flex-wrap items-center gap-3">
-              {canImportExport && (
-                <button 
-                  type="button"
-                  className="btn-std-secondary" 
-                  onClick={() => setIsImportModalOpen(true)}
-                >
-                  <FileUp size={18} /> 
-                  <span>Import Excel</span>
-                </button>
-              )}
-              {canCreateStudent && (
-                <button 
-                  type="button"
-                  className="btn-std-primary" 
-                  onClick={() => setWizardModal({ open: true, step: 1 })}
-                >
-                  <Plus size={18} /> 
-                  <span>Pendaftaran Siswa Baru</span>
-                </button>
-              )}
-            </div>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-3">
+            {canImportExport && (
+              <button 
+                type="button"
+                className="btn-std-secondary" 
+                onClick={handleExport}
+                disabled={isExporting}
+              >
+                {isExporting ? <Loader2 size={18} className="animate-spin text-indigo-600" /> : <FileDown size={18} />} 
+                <span>{isExporting ? 'Mengekspor...' : 'Export Excel'}</span>
+              </button>
+            )}
+            {activeTab === 'active' && canImportExport && (
+              <button 
+                type="button"
+                className="btn-std-secondary" 
+                onClick={() => setIsImportModalOpen(true)}
+              >
+                <FileUp size={18} /> 
+                <span>Import Excel</span>
+              </button>
+            )}
+            {activeTab === 'active' && canCreateStudent && (
+              <button 
+                type="button"
+                className="btn-std-primary" 
+                onClick={() => setWizardModal({ open: true, step: 1 })}
+              >
+                <Plus size={18} /> 
+                <span>Pendaftaran Siswa Baru</span>
+              </button>
+            )}
+          </div>
         }
       />
 
