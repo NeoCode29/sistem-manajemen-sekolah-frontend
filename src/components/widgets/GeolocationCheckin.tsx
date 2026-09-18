@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MapPin, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
 import api from '../../api/axios';
+import { getAttendanceSetting, type AttendanceSetting } from '../../api/attendanceService';
 
 interface TodayAttendanceStatus {
   role: 'Siswa' | 'Pegawai' | 'Unknown';
@@ -15,13 +16,20 @@ export const GeolocationCheckin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [fetchingStatus, setFetchingStatus] = useState(true);
   const [todayStatus, setTodayStatus] = useState<TodayAttendanceStatus | null>(null);
+  const [setting, setSetting] = useState<AttendanceSetting | null>(null);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const fetchTodayStatus = useCallback(async () => {
     try {
       setFetchingStatus(true);
-      const res = await api.get('/attendances/my-today');
-      setTodayStatus(res.data);
+      const [statusRes, settingRes] = await Promise.all([
+        api.get('/attendances/my-today'),
+        getAttendanceSetting().catch(() => null),
+      ]);
+      setTodayStatus(statusRes.data);
+      if (settingRes) {
+        setSetting(settingRes);
+      }
     } catch (err) {
       console.error('Failed to fetch today attendance status', err);
     } finally {
@@ -70,6 +78,12 @@ export const GeolocationCheckin: React.FC = () => {
 
   const isSiswa = todayStatus?.role === 'Siswa';
   const isPegawai = todayStatus?.role === 'Pegawai';
+
+  // Sembunyikan widget jika metode GPS dinonaktifkan untuk peran pengguna saat ini
+  if (!fetchingStatus && setting) {
+    if (isSiswa && setting.studentGpsEnabled === false) return null;
+    if (isPegawai && setting.employeeGpsEnabled === false) return null;
+  }
 
   const isSiswaCompleted = isSiswa && !!todayStatus?.hasCheckedIn;
   const isPegawaiCompleted = isPegawai && !!(todayStatus?.hasCheckedIn && todayStatus?.hasCheckedOut);

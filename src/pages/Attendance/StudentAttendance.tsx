@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getAcademicYears, getSemesters, getGrades, getClassrooms, type AcademicYear, type Semester, type Grade, type Classroom } from '../../api/academicService';
 import { getStudents } from '../../api/studentService';
-import { getStudentAttendances, upsertStudentAttendanceBatch, type StudentAttendance, type StudentAttendanceBatchItem } from '../../api/attendanceService';
+import { getStudentAttendances, upsertStudentAttendanceBatch, getAttendanceSetting, type StudentAttendance, type StudentAttendanceBatchItem } from '../../api/attendanceService';
 import { Save, Calendar, CheckCircle2, Clock, AlertTriangle, UserCheck, RotateCcw, Filter, Users, GraduationCap, Tv, ExternalLink } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -41,6 +41,7 @@ export const StudentAttendancePage: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isManualEnabled, setIsManualEnabled] = useState(true);
   const [rows, setRows] = useState<AttendanceRow[]>([]);
   const [originalRows, setOriginalRows] = useState<AttendanceRow[]>([]);
 
@@ -94,14 +95,18 @@ export const StudentAttendancePage: React.FC = () => {
 
   const fetchFilters = async () => {
     try {
-      const [ayRes, semRes, grRes] = await Promise.all([
+      const [ayRes, semRes, grRes, settingRes] = await Promise.all([
         getAcademicYears(),
         getSemesters(),
-        getGrades()
+        getGrades(),
+        getAttendanceSetting().catch(() => null),
       ]);
       setAcademicYears(ayRes);
       setSemesters(semRes);
       setGrades(grRes);
+      if (settingRes) {
+        setIsManualEnabled(settingRes.studentManualEnabled ?? true);
+      }
       
       const activeAy = ayRes.find(a => a.isActive) || ayRes[0];
       if (activeAy) {
@@ -433,6 +438,21 @@ export const StudentAttendancePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Peringatan jika metode presensi manual siswa dinonaktifkan */}
+      {!isManualEnabled && (
+        <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-center gap-3 text-amber-900 shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+            <AlertTriangle size={18} />
+          </div>
+          <div className="text-xs">
+            <p className="font-bold text-amber-950">Pencatatan Presensi Manual Siswa Sedang Dinonaktifkan</p>
+            <p className="text-amber-800/90 mt-0.5">
+              Pihak sekolah mengalihkan absensi siswa ke metode aktif lainnya (seperti Kartu RFID / Kiosk). Aksi simpan manual disembunyikan.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 4. Toolbar Tabel Presensi (Clean Standard) */}
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Sisi Kiri: Tab Pilihan Mode & Filter Rekap */}
@@ -537,7 +557,7 @@ export const StudentAttendancePage: React.FC = () => {
         </div>
 
         {/* Sisi Kanan: Aksi Massal & Simpan */}
-        {canRecordAttendance && selectedClassroomObj && rows.length > 0 && (
+        {canRecordAttendance && isManualEnabled && selectedClassroomObj && rows.length > 0 && (
           <div className="flex items-center gap-2 self-end md:self-auto">
             {activeTab === 'input' && (
               <>

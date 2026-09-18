@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getEmployees } from '../../api/employeeService';
-import { getEmployeeAttendances, upsertEmployeeAttendanceBatch, type EmployeeAttendance, type EmployeeAttendanceBatchItem } from '../../api/attendanceService';
+import { getEmployeeAttendances, upsertEmployeeAttendanceBatch, getAttendanceSetting, type EmployeeAttendance, type EmployeeAttendanceBatchItem } from '../../api/attendanceService';
 import { Save, Calendar, Search, CheckCircle2, Clock, UserCheck, AlertTriangle, Users, RotateCcw, Tv, ExternalLink } from 'lucide-react';
 import { TableSkeleton } from '../../components/Common/TableSkeleton';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -29,6 +29,7 @@ export const EmployeeAttendancePage: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isManualEnabled, setIsManualEnabled] = useState(true);
   
   const [rows, setRows] = useState<AttendanceRow[]>([]);
   const [originalRows, setOriginalRows] = useState<AttendanceRow[]>([]);
@@ -44,10 +45,15 @@ export const EmployeeAttendancePage: React.FC = () => {
     try {
       setLoading(true);
       
-      const [employeesData, attendancesData] = await Promise.all([
+      const [employeesData, attendancesData, settingData] = await Promise.all([
         getEmployees(),
-        getEmployeeAttendances({ date })
+        getEmployeeAttendances({ date }),
+        getAttendanceSetting().catch(() => null),
       ]);
+
+      if (settingData) {
+        setIsManualEnabled(settingData.employeeManualEnabled ?? true);
+      }
       
       // Filter active employees
       const activeEmployees = employeesData.filter(emp => emp.isActive);
@@ -321,6 +327,21 @@ export const EmployeeAttendancePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Peringatan jika metode presensi manual pegawai dinonaktifkan */}
+      {!isManualEnabled && (
+        <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-center gap-3 text-amber-900 shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+            <AlertTriangle size={18} />
+          </div>
+          <div className="text-xs">
+            <p className="font-bold text-amber-950">Pencatatan Presensi Manual Pegawai Sedang Dinonaktifkan</p>
+            <p className="text-amber-800/90 mt-0.5">
+              Pihak sekolah mengalihkan absensi pegawai ke metode aktif lainnya (seperti Kartu RFID / Mandiri GPS). Aksi simpan manual disembunyikan.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 4. Toolbar Tabel Presensi Pegawai (Clean Standard) */}
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Sisi Kiri: Tab Pilihan Mode & Status */}
@@ -363,7 +384,7 @@ export const EmployeeAttendancePage: React.FC = () => {
         </div>
 
         {/* Sisi Kanan: Aksi Massal & Simpan */}
-        {canRecordEmployeeAttendance && rows.length > 0 && (
+        {canRecordEmployeeAttendance && isManualEnabled && rows.length > 0 && (
           <div className="flex items-center gap-2 self-end md:self-auto">
             {activeTab === 'input' && (
               <>
