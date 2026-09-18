@@ -70,6 +70,7 @@ export const usePermissions = () => {
     canManageReportCards: hasPermission('report_cards.generate'),
     canManagePromotions: hasPermission('promotions.execute'),
     canManageGraduations: hasPermission('graduations.execute'),
+    canManageSchedule: hasPermission('schedules.manage') || hasPermission('academic.write'),
     
     // Read Permissions
     canReadAcademic: hasPermission('academic_years.read') || hasPermission('semesters.read') || hasPermission('grades.read'),
@@ -84,5 +85,6 @@ export const usePermissions = () => {
     canReadReportCards: hasPermission('report_cards.read'),
     canReadPromotions: hasPermission('promotions.read'),
     canReadGraduations: hasPermission('graduations.read'),
+    canReadSchedule: hasPermission('schedules.read'),
   };
 };

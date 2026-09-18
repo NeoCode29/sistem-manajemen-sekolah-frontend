@@ -5,8 +5,10 @@ import { getAcademicYears, getSemesters, getClassrooms, getSubjects, getClassPer
 import type { AcademicYear, Semester, Classroom, Subject, ClassPeriod } from '../api/academicService';
 import { getEmployees } from '../api/employeeService';
 import type { Employee } from '../api/employeeService';
+import { usePermissions } from './usePermissions';
 
 export function useSchedules() {
+  const { canManageSchedule } = usePermissions();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [subjectAssignments, setSubjectAssignments] = useState<SubjectAssignment[]>([]);
   
@@ -29,14 +31,19 @@ export function useSchedules() {
   const fetchDependencies = useCallback(async () => {
     try {
       setPageError('');
+      const empPromise = canManageSchedule
+        ? getEmployees({ isActive: 'true' }).catch(() => [])
+        : Promise.resolve([]);
+
       const [ayData, semData, subjData, empData, clsData, periodData] = await Promise.all([
-        getAcademicYears(),
-        getSemesters(),
-        getSubjects(),
-        getEmployees({ isActive: 'true' }),
-        getClassrooms(),
-        getClassPeriods()
+        getAcademicYears().catch(() => []),
+        getSemesters().catch(() => []),
+        getSubjects().catch(() => []),
+        empPromise,
+        getClassrooms().catch(() => []),
+        getClassPeriods().catch(() => []),
       ]);
+
       setAcademicYears(ayData);
       setSemesters(semData);
       setSubjects(subjData);
@@ -56,7 +63,7 @@ export function useSchedules() {
       console.error(err);
       setPageError(err.response?.data?.message || err.message || 'Gagal memuat data referensi');
     }
-  }, [filterClassroomId]);
+  }, [filterClassroomId, canManageSchedule]);
 
   const fetchClassroomData = useCallback(async () => {
     if (!filterClassroomId) return;

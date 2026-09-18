@@ -57,8 +57,7 @@ const getSubjectColor = (name: string) => {
 };
 
 export const Schedules: React.FC = () => {
-  const { hasPermission } = usePermissions();
-  const canManageSchedule = hasPermission('schedules.manage') || hasPermission('academic.write');
+  const { canManageSchedule } = usePermissions();
   const [activeTab, setActiveTab] = useState<'assignments' | 'schedule'>('assignments');
   const [assignmentSearch, setAssignmentSearch] = useState('');
 
