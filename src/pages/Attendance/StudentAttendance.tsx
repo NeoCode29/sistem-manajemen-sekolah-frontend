@@ -1,9 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { getAcademicYears, getSemesters, getGrades, getClassrooms, type AcademicYear, type Semester, type Grade, type Classroom } from '../../api/academicService';
+import { 
+  getAcademicYears, 
+  getSemesters, 
+  getGrades, 
+  getClassrooms, 
+  getHomeroomByTeacher,
+  type AcademicYear, 
+  type Semester, 
+  type Grade, 
+  type Classroom 
+} from '../../api/academicService';
 import { getStudents } from '../../api/studentService';
 import { getStudentAttendances, upsertStudentAttendanceBatch, getAttendanceSetting, type StudentAttendance, type StudentAttendanceBatchItem } from '../../api/attendanceService';
 import { Save, Calendar, CheckCircle2, Clock, AlertTriangle, UserCheck, RotateCcw, Filter, Users, GraduationCap, Tv, ExternalLink } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../context/AuthContext';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Badge, type BadgeVariant } from '../../components/ui/Badge';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -19,8 +30,13 @@ interface AttendanceRow {
 }
 
 export const StudentAttendancePage: React.FC = () => {
-  const { hasPermission } = usePermissions();
-  const canRecordAttendance = hasPermission('student_attendance.record') || hasPermission('student_attendance.batch') || hasPermission('attendance.write');
+  const { user } = useAuth();
+  const { canRecordStudentAttendance } = usePermissions();
+  const canRecordAttendance = canRecordStudentAttendance;
+
+  const isTeacher = user?.roles?.some(r => r === 'Guru / Wali Kelas' || r === 'Guru') || false;
+  const [homeroomClassId, setHomeroomClassId] = useState<string | null>(null);
+  const [homeroomNotice, setHomeroomNotice] = useState<string | null>(null);
 
   // Filters
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -108,16 +124,39 @@ export const StudentAttendancePage: React.FC = () => {
         setIsManualEnabled(settingRes.studentManualEnabled ?? true);
       }
       
+      let activeAyId = '';
+      let activeSemId = '';
       const activeAy = ayRes.find(a => a.isActive) || ayRes[0];
       if (activeAy) {
-        const ayIdStr = activeAy.id.toString();
-        setSelectedAcademicYearId(ayIdStr);
+        activeAyId = activeAy.id.toString();
+        setSelectedAcademicYearId(activeAyId);
         const relevantSemesters = semRes.filter((s) => {
           const semAyId = s.academicYearId?.toString() || s.academicYear?.id?.toString();
-          return semAyId === ayIdStr;
+          return semAyId === activeAyId;
         });
         const activeSem = relevantSemesters.find(s => s.isActive) || relevantSemesters[0];
-        if (activeSem) setSelectedSemesterId(activeSem.id.toString());
+        if (activeSem) {
+          activeSemId = activeSem.id.toString();
+          setSelectedSemesterId(activeSemId);
+        }
+      }
+
+      // Auto-select homeroom classroom if user is a homeroom teacher
+      if (isTeacher && user?.employeeId && activeAyId && activeSemId) {
+        try {
+          const homeroom = await getHomeroomByTeacher(user.employeeId.toString(), activeAyId, activeSemId);
+          if (homeroom && homeroom.id) {
+            setHomeroomClassId(homeroom.id);
+            if (homeroom.gradeId) {
+              setSelectedGradeId(homeroom.gradeId);
+              const crData = await getClassrooms(homeroom.gradeId);
+              setClassrooms(crData);
+              setSelectedClassroomId(homeroom.id);
+            }
+          }
+        } catch {
+          // Abaikan jika guru belum di-assign sebagai wali kelas
+        }
       }
     } catch (err: any) {
       notify.error(err, 'Gagal memuat filter akademik');
@@ -128,8 +167,14 @@ export const StudentAttendancePage: React.FC = () => {
     try {
       const data = await getClassrooms(gradeId);
       setClassrooms(data);
-      if (data.length > 0) setSelectedClassroomId(data[0].id);
-      else setSelectedClassroomId('');
+      const matchingHomeroom = homeroomClassId ? data.find(c => c.id === homeroomClassId) : null;
+      if (matchingHomeroom) {
+        setSelectedClassroomId(matchingHomeroom.id);
+      } else if (data.length > 0) {
+        setSelectedClassroomId(data[0].id);
+      } else {
+        setSelectedClassroomId('');
+      }
     } catch (err) {
       notify.error(err, 'Gagal memuat daftar rombel');
     }
@@ -138,6 +183,7 @@ export const StudentAttendancePage: React.FC = () => {
   const fetchAttendanceData = async () => {
     try {
       setLoading(true);
+      setHomeroomNotice(null);
       
       const [studentsData, attendancesData] = await Promise.all([
         getStudents({ 
@@ -175,7 +221,13 @@ export const StudentAttendancePage: React.FC = () => {
       setOriginalRows(JSON.parse(JSON.stringify(newRows)));
     } catch (err: any) {
       if (err.response?.status === 403) {
-        notify.error('Akses ditolak: Anda hanya berwenang melihat/mengabsen kelas perwalian Anda sendiri.');
+        const msg = err.response?.data?.message;
+        const isHomeroomRestriction = typeof msg === 'string' && (msg.toLowerCase().includes('perwalian') || msg.toLowerCase().includes('wali kelas'));
+        if (isHomeroomRestriction) {
+          setHomeroomNotice('Anda bukan wali kelas dari rombel ini. Sesuai kebijakan sistem sekolah, Anda hanya berwenang melihat dan mengabsen siswa di rombel perwalian Anda sendiri.');
+        } else {
+          notify.error('Akses ditolak: Anda tidak memiliki izin untuk mengelola absensi rombel ini.');
+        }
       } else {
         notify.error(err, 'Gagal memuat data absensi siswa');
       }
@@ -364,7 +416,9 @@ export const StudentAttendancePage: React.FC = () => {
               >
                 <option value="">Pilih Kelas</option>
                 {classrooms.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.name}{c.id === homeroomClassId ? ' ⭐ (Kelas Perwalian Anda)' : ''}
+                  </option>
                 ))}
               </select>
             </div>
@@ -450,6 +504,35 @@ export const StudentAttendancePage: React.FC = () => {
               Pihak sekolah mengalihkan absensi siswa ke metode aktif lainnya (seperti Kartu RFID / Kiosk). Aksi simpan manual disembunyikan.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Peringatan jika akses kelas dibatasi kebijakan wali kelas */}
+      {homeroomNotice && (
+        <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-start sm:items-center justify-between gap-4 text-amber-900 shadow-xs animate-in fade-in duration-300">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+              <AlertTriangle size={18} />
+            </div>
+            <div className="text-xs">
+              <p className="font-bold text-amber-950">Akses Terbatas: Kebijakan Wali Kelas</p>
+              <p className="text-amber-800/90 mt-0.5">{homeroomNotice}</p>
+            </div>
+          </div>
+          {homeroomClassId && selectedClassroomId !== homeroomClassId && (
+            <button
+              type="button"
+              onClick={() => {
+                const hrClass = classrooms.find(c => c.id === homeroomClassId);
+                if (hrClass) {
+                  setSelectedClassroomId(homeroomClassId);
+                }
+              }}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs shadow-xs transition-all cursor-pointer"
+            >
+              Ke Kelas Perwalian
+            </button>
+          )}
         </div>
       )}
 
@@ -610,9 +693,17 @@ export const StudentAttendancePage: React.FC = () => {
           </div>
         ) : rows.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
-            {selectedClassroomId 
-              ? 'Tidak ada data siswa aktif di rombel kelas ini.' 
-              : 'Silakan pilih Tahun Ajaran, Tingkat, dan Rombel Kelas untuk memuat presensi.'}
+            {homeroomNotice ? (
+              <div className="max-w-md mx-auto space-y-2 text-center">
+                <AlertTriangle className="mx-auto text-amber-500" size={32} />
+                <p className="font-semibold text-slate-800 text-sm">Akses Presensi Rombel Terbatas</p>
+                <p className="text-xs text-slate-500 leading-relaxed">{homeroomNotice}</p>
+              </div>
+            ) : selectedClassroomId ? (
+              'Tidak ada data siswa aktif di rombel kelas ini.' 
+            ) : (
+              'Silakan pilih Tahun Ajaran, Tingkat, dan Rombel Kelas untuk memuat presensi.'
+            )}
           </div>
         ) : activeTab === 'input' ? (
           /* TAB 1: INPUT PRESENSI ROMBEL */
