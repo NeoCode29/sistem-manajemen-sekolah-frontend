@@ -34,7 +34,7 @@ export const StudentAttendancePage: React.FC = () => {
   const { canRecordStudentAttendance } = usePermissions();
   const canRecordAttendance = canRecordStudentAttendance;
 
-  const isTeacher = user?.roles?.some(r => r === 'Guru / Wali Kelas' || r === 'Guru') || false;
+  const isTeacher = user?.roles?.some(r => r.name === 'Guru / Wali Kelas' || r.name === 'Guru') || false;
   const [homeroomClassId, setHomeroomClassId] = useState<string | null>(null);
   const [homeroomNotice, setHomeroomNotice] = useState<string | null>(null);
 
