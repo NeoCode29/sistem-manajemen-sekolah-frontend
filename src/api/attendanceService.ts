@@ -10,6 +10,12 @@ export interface AttendanceSetting {
   latitude?: number;
   longitude?: number;
   radiusMeter?: number;
+  studentRfidEnabled?: boolean;
+  studentGpsEnabled?: boolean;
+  studentManualEnabled?: boolean;
+  employeeRfidEnabled?: boolean;
+  employeeGpsEnabled?: boolean;
+  employeeManualEnabled?: boolean;
   isActive: boolean;
 }
 
