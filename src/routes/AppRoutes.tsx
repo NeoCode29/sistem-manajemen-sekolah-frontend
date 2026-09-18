@@ -143,10 +143,10 @@ export const AppRoutes: React.FC = () => {
               <Route element={<AuthorizedRoute requiredPermissions={['attendance_settings.manage']} />}>
                 <Route path="/attendance/settings" element={<AttendanceSettings />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['student_attendance.read', 'student_attendance.record']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['student_attendance.read', 'student_attendance.record']} disallowedRoles={['Siswa', 'Orang Tua / Wali']} />}>
                 <Route path="/attendance/students" element={<StudentAttendancePage />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['employee_attendance.read', 'employee_attendance.record']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['employee_attendance.read', 'employee_attendance.record']} disallowedRoles={['Siswa', 'Orang Tua / Wali']} />}>
                 <Route path="/attendance/employees" element={<EmployeeAttendancePage />} />
               </Route>
 

@@ -71,6 +71,9 @@ export const usePermissions = () => {
     canManagePromotions: hasPermission('promotions.execute'),
     canManageGraduations: hasPermission('graduations.execute'),
     canManageSchedule: hasPermission('schedules.manage') || hasPermission('academic.write'),
+    canRecordStudentAttendance: hasPermission('student_attendance.record') || hasPermission('student_attendance.batch') || hasPermission('attendance.write'),
+    canRecordEmployeeAttendance: hasPermission('employee_attendance.record') || hasPermission('attendance.write'),
+    canManageAttendanceSettings: hasPermission('attendance_settings.manage') || hasPermission('attendance_settings.read'),
     
     // Read Permissions
     canReadAcademic: hasPermission('academic_years.read') || hasPermission('semesters.read') || hasPermission('grades.read'),
@@ -78,6 +81,8 @@ export const usePermissions = () => {
     canReadPositions: hasPermission('positions.read'),
     canReadEmployees: hasPermission('employees.read'),
     canReadAttendance: hasPermission('student_attendance.read') || hasPermission('employee_attendance.read'),
+    canReadStudentAttendance: hasPermission('student_attendance.read'),
+    canReadEmployeeAttendance: hasPermission('employee_attendance.read'),
     canReadFinance: true,
     canReadAssessment: hasPermission('assessments.read') || hasPermission('assessment_components.read'),
     canReadScoreValidation: hasPermission('score_validations.read'),

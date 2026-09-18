@@ -20,8 +20,7 @@ interface AttendanceRow {
 }
 
 export const EmployeeAttendancePage: React.FC = () => {
-  const { hasPermission } = usePermissions();
-  const canRecordEmployeeAttendance = hasPermission('employee_attendance.record') || hasPermission('attendance.write');
+  const { canRecordEmployeeAttendance } = usePermissions();
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
