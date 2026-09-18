@@ -1,27 +1,58 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { getPermissions, createPermission, type Permission } from '../../api/rbacService';
-import { Plus, Shield, Loader2, Search, Filter, RotateCcw } from 'lucide-react';
-import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import { 
+  getPermissions, 
+  createPermission, 
+  updatePermission, 
+  deletePermission, 
+  type Permission 
+} from '../../api/rbacService';
+import { Plus, Shield, Loader2, Search, Filter, RotateCcw, Edit2, Trash2 } from 'lucide-react';
+import { PageHeader, Modal, FormField, Badge, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Pagination } from '../../components/Common/Pagination';
 import { PERMISSION_GROUPS } from '../../constants/permissionsCatalog';
+import { usePermissions } from '../../hooks/usePermissions';
 import { notify } from '../../utils/feedback';
 
 export const Permissions: React.FC = () => {
+  const { canManageRbac } = usePermissions();
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [showModal, setShowModal] = useState(false);
 
   // Search, Filter & Pagination State
   const [searchQuery, setSearchQuery] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
+  const [itemsPerPage, setItemsPerPage] = useState(15);
   
-  // Form State
+  // Create Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
   const [name, setName] = useState('');
   const [guardName, setGuardName] = useState('jwt');
+
+  // Edit Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPerm, setEditingPerm] = useState<Permission | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editGuardName, setEditGuardName] = useState('jwt');
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  // Confirm Dialog State
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState<{
+    variant: ConfirmVariant;
+    title: string;
+    message: React.ReactNode;
+    confirmText: string;
+    onConfirm: () => Promise<void> | void;
+  }>({
+    variant: 'danger',
+    title: '',
+    message: '',
+    confirmText: 'Lanjutkan',
+    onConfirm: () => {},
+  });
 
   // Build catalog mapping for label & group
   const permCatalogMap = useMemo(() => {
@@ -41,7 +72,8 @@ export const Permissions: React.FC = () => {
   const moduleOptions = useMemo(() => {
     return [
       { value: '', label: 'Semua Modul' },
-      ...PERMISSION_GROUPS.map(g => ({ value: g.name, label: g.name }))
+      ...PERMISSION_GROUPS.map(g => ({ value: g.name, label: g.name })),
+      { value: 'Lainnya', label: 'Lainnya / Sistem Umum' }
     ];
   }, []);
 
@@ -62,21 +94,68 @@ export const Permissions: React.FC = () => {
     fetchPermissions();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      setSubmitting(true);
-      await createPermission({ name, guardName });
+      setCreateSubmitting(true);
+      await createPermission({ name: name.trim(), guardName: guardName.trim() });
       notify.success(`Hak akses "${name}" berhasil ditambahkan!`);
-      setShowModal(false);
+      setShowCreateModal(false);
       setName('');
       setGuardName('jwt');
       fetchPermissions();
     } catch (error: any) {
       notify.error(error, 'Gagal membuat hak akses baru');
     } finally {
-      setSubmitting(false);
+      setCreateSubmitting(false);
     }
+  };
+
+  const handleOpenEdit = (perm: Permission) => {
+    setEditingPerm(perm);
+    setEditName(perm.name);
+    setEditGuardName(perm.guardName || 'jwt');
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPerm) return;
+    try {
+      setEditSubmitting(true);
+      await updatePermission(editingPerm.id, {
+        name: editName.trim(),
+        guardName: editGuardName.trim(),
+      });
+      notify.success(`Hak akses "${editName}" berhasil diperbarui!`);
+      setShowEditModal(false);
+      setEditingPerm(null);
+      fetchPermissions();
+    } catch (error: any) {
+      notify.error(error, 'Gagal memperbarui hak akses');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleDelete = (perm: Permission) => {
+    setConfirmConfig({
+      variant: 'danger',
+      title: `Hapus Hak Akses "${perm.name}"`,
+      message: `Apakah Anda yakin ingin menghapus hak akses "${perm.name}"? Jika hak akses ini sedang dipakai oleh peran tertentu, penghapusan akan dicegah demi keamanan sistem.`,
+      confirmText: 'Ya, Hapus Hak Akses',
+      onConfirm: async () => {
+        try {
+          await deletePermission(perm.id);
+          notify.success(`Hak akses "${perm.name}" berhasil dihapus!`);
+          await fetchPermissions();
+          setConfirmOpen(false);
+        } catch (error: any) {
+          notify.error(error, 'Gagal menghapus hak akses');
+        }
+      }
+    });
+    setConfirmOpen(true);
   };
 
   // Filtered Permissions computation
@@ -99,7 +178,7 @@ export const Permissions: React.FC = () => {
     });
   }, [permissions, searchQuery, moduleFilter, permCatalogMap]);
 
-  const totalPages = Math.ceil(filteredPermissions.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredPermissions.length / itemsPerPage));
   const currentPermissions = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredPermissions.slice(startIndex, startIndex + itemsPerPage);
@@ -145,7 +224,7 @@ export const Permissions: React.FC = () => {
       render: (perm) => {
         const meta = permCatalogMap.get(perm.name);
         return (
-          <Badge variant="info">
+          <Badge variant={meta?.groupName ? 'info' : 'default'}>
             {meta?.groupName || 'Sistem Umum'}
           </Badge>
         );
@@ -159,7 +238,32 @@ export const Permissions: React.FC = () => {
           {perm.guardName}
         </span>
       )
-    }
+    },
+    ...(canManageRbac ? [{
+      key: 'actions',
+      header: 'Aksi',
+      className: 'text-right',
+      render: (perm: Permission) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => handleOpenEdit(perm)}
+            title="Edit Hak Akses"
+            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+          >
+            <Edit2 size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDelete(perm)}
+            title="Hapus Hak Akses"
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      )
+    } as Column<Permission>] : [])
   ];
 
   return (
@@ -169,17 +273,19 @@ export const Permissions: React.FC = () => {
         title="Hak Akses (Permissions)" 
         subtitle="Kelola daftar wewenang hak akses sistem secara terperinci (RBAC)"
         action={
-          <button 
-            type="button"
-            className="btn-std-primary flex items-center gap-2" 
-            onClick={() => setShowModal(true)}
-          >
-            <Plus size={18} /> Tambah Hak Akses
-          </button>
+          canManageRbac ? (
+            <button 
+              type="button"
+              className="btn-std-primary flex items-center gap-2" 
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus size={18} /> Tambah Hak Akses
+            </button>
+          ) : undefined
         }
       />
 
-      {/* 2. Filter Bar (Glassmorphism Standard - No Header, Icon Group Focus) */}
+      {/* 2. Filter Bar */}
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5">
         <div className="flex flex-col md:flex-row items-stretch md:items-end gap-4">
           <div className="flex-1 min-w-[240px]">
@@ -270,7 +376,10 @@ export const Permissions: React.FC = () => {
               itemsPerPage={itemsPerPage}
               onPageChange={setCurrentPage}
               hasNextPage={currentPage < totalPages}
-              onItemsPerPageChange={() => {}}
+              onItemsPerPageChange={(newSize) => {
+                setItemsPerPage(newSize);
+                setCurrentPage(1);
+              }}
             />
           </div>
         )}
@@ -278,11 +387,11 @@ export const Permissions: React.FC = () => {
 
       {/* CREATE MODAL */}
       <Modal
-        open={showModal}
-        onClose={() => setShowModal(false)}
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
         title="Tambah Hak Akses Baru"
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-6">
+        <form onSubmit={handleCreateSubmit} className="flex flex-col gap-5 p-6">
           <FormField label="Nama Hak Akses (Permission)" hint="Gunakan format dot-notation: modul.aksi" required>
             <input 
               type="text" 
@@ -309,17 +418,17 @@ export const Permissions: React.FC = () => {
             <button 
               type="button" 
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors" 
-              onClick={() => setShowModal(false)}
-              disabled={submitting}
+              onClick={() => setShowCreateModal(false)}
+              disabled={createSubmitting}
             >
               Batal
             </button>
             <button 
               type="submit" 
-              disabled={submitting}
+              disabled={createSubmitting}
               className="inline-flex items-center justify-center px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm text-sm transition-colors disabled:opacity-50"
             >
-              {submitting ? (
+              {createSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Menyimpan...
@@ -331,6 +440,73 @@ export const Permissions: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* EDIT MODAL */}
+      <Modal
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title="Edit Hak Akses"
+      >
+        <form onSubmit={handleEditSubmit} className="flex flex-col gap-5 p-6">
+          <FormField label="Nama Hak Akses (Permission)" hint="Gunakan format dot-notation: modul.aksi" required>
+            <input 
+              type="text" 
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+              value={editName} 
+              onChange={(e) => setEditName(e.target.value)} 
+              placeholder="Contoh: academic.read, students.create" 
+              required 
+            />
+          </FormField>
+          
+          <FormField label="Guard Name" required>
+            <input 
+              type="text" 
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+              value={editGuardName} 
+              onChange={(e) => setEditGuardName(e.target.value)} 
+              placeholder="jwt" 
+              required 
+            />
+          </FormField>
+          
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+            <button 
+              type="button" 
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors" 
+              onClick={() => setShowEditModal(false)}
+              disabled={editSubmitting}
+            >
+              Batal
+            </button>
+            <button 
+              type="submit" 
+              disabled={editSubmitting}
+              className="inline-flex items-center justify-center px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm text-sm transition-colors disabled:opacity-50"
+            >
+              {editSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                'Simpan Perubahan'
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* CONFIRM DIALOG */}
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        variant={confirmConfig.variant}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmText={confirmConfig.confirmText}
+        onConfirm={confirmConfig.onConfirm}
+      />
     </div>
   );
 };

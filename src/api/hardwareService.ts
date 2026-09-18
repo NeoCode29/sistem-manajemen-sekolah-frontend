@@ -46,3 +46,18 @@ export const getScanLogs = async (params?: Record<string, any>) => {
   const response = await api.get('/hardware/logs', { params });
   return response.data;
 };
+
+export const scanHardware = async (data: {
+  scanValue: string;
+  scanType?: 'CARD' | 'FINGER';
+  deviceId?: string;
+  mode?: 'ATTENDANCE' | 'REGISTER';
+}) => {
+  const response = await api.post('/hardware/scan', data);
+  return response.data;
+};
+
+export const getKioskStats = async () => {
+  const response = await api.get('/hardware/kiosk-stats');
+  return response.data;
+};

@@ -48,7 +48,7 @@ export const Users: React.FC = () => {
   const [isActive, setIsActive] = useState(true);
 
   // Assign Roles State
-  const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([]);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -119,14 +119,14 @@ export const Users: React.FC = () => {
 
   const openAssignModal = (user: User) => {
     setSelectedUser(user);
-    setSelectedRoleIds(user.roles?.map(r => Number(r.id)) || []);
+    setSelectedRoleIds(user.roles?.map(r => String(r.id)) || []);
     setShowRoleModal(true);
   };
 
   const toggleRole = (roleId: any) => {
-    const numId = Number(roleId);
+    const strId = String(roleId);
     setSelectedRoleIds(prev => 
-      prev.includes(numId) ? prev.filter(id => id !== numId) : [...prev, numId]
+      prev.includes(strId) ? prev.filter(id => id !== strId) : [...prev, strId]
     );
   };
 
@@ -486,7 +486,7 @@ export const Users: React.FC = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[360px] overflow-y-auto p-1">
             {allRoles.map(role => {
-              const isChecked = selectedRoleIds.includes(Number(role.id));
+              const isChecked = selectedRoleIds.includes(String(role.id));
               return (
                 <label 
                   key={role.id} 

@@ -1,13 +1,13 @@
 import api from './axios';
 
 export interface Permission {
-  id: number;
+  id: string | number;
   name: string;
   guardName: string;
 }
 
 export interface Role {
-  id: number;
+  id: string | number;
   name: string;
   guardName: string;
   permissions?: Permission[];
@@ -18,7 +18,7 @@ export interface User {
   username: string;
   name: string;
   isActive: boolean;
-  roles?: { id: number; name: string }[];
+  roles?: { id: string | number; name: string }[];
 }
 
 // Permissions
@@ -29,6 +29,16 @@ export const getPermissions = async (): Promise<Permission[]> => {
 
 export const createPermission = async (data: { name: string; guardName: string }) => {
   const response = await api.post('/permissions', data);
+  return response.data;
+};
+
+export const updatePermission = async (id: string | number, data: { name?: string; guardName?: string }) => {
+  const response = await api.patch(`/permissions/${id}`, data);
+  return response.data;
+};
+
+export const deletePermission = async (id: string | number) => {
+  const response = await api.delete(`/permissions/${id}`);
   return response.data;
 };
 
@@ -43,13 +53,20 @@ export const createRole = async (data: { name: string; guardName: string }) => {
   return response.data;
 };
 
-export const deleteRole = async (id: number | string) => {
+export const updateRole = async (id: string | number, data: { name?: string; guardName?: string }) => {
+  const response = await api.patch(`/roles/${id}`, data);
+  return response.data;
+};
+
+export const deleteRole = async (id: string | number) => {
   const response = await api.delete(`/roles/${id}`);
   return response.data;
 };
 
-export const assignPermissionsToRole = async (roleId: number | string, permissionIds: number[]) => {
-  const response = await api.put(`/roles/${roleId}/permissions`, { permissionIds });
+export const assignPermissionsToRole = async (roleId: string | number, permissionIds: (string | number)[]) => {
+  const response = await api.put(`/roles/${roleId}/permissions`, { 
+    permissionIds: (permissionIds || []).map(String) 
+  });
   return response.data;
 };
 
@@ -69,7 +86,7 @@ export const updateUser = async (id: string, data: Partial<User> & { password?: 
   return response.data;
 };
 
-export const assignRolesToUser = async (userId: string, roleIds: number[]) => {
-  const response = await api.put(`/users/${userId}/roles`, { roleIds });
+export const assignRolesToUser = async (userId: string, roleIds: (string | number)[]) => {
+  const response = await api.put(`/users/${userId}/roles`, { roleIds: roleIds.map(String) });
   return response.data;
 };

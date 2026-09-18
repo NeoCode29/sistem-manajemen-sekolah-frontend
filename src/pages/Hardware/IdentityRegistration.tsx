@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { registerStudentIdentity, registerEmployeeIdentity, getRecentScans } from '../../api/hardwareService';
 import { getStudents } from '../../api/studentService';
 import type { Student } from '../../api/studentService';
@@ -57,6 +57,7 @@ export const IdentityRegistration: React.FC = () => {
   const [fingerprintId, setFingerprintId] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [listenInterval, setListenInterval] = useState<number | ReturnType<typeof setInterval> | null>(null);
+  const rfidInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchData();
@@ -103,6 +104,9 @@ export const IdentityRegistration: React.FC = () => {
   const startListening = () => {
     setIsListening(true);
     notify.info('Silakan tap kartu atau scan sidik jari pada mesin absensi...');
+    setTimeout(() => {
+      rfidInputRef.current?.focus();
+    }, 100);
     const interval = setInterval(async () => {
       try {
         const scansRes = await getRecentScans();
@@ -513,8 +517,11 @@ export const IdentityRegistration: React.FC = () => {
           <form id="reg-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div className="flex justify-end -mb-2 relative z-10">
               <button 
-                type="button"
-                onClick={isListening ? stopListening : startListening}
+                type="button" 
+                onClick={(e) => {
+                  (e.currentTarget as HTMLElement)?.blur();
+                  isListening ? stopListening() : startListening();
+                }}
                 className={`text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all font-semibold shadow-sm border ${
                   isListening 
                     ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100' 
@@ -538,6 +545,7 @@ export const IdentityRegistration: React.FC = () => {
                   size={18} 
                 />
                 <input
+                  ref={rfidInputRef}
                   type="text"
                   className={`w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm transition-all font-mono font-semibold ${
                     isListening 

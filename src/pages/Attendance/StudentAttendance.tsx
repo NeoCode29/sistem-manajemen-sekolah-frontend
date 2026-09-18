@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { getAcademicYears, getSemesters, getGrades, getClassrooms, type AcademicYear, type Semester, type Grade, type Classroom } from '../../api/academicService';
 import { getStudents } from '../../api/studentService';
 import { getStudentAttendances, upsertStudentAttendanceBatch, type StudentAttendance, type StudentAttendanceBatchItem } from '../../api/attendanceService';
-import { Save, Calendar, CheckCircle2, Clock, AlertTriangle, UserCheck, RotateCcw, Filter, Users, GraduationCap } from 'lucide-react';
+import { Save, Calendar, CheckCircle2, Clock, AlertTriangle, UserCheck, RotateCcw, Filter, Users, GraduationCap, Tv, ExternalLink } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Badge, type BadgeVariant } from '../../components/ui/Badge';
@@ -69,6 +69,29 @@ export const StudentAttendancePage: React.FC = () => {
     }
   }, [selectedAcademicYearId, selectedSemesterId, selectedClassroomId, date]);
 
+  // Filtered semesters for selected academic year
+  const filteredSemesters = useMemo(() => {
+    if (!selectedAcademicYearId) return [];
+    return semesters.filter((s) => {
+      const semAyId = s.academicYearId?.toString() || s.academicYear?.id?.toString();
+      return semAyId === selectedAcademicYearId.toString();
+    });
+  }, [semesters, selectedAcademicYearId]);
+
+  const handleAcademicYearChange = (newAyId: string) => {
+    setSelectedAcademicYearId(newAyId);
+    if (!newAyId) {
+      setSelectedSemesterId('');
+      return;
+    }
+    const relevantSemesters = semesters.filter((s) => {
+      const semAyId = s.academicYearId?.toString() || s.academicYear?.id?.toString();
+      return semAyId === newAyId.toString();
+    });
+    const activeSem = relevantSemesters.find(s => s.isActive) || relevantSemesters[0];
+    setSelectedSemesterId(activeSem ? activeSem.id.toString() : '');
+  };
+
   const fetchFilters = async () => {
     try {
       const [ayRes, semRes, grRes] = await Promise.all([
@@ -80,11 +103,17 @@ export const StudentAttendancePage: React.FC = () => {
       setSemesters(semRes);
       setGrades(grRes);
       
-      const activeAy = ayRes.find(a => a.isActive);
-      const activeSem = semRes.find(s => s.isActive);
-      
-      if (activeAy) setSelectedAcademicYearId(activeAy.id);
-      if (activeSem) setSelectedSemesterId(activeSem.id);
+      const activeAy = ayRes.find(a => a.isActive) || ayRes[0];
+      if (activeAy) {
+        const ayIdStr = activeAy.id.toString();
+        setSelectedAcademicYearId(ayIdStr);
+        const relevantSemesters = semRes.filter((s) => {
+          const semAyId = s.academicYearId?.toString() || s.academicYear?.id?.toString();
+          return semAyId === ayIdStr;
+        });
+        const activeSem = relevantSemesters.find(s => s.isActive) || relevantSemesters[0];
+        if (activeSem) setSelectedSemesterId(activeSem.id.toString());
+      }
     } catch (err: any) {
       notify.error(err, 'Gagal memuat filter akademik');
     }
@@ -249,6 +278,18 @@ export const StudentAttendancePage: React.FC = () => {
       <PageHeader
         title="Presensi & Kehadiran Siswa"
         subtitle="Kelola pencatatan kehadiran harian siswa per rombel kelas dengan cepat dan akurat"
+        action={
+          <a
+            href="/kiosk/attendance"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs sm:text-sm transition-all shadow-sm hover:shadow group"
+          >
+            <Tv size={16} className="text-indigo-400 group-hover:text-indigo-300 transition-colors" />
+            <span>Layar Monitor Kiosk</span>
+            <ExternalLink size={14} className="text-slate-400 group-hover:text-white transition-colors" />
+          </a>
+        }
       />
 
       {/* 2. Filter Bar Terintegrasi (Glassmorphism Standard) */}
@@ -261,7 +302,7 @@ export const StudentAttendancePage: React.FC = () => {
               <select 
                 className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate" 
                 value={selectedAcademicYearId} 
-                onChange={(e) => setSelectedAcademicYearId(e.target.value)}
+                onChange={(e) => handleAcademicYearChange(e.target.value)}
               >
                 <option value="">Pilih Tahun Ajaran</option>
                 {academicYears.map(ay => (
@@ -276,12 +317,13 @@ export const StudentAttendancePage: React.FC = () => {
             <div className="relative group">
               <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
               <select 
-                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate" 
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium truncate disabled:opacity-60 disabled:cursor-not-allowed" 
                 value={selectedSemesterId} 
                 onChange={(e) => setSelectedSemesterId(e.target.value)}
+                disabled={!selectedAcademicYearId || filteredSemesters.length === 0}
               >
-                <option value="">Pilih Semester</option>
-                {semesters.map(s => (
+                <option value="">{selectedAcademicYearId ? 'Pilih Semester' : 'Pilih Tahun Ajaran Dulu'}</option>
+                {filteredSemesters.map(s => (
                   <option key={s.id} value={s.id}>{s.name}{s.isActive ? ' (Aktif)' : ''}</option>
                 ))}
               </select>

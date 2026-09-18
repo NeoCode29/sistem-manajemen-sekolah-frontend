@@ -46,6 +46,7 @@ import { AccountSettings } from '../pages/Settings/AccountSettings';
 import { HomeroomDashboard } from '../pages/Homeroom/HomeroomDashboard';
 import { Forbidden } from '../pages/Error/Forbidden';
 import { ComponentShowcase } from '../pages/DesignSystem/ComponentShowcase';
+import { KioskAttendancePage } from '../pages/Kiosk/KioskAttendance';
 
 import { StudentLayout } from '../components/Layout/StudentLayout';
 import { StudentDashboard } from '../pages/Student/StudentDashboard';
@@ -59,6 +60,7 @@ export const AppRoutes: React.FC = () => {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/kiosk/attendance" element={<KioskAttendancePage />} />
           <Route path="/design-system" element={<ComponentShowcase />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
@@ -68,29 +70,29 @@ export const AppRoutes: React.FC = () => {
               <Route path="/403" element={<Forbidden />} />
               
               {/* Akademik & Kurikulum */}
-              <Route element={<AuthorizedRoute requiredPermissions={['academic_years.read', 'academic.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['academic_years.read']} />}>
                 <Route path="/academic/years" element={<AcademicYears />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['semesters.read', 'academic.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['semesters.read']} />}>
                 <Route path="/academic/semesters" element={<Semesters />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['grades.read', 'academic.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['grades.read']} />}>
                 <Route path="/academic/grades" element={<Grades />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['majors.read', 'academic.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['majors.read']} />}>
                 <Route path="/academic/majors" element={<Majors />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['classrooms.read', 'academic.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['classrooms.read']} />}>
                 <Route path="/academic/classrooms" element={<Classrooms />} />
                 <Route path="/academic/classrooms/:id" element={<ClassroomDetail />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['subjects.read', 'academic.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['subjects.read']} />}>
                 <Route path="/academic/subjects" element={<Subjects />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['class_periods.read', 'academic.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['class_periods.read']} />}>
                 <Route path="/academic/class-periods" element={<ClassPeriods />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['schedules.read', 'academic.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['schedules.read']} />}>
                 <Route path="/academic/schedules" element={<Schedules />} />
               </Route>
               
@@ -98,7 +100,7 @@ export const AppRoutes: React.FC = () => {
               <Route element={<AuthorizedRoute requiredPermissions={['promotions.read']} />}>
                 <Route path="/academic/promotions" element={<Promotions />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['promotions.execute', 'promotions.write', 'promotions.manage']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['promotions.execute']} />}>
                 <Route path="/academic/promotions/batch" element={<BatchPromote />} />
               </Route>
               <Route element={<AuthorizedRoute requiredPermissions={['graduations.read']} />}>
@@ -106,11 +108,11 @@ export const AppRoutes: React.FC = () => {
               </Route>
 
               {/* Sistem, RBAC & Akun */}
-              <Route element={<AuthorizedRoute requiredPermissions={['roles.read', 'roles.manage', 'rbac.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['roles.read', 'roles.manage']} />}>
                 <Route path="/admin/permissions" element={<Permissions />} />
                 <Route path="/admin/roles" element={<Roles />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['users.read', 'users.manage']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['users.read', 'users.create', 'users.update']} />}>
                 <Route path="/admin/users" element={<Users />} />
               </Route>
               <Route element={<AuthorizedRoute requiredPermissions={['school_profile.read', 'school_profile.update']} />}>
@@ -118,15 +120,15 @@ export const AppRoutes: React.FC = () => {
               </Route>
 
               {/* SDM / Kepegawaian */}
-              <Route element={<AuthorizedRoute requiredPermissions={['positions.read', 'positions.manage']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['positions.read']} />}>
                 <Route path="/entities/positions" element={<Positions />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['employees.read', 'employees.manage']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['employees.read']} />}>
                 <Route path="/entities/employees" element={<Employees />} />
               </Route>
 
               {/* Kesiswaan */}
-              <Route element={<AuthorizedRoute requiredPermissions={['students.read', 'students.manage']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['students.read']} />}>
                 <Route path="/entities/students" element={<Students />} />
                 <Route path="/entities/students/:id" element={<StudentDetail />} />
               </Route>
@@ -141,10 +143,10 @@ export const AppRoutes: React.FC = () => {
               <Route element={<AuthorizedRoute requiredPermissions={['attendance_settings.manage']} />}>
                 <Route path="/attendance/settings" element={<AttendanceSettings />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['student_attendance.read', 'student_attendance.record', 'attendance.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['student_attendance.read', 'student_attendance.record']} />}>
                 <Route path="/attendance/students" element={<StudentAttendancePage />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['employee_attendance.read', 'employee_attendance.record', 'attendance.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['employee_attendance.read', 'employee_attendance.record']} />}>
                 <Route path="/attendance/employees" element={<EmployeeAttendancePage />} />
               </Route>
 
@@ -152,11 +154,11 @@ export const AppRoutes: React.FC = () => {
               <Route element={<AuthorizedRoute requiredPermissions={['assessment_components.read', 'assessment_components.manage']} />}>
                 <Route path="/assessment/components" element={<AssessmentComponents />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['assessments.read', 'assessments.input', 'assessment.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['assessments.read', 'assessments.input']} />}>
                 <Route path="/assessment/exams" element={<Exams />} />
                 <Route path="/assessment/exams/:examId/scores" element={<ExamScores />} />
               </Route>
-              <Route element={<AuthorizedRoute requiredPermissions={['report_cards.read', 'report_cards.generate', 'assessment.read']} />}>
+              <Route element={<AuthorizedRoute requiredPermissions={['report_cards.read', 'report_cards.generate']} />}>
                 <Route path="/assessment/report-cards" element={<ReportCards />} />
               </Route>
 

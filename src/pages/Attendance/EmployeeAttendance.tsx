@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getEmployees } from '../../api/employeeService';
 import { getEmployeeAttendances, upsertEmployeeAttendanceBatch, type EmployeeAttendance, type EmployeeAttendanceBatchItem } from '../../api/attendanceService';
-import { Save, Calendar, Search, CheckCircle2, Clock, UserCheck, AlertTriangle, Users, RotateCcw } from 'lucide-react';
+import { Save, Calendar, Search, CheckCircle2, Clock, UserCheck, AlertTriangle, Users, RotateCcw, Tv, ExternalLink } from 'lucide-react';
 import { TableSkeleton } from '../../components/Common/TableSkeleton';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -209,6 +209,18 @@ export const EmployeeAttendancePage: React.FC = () => {
       <PageHeader
         title="Presensi Pegawai & Guru"
         subtitle="Kelola dan pantau kehadiran harian staf dan dewan pengajar"
+        action={
+          <a
+            href="/kiosk/attendance"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs sm:text-sm transition-all shadow-sm hover:shadow group"
+          >
+            <Tv size={16} className="text-indigo-400 group-hover:text-indigo-300 transition-colors" />
+            <span>Layar Monitor Kiosk</span>
+            <ExternalLink size={14} className="text-slate-400 group-hover:text-white transition-colors" />
+          </a>
+        }
       />
 
       {/* 2. Filter Bar Terintegrasi (Glassmorphism Standard) */}

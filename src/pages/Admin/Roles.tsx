@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { 
   getRoles, 
   createRole, 
+  updateRole,
   deleteRole, 
   assignPermissionsToRole, 
   getPermissions, 
@@ -13,6 +14,7 @@ import {
   UserCheck, 
   Shield, 
   Trash2, 
+  Edit2,
   Search, 
   Check, 
   CheckSquare, 
@@ -51,20 +53,27 @@ export const Roles: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const { canManageRbac } = usePermissions();
 
-  // Selected Role & Permissions State
-  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
-  const [selectedPermIds, setSelectedPermIds] = useState<number[]>([]);
-  const [originalPermIds, setOriginalPermIds] = useState<number[]>([]);
+  // Selected Role & Permissions State (IDs normalized as strings)
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [selectedPermIds, setSelectedPermIds] = useState<string[]>([]);
+  const [originalPermIds, setOriginalPermIds] = useState<string[]>([]);
 
   // Filtering & Search State
   const [roleSearch, setRoleSearch] = useState('');
   const [permSearch, setPermSearch] = useState('');
 
   // Create Role Modal State
-  const [showModal, setShowModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [name, setName] = useState('');
   const [guardName, setGuardName] = useState('jwt');
+
+  // Edit Role Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editGuardName, setEditGuardName] = useState('jwt');
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   // ConfirmDialog State
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -89,7 +98,32 @@ export const Roles: React.FC = () => {
     return map;
   }, [allPermissions]);
 
-  const fetchData = async () => {
+  // Dynamic group for permissions not in static catalog (e.g. custom or legacy)
+  const allGroups: PermissionGroup[] = useMemo(() => {
+    const knownNames = new Set<string>();
+    PERMISSION_GROUPS.forEach(g => g.permissions.forEach(p => knownNames.add(p.name)));
+    const unmapped = allPermissions.filter(p => !knownNames.has(p.name));
+
+    if (unmapped.length === 0) return PERMISSION_GROUPS;
+
+    const extraGroup: PermissionGroup = {
+      id: 'custom_general',
+      name: 'Hak Akses Kustom & Sistem Lainnya',
+      icon: 'Sliders',
+      description: 'Hak akses tambahan atau kustom yang terdaftar di database sistem',
+      permissions: unmapped.map(p => ({
+        name: p.name,
+        label: p.name,
+        resource: 'Umum',
+        domain: 'Sistem',
+        description: `Wewenang sistem: ${p.name} (Guard: ${p.guardName})`
+      }))
+    };
+
+    return [...PERMISSION_GROUPS, extraGroup];
+  }, [allPermissions]);
+
+  const fetchData = async (overrideRoleId?: string) => {
     try {
       setLoading(true);
       const [rolesData, permsData] = await Promise.all([
@@ -99,14 +133,15 @@ export const Roles: React.FC = () => {
       setRoles(rolesData);
       setAllPermissions(permsData);
 
-      // Auto-select first role if none selected or selected not in list
+      // Auto-select target role or first role
       if (rolesData.length > 0) {
-        const targetRole = selectedRoleId 
-          ? rolesData.find(r => r.id === selectedRoleId) || rolesData[0]
+        const activeId = overrideRoleId !== undefined ? overrideRoleId : selectedRoleId;
+        const targetRole = activeId 
+          ? rolesData.find(r => String(r.id) === String(activeId)) || rolesData[0]
           : rolesData[0];
         
-        setSelectedRoleId(targetRole.id);
-        const permIds = targetRole.permissions?.map(p => p.id) || [];
+        setSelectedRoleId(String(targetRole.id));
+        const permIds = (targetRole.permissions || []).map(p => String(p.id));
         setSelectedPermIds(permIds);
         setOriginalPermIds(permIds);
       }
@@ -123,7 +158,7 @@ export const Roles: React.FC = () => {
   }, []);
 
   const selectedRole = useMemo(() => {
-    return roles.find(r => r.id === selectedRoleId) || null;
+    return roles.find(r => String(r.id) === String(selectedRoleId)) || null;
   }, [roles, selectedRoleId]);
 
   const isSuperAdmin = selectedRole?.name === 'Super Admin';
@@ -137,15 +172,15 @@ export const Roles: React.FC = () => {
   }, [selectedPermIds, originalPermIds, isSuperAdmin]);
 
   const doSelectRole = (role: Role) => {
-    setSelectedRoleId(role.id);
-    const permIds = role.permissions?.map(p => p.id) || [];
+    setSelectedRoleId(String(role.id));
+    const permIds = (role.permissions || []).map(p => String(p.id));
     setSelectedPermIds(permIds);
     setOriginalPermIds(permIds);
   };
 
   // Handle Role Selection (with unsaved changes check)
   const handleSelectRole = (role: Role) => {
-    if (role.id === selectedRoleId) return;
+    if (String(role.id) === String(selectedRoleId)) return;
 
     if (isDirty) {
       setConfirmConfig({
@@ -165,7 +200,7 @@ export const Roles: React.FC = () => {
   };
 
   // Toggle Single Permission
-  const togglePermission = (permId: number) => {
+  const togglePermission = (permId: string) => {
     if (isSuperAdmin) return;
     setSelectedPermIds(prev => 
       prev.includes(permId) ? prev.filter(id => id !== permId) : [...prev, permId]
@@ -177,10 +212,13 @@ export const Roles: React.FC = () => {
     if (isSuperAdmin) return;
 
     const groupPermIds = group.permissions
-      .map(p => permNameToObject.get(p.name)?.id)
-      .filter((id): id is number => id !== undefined);
+      .map(p => {
+        const obj = permNameToObject.get(p.name);
+        return obj ? String(obj.id) : null;
+      })
+      .filter((id): id is string => id !== null);
 
-    const allSelected = groupPermIds.every(id => selectedPermIds.includes(id));
+    const allSelected = groupPermIds.length > 0 && groupPermIds.every(id => selectedPermIds.includes(id));
 
     if (allSelected) {
       // Deselect all in group
@@ -194,7 +232,7 @@ export const Roles: React.FC = () => {
   // Global Select All / Clear All
   const handleSelectAll = () => {
     if (isSuperAdmin) return;
-    setSelectedPermIds(allPermissions.map(p => p.id));
+    setSelectedPermIds(allPermissions.map(p => String(p.id)));
   };
 
   const handleDeselectAll = () => {
@@ -217,8 +255,8 @@ export const Roles: React.FC = () => {
       
       // Update local state in roles list
       setRoles(prev => prev.map(r => {
-        if (r.id === selectedRole.id) {
-          const updatedPerms = allPermissions.filter(p => selectedPermIds.includes(p.id));
+        if (String(r.id) === String(selectedRole.id)) {
+          const updatedPerms = allPermissions.filter(p => selectedPermIds.includes(String(p.id)));
           return { ...r, permissions: updatedPerms };
         }
         return r;
@@ -237,17 +275,49 @@ export const Roles: React.FC = () => {
     e.preventDefault();
     try {
       setCreateSubmitting(true);
-      const newRole = await createRole({ name, guardName });
-      setShowModal(false);
+      const newRole = await createRole({ name: name.trim(), guardName: guardName.trim() });
+      setShowCreateModal(false);
       setName('');
       setGuardName('jwt');
-      await fetchData();
-      setSelectedRoleId(newRole.id);
+      setSelectedRoleId(String(newRole.id));
+      setSelectedPermIds([]);
+      setOriginalPermIds([]);
+      await fetchData(String(newRole.id));
       notify.success(`Peran baru "${newRole.name}" berhasil ditambahkan!`);
     } catch (error: any) {
       notify.error(error, 'Gagal membuat peran baru');
     } finally {
       setCreateSubmitting(false);
+    }
+  };
+
+  // Open Edit Role Modal
+  const handleOpenEditRole = (role: Role, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingRole(role);
+    setEditName(role.name);
+    setEditGuardName(role.guardName || 'jwt');
+    setShowEditModal(true);
+  };
+
+  // Submit Edit Role
+  const handleEditRoleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRole) return;
+    try {
+      setEditSubmitting(true);
+      await updateRole(editingRole.id, {
+        name: editName.trim(),
+        guardName: editGuardName.trim(),
+      });
+      notify.success(`Peran "${editName}" berhasil diperbarui!`);
+      setShowEditModal(false);
+      setEditingRole(null);
+      await fetchData();
+    } catch (error: any) {
+      notify.error(error, 'Gagal memperbarui peran');
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -257,7 +327,7 @@ export const Roles: React.FC = () => {
     setConfirmConfig({
       variant: 'danger',
       title: `Hapus Peran "${role.name}"`,
-      message: `Apakah Anda yakin ingin menghapus peran "${role.name}"? Pengguna dengan peran ini akan kehilangan hak akses terkait. Tindakan ini tidak dapat dibatalkan.`,
+      message: `Apakah Anda yakin ingin menghapus peran "${role.name}"? Jika peran ini masih terhubung dengan pengguna, sistem akan mencegah penghapusan demi keamanan.`,
       confirmText: 'Ya, Hapus Peran',
       onConfirm: async () => {
         try {
@@ -305,7 +375,7 @@ export const Roles: React.FC = () => {
           canManageRbac ? (
             <button 
               type="button"
-              onClick={() => setShowModal(true)}
+              onClick={() => setShowCreateModal(true)}
               className="btn-std-primary flex items-center gap-2"
             >
               <Plus size={18} /> Tambah Peran Baru
@@ -317,7 +387,7 @@ export const Roles: React.FC = () => {
       {/* 2. 2-Panel Master-Detail Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* PANEL KIRI: DAFTAR ROLE (Master ~35% / 4 cols) */}
+        {/* PANEL KIRI: DAFTAR ROLE */}
         <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
           <div className="p-4 border-b border-gray-100 bg-gray-50/70">
             <div className="flex items-center justify-between mb-2.5">
@@ -330,7 +400,7 @@ export const Roles: React.FC = () => {
             <div className="relative group">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" />
               <input 
-                type="text"
+                type="text" 
                 placeholder="Cari peran..."
                 value={roleSearch}
                 onChange={(e) => setRoleSearch(e.target.value)}
@@ -346,7 +416,7 @@ export const Roles: React.FC = () => {
               <div className="p-8 text-center text-gray-400 text-xs">Tidak ada peran ditemukan.</div>
             ) : (
               filteredRoles.map((role) => {
-                const isSelected = role.id === selectedRoleId;
+                const isSelected = String(role.id) === String(selectedRoleId);
                 const isSystem = SYSTEM_ROLES.includes(role.name);
                 const permCount = role.name === 'Super Admin' 
                   ? allPermissions.length 
@@ -354,7 +424,7 @@ export const Roles: React.FC = () => {
 
                 return (
                   <div
-                    key={role.id}
+                    key={String(role.id)}
                     onClick={() => handleSelectRole(role)}
                     className={`p-3.5 flex items-center justify-between cursor-pointer transition-all ${
                       isSelected 
@@ -389,17 +459,27 @@ export const Roles: React.FC = () => {
 
                     <div className="flex items-center gap-1">
                       {isSelected && (
-                        <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+                        <span className="w-2 h-2 rounded-full bg-indigo-600 mr-1"></span>
                       )}
                       {!isSystem && canManageRbac && (
-                        <button
-                          type="button"
-                          onClick={(e) => handleDeleteRole(role, e)}
-                          title="Hapus Peran"
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => handleOpenEditRole(role, e)}
+                            title="Edit Nama Peran"
+                            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteRole(role, e)}
+                            title="Hapus Peran"
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -409,7 +489,7 @@ export const Roles: React.FC = () => {
           </div>
         </div>
 
-        {/* PANEL KANAN: DETAIL HAK AKSES ROLE (Detail ~65% / 8 cols) */}
+        {/* PANEL KANAN: DETAIL HAK AKSES ROLE */}
         <div className="lg:col-span-8 flex flex-col gap-4">
           {selectedRole ? (
             <>
@@ -441,7 +521,7 @@ export const Roles: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleReset}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
                           title="Batalkan perubahan"
                         >
                           <RotateCcw size={14} /> Reset
@@ -451,7 +531,7 @@ export const Roles: React.FC = () => {
                         type="button"
                         onClick={handleSavePermissions}
                         disabled={saving || !isDirty}
-                        className={`inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm ${
+                        className={`inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm cursor-pointer ${
                           isDirty
                             ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200'
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
@@ -477,7 +557,7 @@ export const Roles: React.FC = () => {
                     <div className="relative flex-1 group">
                       <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" />
                       <input 
-                        type="text"
+                        type="text" 
                         placeholder="Filter hak akses (misal: 'siswa', 'academic', 'kelas')..."
                         value={permSearch}
                         onChange={(e) => setPermSearch(e.target.value)}
@@ -489,14 +569,14 @@ export const Roles: React.FC = () => {
                         <button 
                           type="button"
                           onClick={handleSelectAll}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors cursor-pointer"
                         >
                           <CheckSquare size={13} className="text-indigo-600" /> Centang Semua
                         </button>
                         <button 
                           type="button"
                           onClick={handleDeselectAll}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors cursor-pointer"
                         >
                           <Square size={13} className="text-gray-400" /> Hapus Semua
                         </button>
@@ -521,7 +601,7 @@ export const Roles: React.FC = () => {
 
               {/* Group Cards Container */}
               <div className="flex flex-col gap-4">
-                {PERMISSION_GROUPS.map((group) => {
+                {allGroups.map((group) => {
                   // Filter permissions inside this group
                   const filteredGroupPerms = group.permissions.filter(p => {
                     if (!permSearch.trim()) return true;
@@ -538,8 +618,11 @@ export const Roles: React.FC = () => {
 
                   // Calculate group active count
                   const groupPermIds = group.permissions
-                    .map(p => permNameToObject.get(p.name)?.id)
-                    .filter((id): id is number => id !== undefined);
+                    .map(p => {
+                      const obj = permNameToObject.get(p.name);
+                      return obj ? String(obj.id) : null;
+                    })
+                    .filter((id): id is string => id !== null);
 
                   const activeInGroup = isSuperAdmin 
                     ? group.permissions.length 
@@ -576,7 +659,7 @@ export const Roles: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => toggleGroup(group)}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-xl border border-gray-200 bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-colors text-gray-600"
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-xl border border-gray-200 bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-colors text-gray-600 cursor-pointer"
                           >
                             {allGroupSelected ? (
                               <>
@@ -595,7 +678,7 @@ export const Roles: React.FC = () => {
                       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
                         {filteredGroupPerms.map((perm) => {
                           const permObj = permNameToObject.get(perm.name);
-                          const permId = permObj?.id;
+                          const permId = permObj ? String(permObj.id) : null;
                           const isChecked = isSuperAdmin || (permId ? selectedPermIds.includes(permId) : false);
 
                           return (
@@ -646,8 +729,8 @@ export const Roles: React.FC = () => {
 
       {/* Modal Tambah Peran Baru */}
       <Modal
-        open={showModal}
-        onClose={() => setShowModal(false)}
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
         title="Tambah Peran Baru"
       >
         <form onSubmit={handleCreateRole} className="flex flex-col gap-5 p-6">
@@ -676,8 +759,8 @@ export const Roles: React.FC = () => {
           <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-gray-100">
             <button 
               type="button" 
-              className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-xs hover:bg-gray-50 transition-colors" 
-              onClick={() => setShowModal(false)}
+              className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-xs hover:bg-gray-50 transition-colors cursor-pointer" 
+              onClick={() => setShowCreateModal(false)}
               disabled={createSubmitting}
             >
               Batal
@@ -685,7 +768,7 @@ export const Roles: React.FC = () => {
             <button 
               type="submit" 
               disabled={createSubmitting}
-              className="inline-flex items-center justify-center px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm text-xs transition-colors disabled:opacity-50"
+              className="inline-flex items-center justify-center px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm text-xs transition-colors disabled:opacity-50 cursor-pointer"
             >
               {createSubmitting ? (
                 <>
@@ -694,6 +777,62 @@ export const Roles: React.FC = () => {
                 </>
               ) : (
                 'Simpan Peran'
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Edit Peran */}
+      <Modal
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title="Edit Peran"
+      >
+        <form onSubmit={handleEditRoleSubmit} className="flex flex-col gap-5 p-6">
+          <FormField label="Nama Peran" required>
+            <input 
+              type="text" 
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+              value={editName} 
+              onChange={(e) => setEditName(e.target.value)} 
+              placeholder="Contoh: Waka Kurikulum" 
+              required 
+            />
+          </FormField>
+          
+          <FormField label="Guard Name" required>
+            <input 
+              type="text" 
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+              value={editGuardName} 
+              onChange={(e) => setEditGuardName(e.target.value)} 
+              placeholder="jwt" 
+              required 
+            />
+          </FormField>
+          
+          <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-gray-100">
+            <button 
+              type="button" 
+              className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-xs hover:bg-gray-50 transition-colors cursor-pointer" 
+              onClick={() => setShowEditModal(false)}
+              disabled={editSubmitting}
+            >
+              Batal
+            </button>
+            <button 
+              type="submit" 
+              disabled={editSubmitting}
+              className="inline-flex items-center justify-center px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm text-xs transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {editSubmitting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                'Simpan Perubahan'
               )}
             </button>
           </div>
