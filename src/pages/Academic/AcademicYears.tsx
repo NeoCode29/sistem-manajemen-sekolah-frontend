@@ -3,7 +3,7 @@ import { Plus, CheckCircle, XCircle, Loader2, Search, Filter, RotateCcw, Calenda
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { useAcademicYears } from '../../hooks/useAcademicYears';
-import { usePermission } from '../../components/Common/Can';
+import { usePermissions } from '../../hooks/usePermissions';
 import type { AcademicYear } from '../../api/academicService';
 import { PageHeader, Modal, FormField, Badge, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { notify } from '../../utils/feedback';
@@ -18,10 +18,17 @@ export const AcademicYears: React.FC = () => {
     toggleAcademicYearActive
   } = useAcademicYears();
 
-  const canCreate = usePermission(['academic_years.create', 'academic_years.update', 'academic.write']);
-  const canEdit = usePermission(['academic_years.update', 'academic.write']);
-  const canDelete = usePermission(['academic_years.delete', 'academic.write']);
-  const canToggle = usePermission(['academic_years.toggle_active', 'academic_years.update', 'academic.write']);
+  const {
+    canCreateAcademicYear,
+    canUpdateAcademicYear,
+    canDeleteAcademicYear,
+    canToggleAcademicYear,
+    canReadAcademicYears
+  } = usePermissions();
+  const canCreate = canCreateAcademicYear;
+  const canEdit = canUpdateAcademicYear;
+  const canDelete = canDeleteAcademicYear;
+  const canToggle = canToggleAcademicYear;
   const canManageAcademic = canCreate || canEdit || canDelete || canToggle;
 
   const [showModal, setShowModal] = useState(false);
@@ -56,7 +63,20 @@ export const AcademicYears: React.FC = () => {
     setName('');
   };
 
+  const openAdd = () => {
+    if (!canCreate) {
+      notify.error('Anda tidak memiliki izin untuk menambah tahun ajaran baru.');
+      return;
+    }
+    handleCloseModal();
+    setShowModal(true);
+  };
+
   const handleEdit = (year: AcademicYear) => {
+    if (!canEdit) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data tahun ajaran.');
+      return;
+    }
     setIsEditing(true);
     setEditId(year.id);
     setName(year.name);
@@ -64,6 +84,10 @@ export const AcademicYears: React.FC = () => {
   };
 
   const handleToggle = (year: AcademicYear) => {
+    if (!canToggle) {
+      notify.error('Anda tidak memiliki izin untuk mengubah status aktif tahun ajaran.');
+      return;
+    }
     const nextStatus = !year.isActive;
     setConfirmConfig({
       open: true,
@@ -86,6 +110,10 @@ export const AcademicYears: React.FC = () => {
   };
 
   const handleDelete = (year: AcademicYear) => {
+    if (!canDelete) {
+      notify.error('Anda tidak memiliki izin untuk menghapus tahun ajaran.');
+      return;
+    }
     setConfirmConfig({
       open: true,
       variant: 'danger',
@@ -106,6 +134,14 @@ export const AcademicYears: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isEditing && !canEdit) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data tahun ajaran.');
+      return;
+    }
+    if (!isEditing && !canCreate) {
+      notify.error('Anda tidak memiliki izin untuk menambah tahun ajaran baru.');
+      return;
+    }
 
     const match = name.trim().match(/^(\d{4})\/(\d{4})$/);
     if (!match) {
@@ -245,7 +281,7 @@ export const AcademicYears: React.FC = () => {
           canCreate ? (
             <button 
               type="button"
-              onClick={() => setShowModal(true)} 
+              onClick={openAdd} 
               className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
             >
               <Plus size={16} />

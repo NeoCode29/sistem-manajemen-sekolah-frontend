@@ -1,12 +1,26 @@
 import api from './axios';
 
+export interface OccupationRef {
+  id: string;
+  category?: string;
+  name: string;
+}
+
 export interface StudentGuardian {
   id?: string;
   studentId?: string;
   relationship: string;
   fullName: string;
   nationalId?: string;
+  nik?: string;
+  birthYear?: number;
+  isAlive?: boolean;
+  education?: string;
+  occupationId?: string;
+  occupationRef?: OccupationRef;
   occupation?: string;
+  monthlyIncome?: string;
+  specialNeeds?: string;
   phone?: string;
   email?: string;
   address?: string;
@@ -43,11 +57,54 @@ export interface Student {
   status: string;
   admissionDate?: string;
   photo?: string;
+  phone?: string;
+  email?: string;
   isActive?: boolean;
   major?: any;
   users?: { id: string; isActive: boolean }[];
   guardians?: StudentGuardian[];
   enrollments?: StudentEnrollment[];
+
+  // Dapodik Kependudukan & Dokumen
+  nik?: string;
+  noKk?: string;
+  birthCertNo?: string;
+
+  // Periodik Fisik & Kesehatan
+  heightCm?: number;
+  weightKg?: number;
+  headCircumferenceCm?: number;
+  bloodType?: string;
+  specialNeeds?: string;
+  illnessHistory?: string;
+
+  // Alamat & Wilayah Terstruktur
+  rt?: string;
+  rw?: string;
+  subVillage?: string;
+  village?: string;
+  district?: string;
+  city?: string;
+  province?: string;
+  postalCode?: string;
+
+  // Transportasi & Jarak Tempuh
+  transportation?: string;
+  distanceToSchoolKm?: number;
+  travelTimeMinutes?: number;
+
+  // Asal Sekolah & Ijazah
+  previousSchoolNpsn?: string;
+  previousSchoolName?: string;
+  diplomaNumber?: string;
+  skhunNumber?: string;
+  examParticipantNumber?: string;
+
+  // Kesejahteraan Siswa (KIP / PIP / KPS)
+  kipNumber?: string;
+  kpsNumber?: string;
+  pipEligible?: boolean;
+  pipReason?: string;
 }
 
 export interface CreateStudentWizardPayload {

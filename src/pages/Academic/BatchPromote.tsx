@@ -22,8 +22,8 @@ import { notify } from '../../utils/feedback';
 
 export const BatchPromote: React.FC = () => {
   const navigate = useNavigate();
-  const { hasPermission } = usePermissions();
-  const canPromote = hasPermission('promotions.execute') || hasPermission('academic.write');
+  const { canExecutePromotions } = usePermissions();
+  const canPromote = canExecutePromotions;
 
   // Dropdown Data State
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -279,6 +279,10 @@ export const BatchPromote: React.FC = () => {
   };
 
   const handleBatchPromoteSubmit = () => {
+    if (!canPromote) {
+      notify.error('Anda tidak memiliki izin untuk memproses kenaikan kelas.');
+      return;
+    }
     if (!selectedSourceAcademicYear || !selectedSourceSemester || !selectedTargetAcademicYear || !selectedSourceClass || !selectedTargetClass || !selectedTargetSemester) {
       notify.warning('Tahun Ajaran, Semester, dan Rombel Kelas (Asal & Tujuan) harus dipilih lengkap');
       return;

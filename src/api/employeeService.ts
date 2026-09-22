@@ -6,6 +6,13 @@ export interface Position {
   name: string;
   description?: string;
   isActive: boolean;
+  maxUsers?: number | null;
+  mappedRoleId?: string | null;
+  mappedRole?: {
+    id: string;
+    name: string;
+  } | null;
+  activeEmployeeCount?: number;
 }
 
 export interface Employee {

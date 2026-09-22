@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getPromotions, cancelPromotion as apiCancelPromotion } from '../api/promotionService';
+import { parseApiError } from '../utils/feedback';
 
 export function usePromotions(initialPage = 1, initialLimit = 15) {
   const [promotionsHistory, setPromotionsHistory] = useState<any[]>([]);
@@ -20,7 +21,7 @@ export function usePromotions(initialPage = 1, initialLimit = 15) {
       setCurrentPage(page);
     } catch (err: any) {
       console.error('Failed to fetch promotions:', err);
-      setError('Gagal memuat riwayat kenaikan kelas');
+      setError(parseApiError(err, 'Gagal memuat riwayat kenaikan kelas'));
     } finally {
       setLoading(false);
     }
@@ -35,15 +36,7 @@ export function usePromotions(initialPage = 1, initialLimit = 15) {
       await apiCancelPromotion(id);
       await fetchHistory(currentPage, itemsPerPage);
     } catch (err: any) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error?.message ||
-        (typeof err.response?.data?.error === 'string' ? err.response?.data?.error : null) ||
-        err.message ||
-        'Gagal membatalkan kenaikan kelas';
-      const customErr = new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
-      (customErr as any).response = err.response;
-      throw customErr;
+      throw new Error(parseApiError(err, 'Gagal membatalkan kenaikan kelas'));
     }
   };
 

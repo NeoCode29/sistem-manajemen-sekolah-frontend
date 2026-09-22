@@ -18,10 +18,14 @@ export const ClassPeriods: React.FC = () => {
     deleteClassPeriod
   } = useClassPeriods();
 
-  const { hasPermission } = usePermissions();
-  const canCreatePeriod = hasPermission('class_periods.create') || hasPermission('academic.write');
-  const canEditPeriod = hasPermission('class_periods.update') || hasPermission('academic.write');
-  const canDeletePeriod = hasPermission('class_periods.delete') || hasPermission('academic.write');
+  const { 
+    canCreateClassPeriod, 
+    canUpdateClassPeriod, 
+    canDeleteClassPeriod 
+  } = usePermissions();
+  const canCreatePeriod = canCreateClassPeriod;
+  const canEditPeriod = canUpdateClassPeriod;
+  const canDeletePeriod = canDeleteClassPeriod;
   const hasActions = canEditPeriod || canDeletePeriod;
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,6 +60,10 @@ export const ClassPeriods: React.FC = () => {
   });
 
   const handleOpenAdd = () => {
+    if (!canCreatePeriod) {
+      notify.error('Anda tidak memiliki izin untuk menambah data jam pelajaran.');
+      return;
+    }
     const nextNumber = periods.length + 1;
     setIsEditing(false);
     setEditId('');
@@ -80,6 +88,10 @@ export const ClassPeriods: React.FC = () => {
   };
 
   const handleEdit = (period: ClassPeriod) => {
+    if (!canEditPeriod) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data jam pelajaran.');
+      return;
+    }
     setIsEditing(true);
     setEditId(period.id);
     setCode(period.code);
@@ -91,6 +103,10 @@ export const ClassPeriods: React.FC = () => {
   };
 
   const handleDelete = (period: ClassPeriod) => {
+    if (!canDeletePeriod) {
+      notify.error('Anda tidak memiliki izin untuk menghapus jam pelajaran.');
+      return;
+    }
     setConfirmConfig({
       open: true,
       variant: 'danger',
@@ -120,6 +136,15 @@ export const ClassPeriods: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isEditing && !canEditPeriod) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data jam pelajaran.');
+      return;
+    }
+    if (!isEditing && !canCreatePeriod) {
+      notify.error('Anda tidak memiliki izin untuk menambah jam pelajaran baru.');
+      return;
+    }
+
     if (!code.trim()) {
       notify.warning('Kode jam pelajaran wajib diisi');
       return;

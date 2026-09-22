@@ -6,9 +6,10 @@ import type { AcademicYear, Semester, Classroom, Subject, ClassPeriod } from '..
 import { getEmployees } from '../api/employeeService';
 import type { Employee } from '../api/employeeService';
 import { usePermissions } from './usePermissions';
+import { parseApiError } from '../utils/feedback';
 
 export function useSchedules() {
-  const { canManageSchedule } = usePermissions();
+  const { canManageSchedule, canManageSubjectAssignments } = usePermissions();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [subjectAssignments, setSubjectAssignments] = useState<SubjectAssignment[]>([]);
   
@@ -31,7 +32,8 @@ export function useSchedules() {
   const fetchDependencies = useCallback(async () => {
     try {
       setPageError('');
-      const empPromise = canManageSchedule
+      const canFetchEmployees = canManageSchedule || canManageSubjectAssignments;
+      const empPromise = canFetchEmployees
         ? getEmployees({ isActive: 'true' }).catch(() => [])
         : Promise.resolve([]);
 
@@ -61,9 +63,9 @@ export function useSchedules() {
       }
     } catch (err: any) {
       console.error(err);
-      setPageError(err.response?.data?.message || err.message || 'Gagal memuat data referensi');
+      setPageError(parseApiError(err, 'Gagal memuat data referensi penjadwalan'));
     }
-  }, [filterClassroomId, canManageSchedule]);
+  }, [filterClassroomId, canManageSchedule, canManageSubjectAssignments]);
 
   const fetchClassroomData = useCallback(async () => {
     if (!filterClassroomId) return;
@@ -78,7 +80,7 @@ export function useSchedules() {
       setSchedules(scheds.filter((s: any) => s.academicYearId === filterAcademicYearId && s.semesterId === filterSemesterId));
       setSubjectAssignments(assigns.filter((a: any) => a.academicYearId === filterAcademicYearId && a.semesterId === filterSemesterId));
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat data kelas');
+      setError(parseApiError(err, 'Gagal memuat data kelas'));
     } finally {
       setLoading(false);
     }
@@ -103,7 +105,7 @@ export function useSchedules() {
       await apiCreateSubjectAssignment(filterClassroomId, payload);
       await fetchClassroomData();
     } catch (err: any) {
-      throw err;
+      throw new Error(parseApiError(err, 'Gagal menyimpan penugasan guru'));
     }
   };
 
@@ -113,7 +115,7 @@ export function useSchedules() {
       await apiUpdateSubjectAssignment(filterClassroomId, id, payload);
       await fetchClassroomData();
     } catch (err: any) {
-      throw err;
+      throw new Error(parseApiError(err, 'Gagal memperbarui penugasan guru'));
     }
   };
 
@@ -123,7 +125,7 @@ export function useSchedules() {
       await apiDeleteSubjectAssignment(filterClassroomId, id);
       await fetchClassroomData();
     } catch (err: any) {
-      throw err;
+      throw new Error(parseApiError(err, 'Gagal menghapus penugasan guru'));
     }
   };
 
@@ -133,7 +135,7 @@ export function useSchedules() {
       await apiCreateSchedule(filterClassroomId, payload);
       await fetchClassroomData();
     } catch (err: any) {
-      throw err;
+      throw new Error(parseApiError(err, 'Gagal menyimpan jadwal pelajaran'));
     }
   };
 
@@ -143,7 +145,7 @@ export function useSchedules() {
       await apiUpdateSchedule(filterClassroomId, id, payload);
       await fetchClassroomData();
     } catch (err: any) {
-      throw err;
+      throw new Error(parseApiError(err, 'Gagal memperbarui jadwal pelajaran'));
     }
   };
 
@@ -153,7 +155,7 @@ export function useSchedules() {
       await apiDeleteSchedule(filterClassroomId, id);
       await fetchClassroomData();
     } catch (err: any) {
-      throw err;
+      throw new Error(parseApiError(err, 'Gagal menghapus jadwal pelajaran'));
     }
   };
 

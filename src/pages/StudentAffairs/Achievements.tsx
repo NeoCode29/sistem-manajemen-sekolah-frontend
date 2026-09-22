@@ -36,12 +36,12 @@ const DEFAULT_FORM: AchievementForm = {
 export const Achievements: React.FC = () => {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
-  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') ?? false;
+  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah' || r.name === 'Kepala Sekolah' || r.name === 'Staf Kesiswaan') ?? false;
   const canCreateAll = isSuperAdmin || hasPermission('achievements.create_all') || hasPermission('achievements.manage');
   const canCreateAssigned = hasPermission('achievements.create_assigned') || hasPermission('achievements.create') || hasPermission('student_affairs.write') || hasPermission('students.write');
   const canCreate = canCreateAll || canCreateAssigned;
-  const canEdit = isSuperAdmin || hasPermission('achievements.update') || canCreate;
-  const canDelete = isSuperAdmin || hasPermission('achievements.delete') || hasPermission('student_affairs.write') || hasPermission('students.write');
+  const canEdit = isSuperAdmin || hasPermission('achievements.update') || hasPermission('achievements.manage') || canCreate;
+  const canDelete = isSuperAdmin || hasPermission('achievements.delete') || hasPermission('achievements.manage') || hasPermission('student_affairs.write') || hasPermission('students.write');
   const hasActions = canEdit || canDelete;
 
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -157,6 +157,15 @@ export const Achievements: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreate && !modal.editId) {
+      notify.error('Anda tidak memiliki izin untuk mencatat data prestasi siswa.');
+      return;
+    }
+    if (!canEdit && modal.editId) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data prestasi siswa.');
+      return;
+    }
+
     if (!form.studentId) {
       notify.error('Siswa harus dipilih');
       return;
@@ -193,6 +202,11 @@ export const Achievements: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (!canDelete) {
+      notify.error('Anda tidak memiliki izin untuk menghapus data prestasi siswa.');
+      return;
+    }
+
     setConfirmDialog({
       open: true,
       title: 'Hapus Data Prestasi',

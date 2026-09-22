@@ -14,12 +14,13 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { DataTable, type Column } from '../../components/Common/DataTable';
-import { useGraduations } from '../../hooks/useGraduations';
 import { PageHeader, Modal, FormField, Select, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
-import { Can } from '../../components/Common/Can';
+import { usePermissions } from '../../hooks/usePermissions';
+import { useGraduations } from '../../hooks/useGraduations';
 import { notify } from '../../utils/feedback';
 
 export const Graduations: React.FC = () => {
+  const { canExecuteGraduations, canRevertGraduations } = usePermissions();
   const {
     graduationsHistory,
     loading,
@@ -64,6 +65,10 @@ export const Graduations: React.FC = () => {
   });
 
   const handleOpenModal = () => {
+    if (!canExecuteGraduations) {
+      notify.error('Anda tidak memiliki izin untuk memproses kelulusan siswa.');
+      return;
+    }
     setSelectedClass('');
     setDocumentNumber('');
     setGraduationDate(new Date().toISOString().split('T')[0]);
@@ -132,6 +137,10 @@ export const Graduations: React.FC = () => {
   };
 
   const handleBatchGraduateSubmit = () => {
+    if (!canExecuteGraduations) {
+      notify.error('Anda tidak memiliki izin untuk memproses kelulusan siswa.');
+      return;
+    }
     if (!selectedClass || !graduationDate) {
       notify.warning('Rombel kelas akhir dan tanggal kelulusan wajib diisi');
       return;
@@ -207,6 +216,10 @@ export const Graduations: React.FC = () => {
   };
 
   const handleCancelGraduation = (row: any) => {
+    if (!canRevertGraduations) {
+      notify.error('Anda tidak memiliki izin untuk membatalkan status kelulusan siswa.');
+      return;
+    }
     const studentName = row.student?.fullName || row.student?.name || 'Siswa';
     const className = row.classroom?.name || 'Kelas';
 
@@ -347,25 +360,26 @@ export const Graduations: React.FC = () => {
         )
       )
     },
-    { 
+  ];
+
+  if (canRevertGraduations) {
+    columns.push({ 
       key: 'actions', 
       header: 'Aksi', 
       render: (row) => (
-        <Can permissions={['graduations.delete', 'academic.write']}>
-          <div className="flex items-center justify-end">
-            <button
-              type="button"
-              onClick={() => handleCancelGraduation(row)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition-colors shadow-xs"
-              title="Batalkan Status Kelulusan Siswa"
-            >
-              <Undo2 size={13} /> Batal Lulus
-            </button>
-          </div>
-        </Can>
+        <div className="flex items-center justify-end">
+          <button
+            type="button"
+            onClick={() => handleCancelGraduation(row)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition-colors shadow-xs"
+            title="Batalkan Status Kelulusan Siswa"
+          >
+            <Undo2 size={13} /> Batal Lulus
+          </button>
+        </div>
       )
-    }
-  ];
+    });
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -374,7 +388,7 @@ export const Graduations: React.FC = () => {
         title="Kelulusan & Alumni" 
         subtitle="Daftar alumni dan proses pelepasan kelulusan siswa"
         action={
-          <Can permissions={['graduations.execute', 'academic.write']}>
+          canExecuteGraduations ? (
             <button 
               type="button"
               className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors" 
@@ -383,7 +397,7 @@ export const Graduations: React.FC = () => {
               <Award size={16} />
               <span>Proses Kelulusan Baru</span>
             </button>
-          </Can>
+          ) : undefined
         }
       />
 

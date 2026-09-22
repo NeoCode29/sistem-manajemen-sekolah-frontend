@@ -10,6 +10,8 @@ export interface Role {
   id: string | number;
   name: string;
   guardName: string;
+  maxUsers?: number | null;
+  userCount?: number;
   permissions?: Permission[];
 }
 
@@ -48,12 +50,12 @@ export const getRoles = async (): Promise<Role[]> => {
   return response.data;
 };
 
-export const createRole = async (data: { name: string; guardName: string }) => {
+export const createRole = async (data: { name: string; guardName: string; maxUsers?: number | null }) => {
   const response = await api.post('/roles', data);
   return response.data;
 };
 
-export const updateRole = async (id: string | number, data: { name?: string; guardName?: string }) => {
+export const updateRole = async (id: string | number, data: { name?: string; guardName?: string; maxUsers?: number | null }) => {
   const response = await api.patch(`/roles/${id}`, data);
   return response.data;
 };

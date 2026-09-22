@@ -23,13 +23,26 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Pagination } from '../../components/Common/Pagination';
-import { Badge, type BadgeVariant } from '../../components/ui/Badge';
+import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify } from '../../utils/feedback';
 
 export const IdentityRegistration: React.FC = () => {
-  const { hasPermission } = usePermissions();
-  const canRegister = hasPermission('hardware.register_identity') || hasPermission('hardware.manage') || true;
+  const { user } = useAuth();
+  const { canAssignHardwareCard, hasPermission } = usePermissions();
+
+  const isManagementRole = user?.roles?.some((r) =>
+    ['Super Admin', 'Admin Sekolah', 'Kepala Sekolah', 'Staf TU'].includes(r.name),
+  );
+
+  const canRegister =
+    canAssignHardwareCard ||
+    isManagementRole ||
+    hasPermission('hardware.assign_card') ||
+    hasPermission('hardware.register_identity') ||
+    hasPermission('hardware.manage') ||
+    hasPermission('attendance.write') ||
+    hasPermission('attendance_settings.manage');
 
   const [activeTab, setActiveTab] = useState<'STUDENT' | 'EMPLOYEE'>('STUDENT');
   
@@ -88,6 +101,10 @@ export const IdentityRegistration: React.FC = () => {
   };
 
   const openModal = (person: any) => {
+    if (!canRegister) {
+      notify.error(null, 'Anda tidak memiliki izin untuk meregistrasi kredensial kartu atau sidik jari');
+      return;
+    }
     setSelectedPerson(person);
     setRfidTag(person.cardId || '');
     setFingerprintId(person.fingerId || '');
@@ -139,6 +156,10 @@ export const IdentityRegistration: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canRegister) {
+      notify.error(null, 'Anda tidak memiliki izin untuk meregistrasi kredensial kartu atau sidik jari');
+      return;
+    }
     if (!selectedPerson) return;
 
     const payload = { 
@@ -380,24 +401,9 @@ export const IdentityRegistration: React.FC = () => {
             <h3 className="text-base font-bold text-slate-900 m-0">
               Katalog Identitas {activeTab === 'STUDENT' ? 'Siswa' : 'Guru & Pegawai'}
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Pilih personil untuk mendaftarkan atau memperbarui kartu RFID & ID Sidik Jari
+            <p className="text-xs text-slate-500 mt-1">
+              Total {currentList.length} personil ({totalRegistered} telah terdaftar) • Pilih personil untuk mendaftarkan atau memperbarui kartu RFID & ID Sidik Jari.
             </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="info">
-              <span className="flex items-center gap-1">
-                <Smartphone size={12} /> {totalCards} RFID
-              </span>
-            </Badge>
-            <Badge variant="purple">
-              <span className="flex items-center gap-1">
-                <Fingerprint size={12} /> {totalFingers} Sidik Jari
-              </span>
-            </Badge>
-            <Badge variant="success">
-              {totalRegistered} / {currentList.length} Terdaftar ({currentList.length > 0 ? Math.round((totalRegistered / currentList.length) * 100) : 0}%)
-            </Badge>
           </div>
         </div>
 
@@ -425,8 +431,10 @@ export const IdentityRegistration: React.FC = () => {
                   return (
                     <div 
                       key={person.id} 
-                      className="bg-white border border-slate-200/80 rounded-2xl p-5 flex flex-col hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
-                      onClick={() => openModal(person)}
+                      className={`bg-white border border-slate-200/80 rounded-2xl p-5 flex flex-col transition-all group relative overflow-hidden ${
+                        canRegister ? 'hover:border-indigo-300 hover:shadow-md cursor-pointer' : 'cursor-default opacity-90'
+                      }`}
+                      onClick={canRegister ? () => openModal(person) : undefined}
                     >
                       <div className="flex items-start gap-3 mb-3">
                         <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm shrink-0 shadow-inner group-hover:bg-indigo-600 group-hover:text-white transition-colors">

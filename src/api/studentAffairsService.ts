@@ -85,3 +85,24 @@ export const getViolationTypes = async (): Promise<ViolationType[]> => {
   const response = await api.get('/violation-types');
   return response.data;
 };
+
+// ==========================
+// POINTS SUMMARY & SP STATUS
+// ==========================
+export interface StudentPointsSummary {
+  studentId: string;
+  studentName: string;
+  nis: string;
+  academicYearId: string;
+  totalAchievementPoints: number;
+  totalViolationPoints: number;
+  netPoints: number;
+  spStatus: 'SAFE' | 'WARNING_SP1' | 'WARNING_SP2' | 'DANGER_SP3' | string;
+  spRecommendation: string;
+}
+
+export const getStudentPointsSummary = async (studentId: string, academicYearId?: string): Promise<StudentPointsSummary> => {
+  const response = await api.get(`/students/${studentId}/points-summary`, { params: { academicYearId } });
+  return response.data;
+};
+

@@ -27,10 +27,12 @@ export const Classrooms: React.FC = () => {
     deleteClassroom
   } = useClassrooms(filterGradeId);
 
-  const { hasPermission } = usePermissions();
-  const canCreateClassroom = hasPermission('classrooms.create') || hasPermission('classrooms.manage');
-  const canEditClassroom = hasPermission('classrooms.update') || hasPermission('classrooms.manage');
-  const canDeleteClassroom = hasPermission('classrooms.delete') || hasPermission('classrooms.manage');
+  const { 
+    canCreateClassroom, 
+    canUpdateClassroom, 
+    canDeleteClassroom, 
+    canReadClassrooms 
+  } = usePermissions();
 
   // Modal & Form State
   const [showModal, setShowModal] = useState(false);
@@ -84,6 +86,10 @@ export const Classrooms: React.FC = () => {
   };
 
   const handleEdit = (classroom: Classroom) => {
+    if (!canUpdateClassroom) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data rombel.');
+      return;
+    }
     setIsEditing(true);
     setEditId(classroom.id);
     setGradeId(classroom.gradeId);
@@ -95,6 +101,10 @@ export const Classrooms: React.FC = () => {
   };
 
   const handleDelete = (classroom: Classroom) => {
+    if (!canDeleteClassroom) {
+      notify.error('Anda tidak memiliki izin untuk menghapus rombel.');
+      return;
+    }
     setConfirmConfig({
       open: true,
       title: `Hapus Rombel "${classroom.name}"`,
@@ -113,6 +123,14 @@ export const Classrooms: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isEditing && !canUpdateClassroom) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data rombel.');
+      return;
+    }
+    if (!isEditing && !canCreateClassroom) {
+      notify.error('Anda tidak memiliki izin untuk membuat rombel baru.');
+      return;
+    }
     try {
       setSubmitting(true);
       const payload: any = {
@@ -140,6 +158,10 @@ export const Classrooms: React.FC = () => {
   };
 
   const openAddModal = () => {
+    if (!canCreateClassroom) {
+      notify.error('Anda tidak memiliki izin untuk membuat rombel baru.');
+      return;
+    }
     if (grades.length > 0 && !gradeId) {
       setGradeId(grades[0].id);
     }
@@ -231,8 +253,8 @@ export const Classrooms: React.FC = () => {
       header: 'Aksi', 
       render: (row) => (
         <ActionButtons 
-          onView={() => navigate(`/academic/classrooms/${row.id}`)}
-          onEdit={canEditClassroom ? () => handleEdit(row) : undefined}
+          onView={canReadClassrooms ? () => navigate(`/academic/classrooms/${row.id}`) : undefined}
+          onEdit={canUpdateClassroom ? () => handleEdit(row) : undefined}
           onDelete={canDeleteClassroom ? () => handleDelete(row) : undefined}
         />
       )

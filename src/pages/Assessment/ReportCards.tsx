@@ -46,11 +46,12 @@ export const ReportCards: React.FC = () => {
   });
 
   const { hasPermission } = usePermissions();
-  const canValidatePermission = hasPermission('score_validations.validate') || hasPermission('assessment.write');
-  const canApprovePermission = hasPermission('score_validations.principal_approve') || hasPermission('assessment.write');
-  const canGeneratePermission = hasPermission('report_cards.generate') || hasPermission('assessment.write');
+  const canValidatePermission = hasPermission('score_validations.validate') || hasPermission('score_validations.principal_approve') || hasPermission('assessment.write') || hasPermission('assessment.manage');
+  const canApprovePermission = hasPermission('score_validations.principal_approve') || hasPermission('assessment.write') || hasPermission('assessment.manage');
+  const canGeneratePermission = hasPermission('report_cards.generate') || hasPermission('report_cards.manage') || hasPermission('assessment.write') || hasPermission('assessment.manage');
+  const canReadReports = hasPermission('report_cards.read') || hasPermission('report_cards.generate') || hasPermission('report_cards.manage') || hasPermission('assessment.read');
 
-  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') ?? false;
+  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah' || r.name === 'Kepala Sekolah') ?? false;
   const isPrincipal = (user?.roles?.some(r => r.name === 'Kepala Sekolah') ?? false) || canApprovePermission;
   const isHomeroomTeacher = Boolean(
     homeroomTeacher?.employeeId && user?.employeeId && 
@@ -110,6 +111,11 @@ export const ReportCards: React.FC = () => {
   }, [selectedYear, selectedSemester, selectedClassroom, fetchReportCards, getApprovals]);
 
   const handleGenerate = () => {
+    if (!canManageReports) {
+      notify.error(`Hanya Wali Kelas (${homeroomTeacher?.employee?.fullName || 'Wali Kelas'}), Kepala Sekolah, atau Administrator yang berwenang men-generate rapor kelas ini.`);
+      return;
+    }
+
     if (!selectedYear || !selectedSemester || !selectedClassroom) {
       notify.error('Pilih Tahun Ajaran, Semester, dan Kelas terlebih dahulu.');
       return;
@@ -133,6 +139,11 @@ export const ReportCards: React.FC = () => {
   };
 
   const openEditModal = (card: ReportCard) => {
+    if (!canValidate) {
+      notify.error('Hanya Wali Kelas untuk kelas ini atau Kepala Sekolah yang dapat mengubah catatan/absensi siswa.');
+      return;
+    }
+
     setFormData({
       sickDays: card.sickDays,
       excusedDays: card.excusedDays,
@@ -148,6 +159,11 @@ export const ReportCards: React.FC = () => {
 
   const saveNotes = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canValidate) {
+      notify.error('Hanya Wali Kelas untuk kelas ini atau Kepala Sekolah yang berwenang mengubah catatan/absensi siswa.');
+      return;
+    }
+
     if (modal.editCard) {
       try {
         setIsSubmitting(true);
@@ -185,6 +201,11 @@ export const ReportCards: React.FC = () => {
   };
 
   const handleApproveClassroom = () => {
+    if (!isPrincipal) {
+      notify.error('Hanya Kepala Sekolah yang berwenang mengesahkan dokumen rapor kelas.');
+      return;
+    }
+
     setConfirmDialog({
       open: true,
       title: 'Pengesahan Rapor Kelas (Kepala Sekolah)',
@@ -369,40 +390,10 @@ export const ReportCards: React.FC = () => {
       <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
         <div className="p-4 md:p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/40">
           <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-base font-bold text-slate-900 m-0">Daftar Rapor Siswa</h3>
-              {selectedClassroom && (
-                <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
-                  {classrooms.find(c => c.id === selectedClassroom)?.name || 'Kelas'}
-                </span>
-              )}
-              {selectedClassroom && (
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
-                  Wali Kelas: {homeroomTeacher?.employee?.fullName || 'Belum Ditugaskan'}
-                </span>
-              )}
-              {selectedClassroom && (
-                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
-                  isClassroomApproved
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                }`}>
-                  {isClassroomApproved ? 'Telah Disahkan KS' : 'Menunggu Pengesahan KS'}
-                </span>
-              )}
-              {selectedClassroom && (
-                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
-                  isHomeroomTeacher || isPrincipal || isSuperAdmin
-                    ? 'bg-purple-50 text-purple-700 border-purple-200'
-                    : 'bg-slate-100 text-slate-600 border-slate-200'
-                }`}>
-                  {isHomeroomTeacher ? 'Anda Wali Kelas' : isPrincipal ? 'Kepala Sekolah' : isSuperAdmin ? 'Akses Admin' : 'Mode Hanya-Baca'}
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <h3 className="text-base font-bold text-slate-900 m-0">Daftar Rapor Siswa</h3>
+            <p className="text-xs text-slate-500 mt-1">
               {selectedClassroom 
-                ? `Total ${reportCards.length} siswa • Kelola rekap absensi, catatan wali kelas, dan dokumen rapor siswa.`
+                ? `${classrooms.find(c => c.id === selectedClassroom)?.name || 'Kelas'} • Wali Kelas: ${homeroomTeacher?.employee?.fullName || 'Belum Ditugaskan'} • Total ${reportCards.length} siswa`
                 : 'Pilih Tahun Ajaran, Semester, dan Kelas untuk menampilkan dan mengelola dokumen rapor.'}
             </p>
           </div>

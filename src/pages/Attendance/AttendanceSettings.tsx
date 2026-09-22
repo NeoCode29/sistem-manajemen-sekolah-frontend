@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { getAttendanceSetting, updateAttendanceSetting } from '../../api/attendanceService';
 import { Clock, Save, MapPin, AlertTriangle, ShieldCheck, Loader2, CheckCircle2, CreditCard, Smartphone, UserCheck, Sliders } from 'lucide-react';
-import { Can } from '../../components/Common/Can';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { MapLocationPicker } from '../../components/widgets/MapLocationPicker';
-import { notify } from '../../utils/feedback';
+import { usePermissions } from '../../hooks/usePermissions';
+import { notify, parseApiError } from '../../utils/feedback';
 
 export const AttendanceSettings: React.FC = () => {
+  const { canManageAttendanceSettings } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -58,7 +59,7 @@ export const AttendanceSettings: React.FC = () => {
       }
     } catch (err: any) {
       if (err.response?.status !== 404) {
-        notify.error(err, 'Gagal memuat pengaturan absensi');
+        notify.error(parseApiError(err, 'Gagal memuat pengaturan absensi'));
       }
     } finally {
       setLoading(false);
@@ -91,6 +92,11 @@ export const AttendanceSettings: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageAttendanceSettings) {
+      notify.error('Anda tidak memiliki izin untuk mengubah pengaturan absensi.');
+      return;
+    }
+
     if (!validateTimes()) return;
 
     try {
@@ -116,7 +122,7 @@ export const AttendanceSettings: React.FC = () => {
       await updateAttendanceSetting(payload);
       notify.success('Pengaturan jam, lokasi, dan metode absensi berhasil disimpan!');
     } catch (err: any) {
-      notify.error(err, 'Gagal menyimpan pengaturan absensi');
+      notify.error(parseApiError(err, 'Gagal menyimpan pengaturan absensi'));
     } finally {
       setSaving(false);
     }
@@ -129,17 +135,17 @@ export const AttendanceSettings: React.FC = () => {
         title="Pengaturan Presensi"
         subtitle="Konfigurasi rentang jam absensi kedatangan & kepulangan, toleransi keterlambatan, dan batas radius geofencing sekolah"
         action={
-          <Can permission={['attendance_settings.manage', 'attendance.write']}>
+          canManageAttendanceSettings ? (
             <button
               type="submit"
               form="attendance-settings-form"
               disabled={saving || loading}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors disabled:opacity-50 cursor-pointer"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
             </button>
-          </Can>
+          ) : undefined
         }
       />
 
@@ -149,7 +155,20 @@ export const AttendanceSettings: React.FC = () => {
           <p className="text-sm font-medium">Memuat konfigurasi pengaturan absensi...</p>
         </div>
       ) : (
-        <form id="attendance-settings-form" onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
+          {!canManageAttendanceSettings && (
+            <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800 text-sm shadow-2xs">
+              <AlertTriangle size={20} className="text-amber-600 shrink-0" />
+              <div>
+                <p className="font-semibold text-slate-900">Mode Pratinjau (Hanya-Baca)</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Anda hanya memiliki izin melihat konfigurasi presensi. Opsi perubahan formulir dinonaktifkan.
+                </p>
+              </div>
+            </div>
+          )}
+          <form id="attendance-settings-form" onSubmit={handleSubmit} className="space-y-6">
+            <fieldset disabled={!canManageAttendanceSettings} className="space-y-6 border-0 p-0 m-0 min-w-0 disabled:opacity-90">
           
           {/* Card 1: Waktu & Rentang Jam Absensi */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
@@ -505,11 +524,12 @@ export const AttendanceSettings: React.FC = () => {
               </div>
 
               {/* Interactive Leaflet Map Container */}
-              <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-2xs">
+              <div className={`overflow-hidden rounded-2xl border border-slate-200 shadow-2xs transition-opacity ${!canManageAttendanceSettings ? 'pointer-events-none opacity-80' : ''}`}>
                 <MapLocationPicker
                   position={latitude !== '' && longitude !== '' ? [Number(latitude), Number(longitude)] : null}
                   radius={radiusMeter !== '' ? Number(radiusMeter) : null}
                   onLocationSelect={(lat, lng) => {
+                    if (!canManageAttendanceSettings) return;
                     setLatitude(lat);
                     setLongitude(lng);
                   }}
@@ -523,7 +543,7 @@ export const AttendanceSettings: React.FC = () => {
                   <input
                     type="number"
                     step="any"
-                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium"
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium disabled:bg-slate-100 disabled:text-slate-500"
                     value={latitude}
                     onChange={(e) => setLatitude(e.target.value === '' ? '' : Number(e.target.value))}
                     placeholder="-6.200000"
@@ -535,7 +555,7 @@ export const AttendanceSettings: React.FC = () => {
                   <input
                     type="number"
                     step="any"
-                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium"
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium disabled:bg-slate-100 disabled:text-slate-500"
                     value={longitude}
                     onChange={(e) => setLongitude(e.target.value === '' ? '' : Number(e.target.value))}
                     placeholder="106.816666"
@@ -546,7 +566,7 @@ export const AttendanceSettings: React.FC = () => {
                   <label className="text-xs font-semibold text-slate-700 block mb-1.5">Radius Geofencing (Meter)</label>
                   <input
                     type="number"
-                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium"
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium disabled:bg-slate-100 disabled:text-slate-500"
                     value={radiusMeter}
                     onChange={(e) => setRadiusMeter(e.target.value === '' ? '' : Number(e.target.value))}
                     placeholder="100"
@@ -555,6 +575,7 @@ export const AttendanceSettings: React.FC = () => {
               </div>
             </div>
           </div>
+        </fieldset>
 
           {/* Bottom Action Card */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 md:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -563,18 +584,23 @@ export const AttendanceSettings: React.FC = () => {
               <span>Pastikan seluruh waktu berurutan logis sebelum menyimpan pengaturan.</span>
             </div>
 
-            <Can permission={['attendance_settings.manage', 'attendance.write']}>
+            {canManageAttendanceSettings ? (
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-all hover:shadow-md w-full sm:w-auto justify-center"
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-all hover:shadow-md w-full sm:w-auto justify-center cursor-pointer disabled:opacity-50"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
               </button>
-            </Can>
+            ) : (
+              <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                Mode Hanya-Baca
+              </span>
+            )}
           </div>
         </form>
+        </div>
       )}
     </div>
   );

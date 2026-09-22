@@ -5,11 +5,12 @@ import { Pagination } from '../../components/Common/Pagination';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { usePromotions } from '../../hooks/usePromotions';
 import { PageHeader, Badge, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
-import { Can } from '../../components/Common/Can';
+import { usePermissions } from '../../hooks/usePermissions';
 import { notify } from '../../utils/feedback';
 
 export const Promotions: React.FC = () => {
   const navigate = useNavigate();
+  const { canExecutePromotions, canRevertPromotions } = usePermissions();
   const {
     promotionsHistory,
     loading,
@@ -53,6 +54,10 @@ export const Promotions: React.FC = () => {
   }, [promotionsHistory]);
 
   const handleCancelPromotion = (row: any) => {
+    if (!canRevertPromotions) {
+      notify.error('Anda tidak memiliki izin untuk membatalkan kenaikan kelas.');
+      return;
+    }
     const studentName = row.student?.fullName || row.student?.name || 'Siswa';
     const fromName = row.fromClassroom?.name || 'Kelas Asal';
     const toName = row.toClassroom?.name || 'Kelas Tujuan';
@@ -206,43 +211,44 @@ export const Promotions: React.FC = () => {
         </span>
       )
     },
-    { 
+  ];
+
+  if (canRevertPromotions) {
+    columns.push({ 
       key: 'actions', 
       header: 'Aksi', 
       render: (row) => {
         const isLatest = !row.studentId || latestPromoIdByStudent.get(row.studentId.toString()) === row.id?.toString();
         return (
-          <Can permissions={['promotions.revert', 'academic.write']}>
-            <div className="flex items-center justify-end">
-              {row.status !== 'CANCELLED' ? (
-                isLatest ? (
-                  <button
-                    type="button"
-                    onClick={() => handleCancelPromotion(row)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition-colors shadow-xs"
-                    title="Batalkan Kenaikan Kelas"
-                  >
-                    <Undo2 size={14} /> Batalkan
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleCancelPromotion(row)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-200 hover:text-gray-600 transition-colors"
-                    title="Siswa telah dimutasi lagi. Klik untuk info pembatalan."
-                  >
-                    <Undo2 size={14} /> Terkunci
-                  </button>
-                )
+          <div className="flex items-center justify-end">
+            {row.status !== 'CANCELLED' ? (
+              isLatest ? (
+                <button
+                  type="button"
+                  onClick={() => handleCancelPromotion(row)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition-colors shadow-xs"
+                  title="Batalkan Kenaikan Kelas"
+                >
+                  <Undo2 size={14} /> Batalkan
+                </button>
               ) : (
-                <span className="text-xs text-gray-400 italic">Dibatalkan</span>
-              )}
-            </div>
-          </Can>
+                <button
+                  type="button"
+                  onClick={() => handleCancelPromotion(row)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-200 hover:text-gray-600 transition-colors"
+                  title="Siswa telah dimutasi lagi. Klik untuk info pembatalan."
+                >
+                  <Undo2 size={14} /> Terkunci
+                </button>
+              )
+            ) : (
+              <span className="text-xs text-gray-400 italic">Dibatalkan</span>
+            )}
+          </div>
         );
       }
-    }
-  ];
+    });
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -251,7 +257,7 @@ export const Promotions: React.FC = () => {
         title="Kenaikan Kelas" 
         subtitle="Riwayat dan pemrosesan alur kenaikan kelas siswa antar tahun ajaran"
         action={
-          <Can permissions={['promotions.execute', 'academic.write']}>
+          canExecutePromotions ? (
             <button 
               type="button"
               className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors" 
@@ -260,7 +266,7 @@ export const Promotions: React.FC = () => {
               <TrendingUp size={16} />
               <span>Proses Kenaikan Kelas</span>
             </button>
-          </Can>
+          ) : undefined
         }
       />
 

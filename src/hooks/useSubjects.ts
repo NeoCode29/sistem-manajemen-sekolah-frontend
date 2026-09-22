@@ -6,6 +6,7 @@ import {
   deleteSubject as apiDeleteSubject,
   type Subject 
 } from '../api/academicService';
+import { parseApiError } from '../utils/feedback';
 
 export function useSubjects() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -20,7 +21,7 @@ export function useSubjects() {
       setSubjects(data);
     } catch (err: any) {
       console.error('Failed to fetch subjects:', err);
-      setError(err.response?.data?.message || 'Gagal memuat data mata pelajaran');
+      setError(parseApiError(err, 'Gagal memuat data mata pelajaran'));
     } finally {
       setLoading(false);
     }
@@ -35,7 +36,7 @@ export function useSubjects() {
       await apiCreateSubject(payload);
       await fetchSubjects();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal menyimpan mata pelajaran');
+      throw new Error(parseApiError(err, 'Gagal menyimpan mata pelajaran'));
     }
   };
 
@@ -44,7 +45,7 @@ export function useSubjects() {
       await apiUpdateSubject(id, payload);
       await fetchSubjects();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal memperbarui mata pelajaran');
+      throw new Error(parseApiError(err, 'Gagal memperbarui mata pelajaran'));
     }
   };
 
@@ -53,7 +54,7 @@ export function useSubjects() {
       await apiDeleteSubject(id);
       await fetchSubjects();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal menghapus mata pelajaran');
+      throw new Error(parseApiError(err, 'Gagal menghapus mata pelajaran'));
     }
   };
 

@@ -6,6 +6,7 @@ import {
   deleteGrade as apiDeleteGrade,
   type Grade 
 } from '../api/academicService';
+import { parseApiError } from '../utils/feedback';
 
 export function useGrades() {
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -20,7 +21,7 @@ export function useGrades() {
       setGrades(data);
     } catch (err: any) {
       console.error('Failed to fetch grades:', err);
-      setError(err.response?.data?.message || 'Gagal memuat data tingkat kelas');
+      setError(parseApiError(err, 'Gagal memuat data tingkat kelas'));
     } finally {
       setLoading(false);
     }
@@ -35,7 +36,7 @@ export function useGrades() {
       await apiCreateGrade(payload);
       await fetchGrades();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal menyimpan tingkat kelas');
+      throw new Error(parseApiError(err, 'Gagal menyimpan tingkat kelas'));
     }
   };
 
@@ -44,7 +45,7 @@ export function useGrades() {
       await apiUpdateGrade(id, payload);
       await fetchGrades();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal memperbarui tingkat kelas');
+      throw new Error(parseApiError(err, 'Gagal memperbarui tingkat kelas'));
     }
   };
 
@@ -53,7 +54,7 @@ export function useGrades() {
       await apiDeleteGrade(id);
       await fetchGrades();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal menghapus tingkat kelas');
+      throw new Error(parseApiError(err, 'Gagal menghapus tingkat kelas'));
     }
   };
 

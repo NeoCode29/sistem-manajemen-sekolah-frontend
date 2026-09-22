@@ -97,6 +97,7 @@ export interface Classroom {
   capacity?: number;
   grade?: Grade;
   major?: Major;
+  isActive?: boolean;
 }
 export const getClassrooms = async (gradeId?: string): Promise<Classroom[]> => {
   const url = gradeId ? `/classrooms?gradeId=${gradeId}` : '/classrooms';

@@ -19,11 +19,14 @@ export const Majors: React.FC = () => {
     deleteMajor
   } = useMajors();
 
-  const { hasPermission } = usePermissions();
-  const canCreateMajor = hasPermission('majors.create') || hasPermission('academic.write');
-  const canEditMajor = hasPermission('majors.update') || hasPermission('academic.write');
-  const canDeleteMajor = hasPermission('majors.delete') || hasPermission('academic.write');
-  const canToggleMajor = hasPermission('majors.toggle_active') || hasPermission('academic.write');
+  const { 
+    canCreateMajor, 
+    canUpdateMajor, 
+    canDeleteMajor, 
+    canToggleMajor, 
+    canReadMajors 
+  } = usePermissions();
+  const canEditMajor = canUpdateMajor;
   const hasActions = canEditMajor || canDeleteMajor;
 
   const [showModal, setShowModal] = useState(false);
@@ -64,6 +67,10 @@ export const Majors: React.FC = () => {
   };
 
   const handleEdit = (major: Major) => {
+    if (!canEditMajor) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data jurusan.');
+      return;
+    }
     setIsEditing(true);
     setEditId(major.id);
     setCode(major.code);
@@ -73,11 +80,19 @@ export const Majors: React.FC = () => {
   };
 
   const openAdd = () => {
+    if (!canCreateMajor) {
+      notify.error('Anda tidak memiliki izin untuk membuat jurusan baru.');
+      return;
+    }
     setCode(generateMajorCode());
     setShowModal(true);
   };
 
   const handleDelete = (major: Major) => {
+    if (!canDeleteMajor) {
+      notify.error('Anda tidak memiliki izin untuk menghapus jurusan.');
+      return;
+    }
     setConfirmConfig({
       open: true,
       variant: 'danger',
@@ -97,6 +112,10 @@ export const Majors: React.FC = () => {
   };
 
   const handleToggleStatus = (major: Major) => {
+    if (!canToggleMajor) {
+      notify.error('Anda tidak memiliki izin untuk mengubah status aktif jurusan.');
+      return;
+    }
     const nextStatus = !major.isActive;
     setConfirmConfig({
       open: true,
@@ -118,6 +137,18 @@ export const Majors: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isEditing && !canEditMajor) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data jurusan.');
+      return;
+    }
+    if (!isEditing && !canCreateMajor) {
+      notify.error('Anda tidak memiliki izin untuk membuat jurusan baru.');
+      return;
+    }
+    if (!name.trim() || !code.trim()) {
+      notify.error('Nama dan Kode Jurusan wajib diisi.');
+      return;
+    }
     try {
       setSubmitting(true);
       const payload = {

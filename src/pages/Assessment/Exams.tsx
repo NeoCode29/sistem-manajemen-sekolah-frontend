@@ -78,12 +78,13 @@ export const Exams: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') ?? false;
+  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah' || r.name === 'Kepala Sekolah') ?? false;
   const [classAssignments, setClassAssignments] = useState<SubjectAssignment[]>([]);
   
   const { hasPermission } = usePermissions();
-  const canManageExams = hasPermission('assessments.input') || hasPermission('assessment.write');
-  const canReadScores = hasPermission('assessments.read') || hasPermission('assessment.read') || canManageExams;
+  const canManageExams = hasPermission('assessments.input') || hasPermission('assessments.manage') || hasPermission('assessment.write') || hasPermission('assessment.manage');
+  const canReadScores = hasPermission('assessments.read') || hasPermission('assessments.input') || hasPermission('assessments.manage') || hasPermission('assessment.read') || canManageExams;
+  const canDeleteAssessment = hasPermission('assessments.delete') || hasPermission('assessments.manage') || hasPermission('assessment.manage');
   
   // Filters
   const [filterAcademicYearId, setFilterAcademicYearId] = useState('');
@@ -276,7 +277,7 @@ export const Exams: React.FC = () => {
   };
 
   const handleOpenModal = (exam?: Exam) => {
-    if (!isTeacherOrAdmin) {
+    if (!canManageExams || !isTeacherOrAdmin) {
       notify.error(`Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) atau Administrator yang berwenang membuat atau mengedit agenda penilaian untuk mata pelajaran ini.`);
       return;
     }
@@ -320,7 +321,7 @@ export const Exams: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isTeacherOrAdmin) {
+    if (!canManageExams || !isTeacherOrAdmin) {
       notify.error(`Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) atau Administrator yang berwenang menyimpan agenda penilaian.`);
       return;
     }
@@ -354,7 +355,7 @@ export const Exams: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (!isTeacherOrAdmin) {
+    if (!canDeleteAssessment || !isTeacherOrAdmin) {
       notify.error(`Hanya Guru Pengampu (${assignedTeacher?.fullName || 'Guru Pengampu'}) atau Administrator yang berwenang menghapus agenda penilaian.`);
       return;
     }
@@ -496,7 +497,10 @@ export const Exams: React.FC = () => {
             {canManageExams && (
               !lockStatus?.isLocked ? (
                 isRowOwner ? (
-                  <ActionButtons onEdit={() => handleOpenModal(row)} onDelete={() => handleDelete(row.id)} />
+                  <ActionButtons 
+                    onEdit={() => handleOpenModal(row)} 
+                    onDelete={canDeleteAssessment ? () => handleDelete(row.id) : undefined} 
+                  />
                 ) : null
               ) : (
                 <Badge variant="warning">Terkunci</Badge>
@@ -643,7 +647,11 @@ export const Exams: React.FC = () => {
                     ? 'bg-purple-50 text-purple-700 border-purple-200' 
                     : 'bg-slate-100 text-slate-600 border-slate-200'
                 }`}>
-                  {isAssignedTeacher ? 'Anda Guru Pengampu' : isSuperAdmin ? 'Akses Admin' : 'Mode Hanya-Baca'}
+                  {isAssignedTeacher 
+                    ? 'Anda Guru Pengampu' 
+                    : isSuperAdmin 
+                    ? (user?.roles?.some(r => r.name === 'Kepala Sekolah') ? 'Akses Kepala Sekolah' : 'Akses Admin') 
+                    : 'Mode Hanya-Baca'}
                 </span>
               )}
             </div>

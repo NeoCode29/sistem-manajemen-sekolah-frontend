@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Plus, 
   Loader2, 
@@ -15,6 +15,7 @@ import { PageHeader, Modal, FormField, Badge, ConfirmDialog } from '../../compon
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import type { Position } from '../../api/employeeService';
+import { getRoles, type Role } from '../../api/rbacService';
 import { notify } from '../../utils/feedback';
 
 interface PositionForm {
@@ -22,24 +23,45 @@ interface PositionForm {
   name: string;
   description: string;
   isActive: boolean;
+  maxUsers: string;
+  mappedRoleId: string;
 }
 
-const DEFAULT_FORM: PositionForm = { code: '', name: '', description: '', isActive: true };
+const DEFAULT_FORM: PositionForm = {
+  code: '',
+  name: '',
+  description: '',
+  isActive: true,
+  maxUsers: '',
+  mappedRoleId: '',
+};
 
 export const Positions: React.FC = () => {
   const { items, loading, create, update, remove } = usePositions();
-  const { hasPermission } = usePermissions();
-  const canCreatePosition = hasPermission('positions.create') || hasPermission('employees.write');
-  const canEditPosition = hasPermission('positions.update') || hasPermission('employees.write');
-  const canDeletePosition = hasPermission('positions.delete') || hasPermission('employees.write');
-  const canTogglePosition = hasPermission('positions.update') || hasPermission('employees.write');
-  const hasActions = canEditPosition || canDeletePosition;
+  const { 
+    canCreatePosition, 
+    canUpdatePosition, 
+    canDeletePosition, 
+    canReadPositions 
+  } = usePermissions();
+  const canEditPosition = canUpdatePosition;
+  const canTogglePosition = canUpdatePosition;
+  const hasActions = canUpdatePosition || canDeletePosition;
 
   const [modal, setModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
   const [form, setForm] = useState<PositionForm>(DEFAULT_FORM);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (canCreatePosition || canUpdatePosition) {
+      getRoles()
+        .then((data) => setRoles(data))
+        .catch((err) => console.error('Gagal mengambil data roles:', err));
+    }
+  }, [canCreatePosition, canUpdatePosition]);
 
   // ConfirmDialog State
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -60,16 +82,26 @@ export const Positions: React.FC = () => {
   };
 
   const openAdd = () => {
+    if (!canCreatePosition) {
+      notify.error('Anda tidak memiliki izin untuk membuat jabatan baru.');
+      return;
+    }
     setForm(DEFAULT_FORM);
     setModal({ open: true, editId: null });
   };
 
   const openEdit = (item: Position) => {
+    if (!canUpdatePosition) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data jabatan.');
+      return;
+    }
     setForm({
       code: item.code,
       name: item.name,
       description: item.description || '',
       isActive: item.isActive,
+      maxUsers: item.maxUsers !== null && item.maxUsers !== undefined ? String(item.maxUsers) : '',
+      mappedRoleId: item.mappedRoleId || '',
     });
     setModal({ open: true, editId: item.id });
   };
@@ -81,6 +113,16 @@ export const Positions: React.FC = () => {
   };
 
   const handleDelete = (item: Position) => {
+    if (!canDeletePosition) {
+      notify.error('Anda tidak memiliki izin untuk menghapus jabatan.');
+      return;
+    }
+    const isSystem = item.code === 'KEPSEK' || item.name.toLowerCase().includes('kepala sekolah');
+    if (isSystem) {
+      notify.error(`Jabatan "${item.name}" merupakan jabatan struktural inti sistem dan dilindungi dari penghapusan.`);
+      return;
+    }
+
     setConfirmConfig({
       open: true,
       title: 'Hapus Jabatan',
@@ -98,17 +140,34 @@ export const Positions: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (modal.editId && !canUpdatePosition) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data jabatan.');
+      return;
+    }
+    if (!modal.editId && !canCreatePosition) {
+      notify.error('Anda tidak memiliki izin untuk membuat jabatan baru.');
+      return;
+    }
     if (!form.name.trim() || !form.code.trim()) {
       notify.error('Nama dan Kode Jabatan wajib diisi');
       return;
     }
     setSubmitting(true);
     try {
+      const payload: any = {
+        code: form.code,
+        name: form.name,
+        description: form.description,
+        isActive: form.isActive,
+        maxUsers: form.maxUsers.trim() ? parseInt(form.maxUsers, 10) : null,
+        mappedRoleId: form.mappedRoleId ? form.mappedRoleId : null,
+      };
+
       if (modal.editId) {
-        await update(modal.editId, form);
+        await update(modal.editId, payload);
         notify.success('Data jabatan berhasil diperbarui');
       } else {
-        await create(form);
+        await create(payload);
         notify.success('Jabatan baru berhasil ditambahkan');
       }
       closeModal();
@@ -120,6 +179,10 @@ export const Positions: React.FC = () => {
   };
 
   const handleToggleActive = async (item: Position) => {
+    if (!canTogglePosition) {
+      notify.error('Anda tidak memiliki izin untuk mengubah status aktif jabatan.');
+      return;
+    }
     try {
       const nextStatus = !item.isActive;
       await update(item.id, { isActive: nextStatus });
@@ -159,21 +222,62 @@ export const Positions: React.FC = () => {
     { 
       key: 'name', 
       header: 'Nama Jabatan', 
+      render: row => {
+        const isSystem = row.code === 'KEPSEK' || row.name.toLowerCase().includes('kepala sekolah');
+        return (
+          <div className="flex items-center gap-2 max-w-[200px] md:max-w-[250px]">
+            <span 
+              className="font-bold text-slate-900 truncate" 
+              title={row.name}
+            >
+              {row.name}
+            </span>
+            {isSystem && (
+              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                System
+              </span>
+            )}
+          </div>
+        );
+      } 
+    },
+    {
+      key: 'mappedRole',
+      header: 'Sinkronisasi Role',
       render: row => (
-        <span 
-          className="font-bold text-slate-900 block max-w-[200px] md:max-w-[280px] truncate" 
-          title={row.name}
-        >
-          {row.name}
-        </span>
-      ) 
+        row.mappedRole ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+            <BadgeCheck size={13} className="text-indigo-600" />
+            {row.mappedRole.name}
+          </span>
+        ) : (
+          <span className="text-slate-400 text-xs">-</span>
+        )
+      )
+    },
+    {
+      key: 'maxUsers',
+      header: 'Batas Kuota',
+      render: row => (
+        row.maxUsers ? (
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold border ${
+            (row.activeEmployeeCount ?? 0) >= row.maxUsers
+              ? 'bg-amber-50 text-amber-800 border-amber-300'
+              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          }`}>
+            {row.activeEmployeeCount ?? 0} / {row.maxUsers} Terisi
+          </span>
+        ) : (
+          <span className="text-slate-400 text-xs">Tanpa Batas</span>
+        )
+      )
     },
     { 
       key: 'description', 
       header: 'Deskripsi', 
       render: row => (
         <span 
-          className="text-slate-500 text-xs block max-w-[250px] md:max-w-[360px] truncate" 
+          className="text-slate-500 text-xs block max-w-[200px] md:max-w-[260px] truncate" 
           title={row.description || '-'}
         >
           {row.description || '-'}
@@ -185,7 +289,7 @@ export const Positions: React.FC = () => {
       header: 'Status', 
       render: row => (
         <button 
-          type="button"
+          type="button" 
           onClick={() => canTogglePosition ? handleToggleActive(row) : undefined} 
           className={!canTogglePosition ? "cursor-default" : "hover:opacity-80 transition-opacity"}
           title={canTogglePosition ? "Klik untuk ubah status aktif" : undefined}
@@ -202,12 +306,15 @@ export const Positions: React.FC = () => {
     columns.push({ 
       key: 'actions', 
       header: 'Aksi', 
-      render: row => (
-        <ActionButtons 
-          onEdit={canEditPosition ? () => openEdit(row) : undefined} 
-          onDelete={canDeletePosition ? () => handleDelete(row) : undefined} 
-        />
-      ) 
+      render: row => {
+        const isSystem = row.code === 'KEPSEK' || row.name.toLowerCase().includes('kepala sekolah');
+        return (
+          <ActionButtons 
+            onEdit={canEditPosition ? () => openEdit(row) : undefined} 
+            onDelete={canDeletePosition && !isSystem ? () => handleDelete(row) : undefined} 
+          />
+        );
+      } 
     });
   }
 
@@ -311,27 +418,39 @@ export const Positions: React.FC = () => {
         title={modal.editId ? 'Edit Jabatan' : 'Tambah Jabatan Baru'}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-6">
-          <FormField label="Kode Jabatan" required hint="Kode unik penanda jabatan (misal: GUR, KEP, TU)">
-            <div className="flex gap-2">
-              <input 
-                type="text" 
-                className="input-std w-full px-4 py-2.5 uppercase font-mono font-semibold text-slate-900" 
-                value={form.code} 
-                onChange={setField('code')} 
-                placeholder="Contoh: KEP, WAK, GUR, STF" 
+          {(() => {
+            const isSystemEdit = Boolean(modal.editId && (form.code === 'KEPSEK' || form.name.toLowerCase().includes('kepala sekolah')));
+            return (
+              <FormField 
+                label="Kode Jabatan" 
                 required 
-              />
-              <button 
-                type="button" 
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 transition-colors whitespace-nowrap"
-                onClick={() => setForm(prev => ({ ...prev, code: generatePositionCode(prev.name) }))}
-                title="Generate kode unik otomatis dari nama"
+                hint={isSystemEdit ? "Kode jabatan Kepala Sekolah dilindungi sistem dan tidak dapat diubah" : "Kode unik penanda jabatan (misal: GUR, KEP, TU)"}
               >
-                <RefreshCw size={13} />
-                <span>Generate</span>
-              </button>
-            </div>
-          </FormField>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    disabled={isSystemEdit}
+                    className="input-std w-full px-4 py-2.5 uppercase font-mono font-semibold text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed" 
+                    value={form.code} 
+                    onChange={setField('code')} 
+                    placeholder="Contoh: KEP, WAK, GUR, STF" 
+                    required 
+                  />
+                  {!isSystemEdit && (
+                    <button 
+                      type="button" 
+                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 transition-colors whitespace-nowrap cursor-pointer"
+                      onClick={() => setForm(prev => ({ ...prev, code: generatePositionCode(prev.name) }))}
+                      title="Generate kode unik otomatis dari nama"
+                    >
+                      <RefreshCw size={13} />
+                      <span>Generate</span>
+                    </button>
+                  )}
+                </div>
+              </FormField>
+            );
+          })()}
 
           <FormField label="Nama Jabatan" required>
             <input 
@@ -350,6 +469,32 @@ export const Positions: React.FC = () => {
               value={form.description} 
               onChange={setField('description')} 
               placeholder="Tugas pokok atau deskripsi singkat jabatan..." 
+            />
+          </FormField>
+
+          <FormField label="Sinkronkan dengan Role Pengguna (Mapped Role)" hint="Akun pengguna pegawai dengan jabatan ini akan otomatis disematkan role yang dipilih">
+            <select
+              className="input-std w-full px-4 py-2.5 text-slate-900 bg-white"
+              value={form.mappedRoleId}
+              onChange={setField('mappedRoleId')}
+            >
+              <option value="">-- Tidak Ada Sinkronisasi Role --</option>
+              {roles.map((r) => (
+                <option key={String(r.id)} value={String(r.id)}>
+                  {r.name} ({r.guardName})
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField label="Batas Kuota Pemakai (Max Users)" hint="Batasan jumlah pegawai aktif yang boleh memegang jabatan ini. Contoh: 1 untuk Kepala Sekolah. Kosongkan untuk tanpa batas.">
+            <input 
+              type="number" 
+              min="1"
+              className="input-std w-full px-4 py-2.5 text-slate-900" 
+              value={form.maxUsers} 
+              onChange={setField('maxUsers')} 
+              placeholder="Tanpa Batas Kuota (unlimited)" 
             />
           </FormField>
 

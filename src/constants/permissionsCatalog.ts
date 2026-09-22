@@ -136,6 +136,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { name: 'student_attendance.batch', label: 'Absensi Massal Rombel', domain: 'Presensi', resource: 'Presensi Siswa', description: 'Check-in kehadiran per rombel' },
       { name: 'employee_attendance.read', label: 'Rekap Presensi Pegawai', domain: 'Presensi', resource: 'Presensi Pegawai', description: 'Melihat laporan presensi pegawai' },
       { name: 'employee_attendance.record', label: 'Input Presensi Pegawai', domain: 'Presensi', resource: 'Presensi Pegawai', description: 'Pencatatan absensi pegawai' },
+      { name: 'attendance_settings.read', label: 'Lihat Pengaturan Presensi', domain: 'Presensi', resource: 'Pengaturan Presensi', description: 'Melihat toleransi jam & radius presensi' },
       { name: 'attendance_settings.manage', label: 'Pengaturan Waktu Presensi', domain: 'Presensi', resource: 'Pengaturan Presensi', description: 'Setting toleransi jam & radius' },
     ]
   },
