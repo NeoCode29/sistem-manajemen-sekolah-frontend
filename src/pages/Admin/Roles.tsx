@@ -78,12 +78,14 @@ export const Roles: React.FC = () => {
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [name, setName] = useState('');
   const [guardName, setGuardName] = useState('jwt');
+  const [maxUsers, setMaxUsers] = useState<string>('');
 
   // Edit Role Modal State
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [editName, setEditName] = useState('');
   const [editGuardName, setEditGuardName] = useState('jwt');
+  const [editMaxUsers, setEditMaxUsers] = useState<string>('');
   const [editSubmitting, setEditSubmitting] = useState(false);
 
   // ConfirmDialog State
@@ -286,10 +288,16 @@ export const Roles: React.FC = () => {
     e.preventDefault();
     try {
       setCreateSubmitting(true);
-      const newRole = await createRole({ name: name.trim(), guardName: guardName.trim() });
+      const parsedMaxUsers = maxUsers.trim() ? parseInt(maxUsers, 10) : null;
+      const newRole = await createRole({
+        name: name.trim(),
+        guardName: guardName.trim(),
+        maxUsers: parsedMaxUsers,
+      });
       setShowCreateModal(false);
       setName('');
       setGuardName('jwt');
+      setMaxUsers('');
       setSelectedRoleId(String(newRole.id));
       setSelectedPermIds([]);
       setOriginalPermIds([]);
@@ -308,6 +316,7 @@ export const Roles: React.FC = () => {
     setEditingRole(role);
     setEditName(role.name);
     setEditGuardName(role.guardName || 'jwt');
+    setEditMaxUsers(role.maxUsers !== null && role.maxUsers !== undefined ? String(role.maxUsers) : '');
     setShowEditModal(true);
   };
 
@@ -317,9 +326,11 @@ export const Roles: React.FC = () => {
     if (!editingRole) return;
     try {
       setEditSubmitting(true);
+      const parsedMaxUsers = editMaxUsers.trim() ? parseInt(editMaxUsers, 10) : null;
       await updateRole(editingRole.id, {
         name: editName.trim(),
         guardName: editGuardName.trim(),
+        maxUsers: parsedMaxUsers,
       });
       notify.success(`Peran "${editName}" berhasil diperbarui!`);
       setShowEditModal(false);
@@ -463,7 +474,17 @@ export const Roles: React.FC = () => {
                         <div className="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
                           <span>{permCount} Hak Akses</span>
                           <span>•</span>
-                          <span className="text-[11px] font-mono text-gray-400">{role.guardName}</span>
+                          {role.maxUsers ? (
+                            <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded border ${
+                              (role.userCount ?? 0) >= role.maxUsers
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                            }`}>
+                              Kuota: {role.userCount ?? 0}/{role.maxUsers}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-gray-400">Tanpa Batas</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -472,24 +493,26 @@ export const Roles: React.FC = () => {
                       {isSelected && (
                         <span className="w-2 h-2 rounded-full bg-indigo-600 mr-1"></span>
                       )}
-                      {!isSystem && canManageRbac && (
+                      {canManageRbac && (
                         <>
                           <button
                             type="button"
                             onClick={(e) => handleOpenEditRole(role, e)}
-                            title="Edit Nama Peran"
+                            title={isSystem ? "Atur Kuota Peran" : "Edit Nama / Kuota Peran"}
                             className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <Edit2 size={14} />
                           </button>
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteRole(role, e)}
-                            title="Hapus Peran"
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          {!isSystem && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteRole(role, e)}
+                              title="Hapus Peran"
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
@@ -782,6 +805,17 @@ export const Roles: React.FC = () => {
               required 
             />
           </FormField>
+
+          <FormField label="Batas Kuota Pemakai (Max Users)" hint="Kosongkan jika tidak ada batas kuota pengguna yang dapat memakai peran ini. Contoh: 1 untuk Kepala Sekolah">
+            <input 
+              type="number" 
+              min="1"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+              value={maxUsers} 
+              onChange={(e) => setMaxUsers(e.target.value)} 
+              placeholder="Tanpa batas (unlimited)" 
+            />
+          </FormField>
           
           <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-gray-100">
             <button 
@@ -814,13 +848,14 @@ export const Roles: React.FC = () => {
       <Modal
         open={showEditModal}
         onClose={() => setShowEditModal(false)}
-        title="Edit Peran"
+        title={editingRole && SYSTEM_ROLES.includes(editingRole.name) ? `Atur Batas Kuota - ${editingRole.name}` : 'Edit Peran'}
       >
         <form onSubmit={handleEditRoleSubmit} className="flex flex-col gap-5 p-6">
-          <FormField label="Nama Peran" required>
+          <FormField label="Nama Peran" required hint={editingRole && SYSTEM_ROLES.includes(editingRole.name) ? "Nama peran bawaan sistem dilindungi dari perubahan nama" : undefined}>
             <input 
               type="text" 
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+              disabled={editingRole ? SYSTEM_ROLES.includes(editingRole.name) : false}
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800 disabled:opacity-60 disabled:cursor-not-allowed" 
               value={editName} 
               onChange={(e) => setEditName(e.target.value)} 
               placeholder="Contoh: Waka Kurikulum" 
@@ -831,11 +866,23 @@ export const Roles: React.FC = () => {
           <FormField label="Guard Name" required>
             <input 
               type="text" 
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+              disabled={editingRole ? SYSTEM_ROLES.includes(editingRole.name) : false}
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800 disabled:opacity-60 disabled:cursor-not-allowed" 
               value={editGuardName} 
               onChange={(e) => setEditGuardName(e.target.value)} 
               placeholder="jwt" 
               required 
+            />
+          </FormField>
+
+          <FormField label="Batas Kuota Pemakai (Max Users)" hint="Tentukan batas maksimal user yang boleh memiliki role ini. Kosongkan untuk tanpa batas.">
+            <input 
+              type="number" 
+              min="1"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+              value={editMaxUsers} 
+              onChange={(e) => setEditMaxUsers(e.target.value)} 
+              placeholder="Tanpa batas (unlimited)" 
             />
           </FormField>
           

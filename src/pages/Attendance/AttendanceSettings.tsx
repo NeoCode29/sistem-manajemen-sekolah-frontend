@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { getAttendanceSetting, updateAttendanceSetting } from '../../api/attendanceService';
-import { Clock, Save, MapPin, AlertTriangle, ShieldCheck, Loader2, CheckCircle2 } from 'lucide-react';
-import { Can } from '../../components/Common/Can';
+import { Clock, Save, MapPin, AlertTriangle, ShieldCheck, Loader2, CheckCircle2, CreditCard, Smartphone, UserCheck, Sliders } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { MapLocationPicker } from '../../components/widgets/MapLocationPicker';
-import { notify } from '../../utils/feedback';
+import { usePermissions } from '../../hooks/usePermissions';
+import { notify, parseApiError } from '../../utils/feedback';
 
 export const AttendanceSettings: React.FC = () => {
+  const { canManageAttendanceSettings } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -19,6 +20,16 @@ export const AttendanceSettings: React.FC = () => {
   const [latitude, setLatitude] = useState<number | ''>('');
   const [longitude, setLongitude] = useState<number | ''>('');
   const [radiusMeter, setRadiusMeter] = useState<number | ''>('');
+
+  // Allowed Methods State
+  const [studentRfidEnabled, setStudentRfidEnabled] = useState(true);
+  const [studentGpsEnabled, setStudentGpsEnabled] = useState(false);
+  const [studentManualEnabled, setStudentManualEnabled] = useState(true);
+
+  const [employeeRfidEnabled, setEmployeeRfidEnabled] = useState(true);
+  const [employeeGpsEnabled, setEmployeeGpsEnabled] = useState(true);
+  const [employeeManualEnabled, setEmployeeManualEnabled] = useState(true);
+
   const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
@@ -38,11 +49,17 @@ export const AttendanceSettings: React.FC = () => {
         setLatitude(data.latitude ?? '');
         setLongitude(data.longitude ?? '');
         setRadiusMeter(data.radiusMeter ?? '');
+        setStudentRfidEnabled(data.studentRfidEnabled ?? true);
+        setStudentGpsEnabled(data.studentGpsEnabled ?? false);
+        setStudentManualEnabled(data.studentManualEnabled ?? true);
+        setEmployeeRfidEnabled(data.employeeRfidEnabled ?? true);
+        setEmployeeGpsEnabled(data.employeeGpsEnabled ?? true);
+        setEmployeeManualEnabled(data.employeeManualEnabled ?? true);
         setIsActive(data.isActive ?? true);
       }
     } catch (err: any) {
       if (err.response?.status !== 404) {
-        notify.error(err, 'Gagal memuat pengaturan absensi');
+        notify.error(parseApiError(err, 'Gagal memuat pengaturan absensi'));
       }
     } finally {
       setLoading(false);
@@ -75,6 +92,11 @@ export const AttendanceSettings: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageAttendanceSettings) {
+      notify.error('Anda tidak memiliki izin untuk mengubah pengaturan absensi.');
+      return;
+    }
+
     if (!validateTimes()) return;
 
     try {
@@ -88,13 +110,19 @@ export const AttendanceSettings: React.FC = () => {
         latitude: latitude === '' ? undefined : Number(latitude),
         longitude: longitude === '' ? undefined : Number(longitude),
         radiusMeter: radiusMeter === '' ? undefined : Number(radiusMeter),
+        studentRfidEnabled,
+        studentGpsEnabled,
+        studentManualEnabled,
+        employeeRfidEnabled,
+        employeeGpsEnabled,
+        employeeManualEnabled,
         isActive,
       };
 
       await updateAttendanceSetting(payload);
-      notify.success('Pengaturan jam dan lokasi absensi berhasil disimpan!');
+      notify.success('Pengaturan jam, lokasi, dan metode absensi berhasil disimpan!');
     } catch (err: any) {
-      notify.error(err, 'Gagal menyimpan pengaturan absensi');
+      notify.error(parseApiError(err, 'Gagal menyimpan pengaturan absensi'));
     } finally {
       setSaving(false);
     }
@@ -107,17 +135,17 @@ export const AttendanceSettings: React.FC = () => {
         title="Pengaturan Presensi"
         subtitle="Konfigurasi rentang jam absensi kedatangan & kepulangan, toleransi keterlambatan, dan batas radius geofencing sekolah"
         action={
-          <Can permission={['attendance_settings.manage', 'attendance.write']}>
+          canManageAttendanceSettings ? (
             <button
               type="submit"
               form="attendance-settings-form"
               disabled={saving || loading}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors disabled:opacity-50 cursor-pointer"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
             </button>
-          </Can>
+          ) : undefined
         }
       />
 
@@ -127,7 +155,20 @@ export const AttendanceSettings: React.FC = () => {
           <p className="text-sm font-medium">Memuat konfigurasi pengaturan absensi...</p>
         </div>
       ) : (
-        <form id="attendance-settings-form" onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
+          {!canManageAttendanceSettings && (
+            <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800 text-sm shadow-2xs">
+              <AlertTriangle size={20} className="text-amber-600 shrink-0" />
+              <div>
+                <p className="font-semibold text-slate-900">Mode Pratinjau (Hanya-Baca)</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Anda hanya memiliki izin melihat konfigurasi presensi. Opsi perubahan formulir dinonaktifkan.
+                </p>
+              </div>
+            </div>
+          )}
+          <form id="attendance-settings-form" onSubmit={handleSubmit} className="space-y-6">
+            <fieldset disabled={!canManageAttendanceSettings} className="space-y-6 border-0 p-0 m-0 min-w-0 disabled:opacity-90">
           
           {/* Card 1: Waktu & Rentang Jam Absensi */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
@@ -276,7 +317,190 @@ export const AttendanceSettings: React.FC = () => {
             </div>
           </div>
 
-          {/* Card 2: Lokasi & Geofencing GPS */}
+          {/* Card 2: Metode Presensi yang Diizinkan */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+            {/* Standard Header Section */}
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3.5 bg-slate-50/50">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-violet-50 text-violet-600 border border-violet-100 shrink-0">
+                <Sliders size={20} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900 m-0">Metode Presensi yang Diizinkan</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Tentukan jalur absensi yang aktif dan boleh digunakan oleh Siswa maupun Pegawai/Guru</p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 md:p-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                {/* Kelompok Siswa */}
+                <div className="bg-slate-50/50 p-5 md:p-6 rounded-2xl border border-slate-200/80 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[11px] border border-indigo-200/60">
+                        Kelompok
+                      </span>
+                      <h3 className="font-bold text-slate-900 text-sm">Metode Presensi Siswa</h3>
+                    </div>
+                    <span className="text-xs text-slate-400 font-medium">Siswa & Kelas</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Toggle RFID Siswa */}
+                    <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 flex items-center justify-between gap-3 shadow-2xs hover:border-slate-300 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
+                          <CreditCard size={18} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">Kartu RFID / Mesin Kiosk</p>
+                          <p className="text-[11px] text-slate-500">Tap kartu RFID / biometrik di mesin absensi</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={studentRfidEnabled}
+                          onChange={(e) => setStudentRfidEnabled(e.target.checked)}
+                        />
+                        <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                      </label>
+                    </div>
+
+                    {/* Toggle Mandiri GPS Siswa */}
+                    <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 flex items-center justify-between gap-3 shadow-2xs hover:border-slate-300 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-100">
+                          <Smartphone size={18} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">Presensi Mandiri GPS</p>
+                          <p className="text-[11px] text-slate-500">Check-in mandiri lewat HP/Web dengan geofencing</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={studentGpsEnabled}
+                          onChange={(e) => setStudentGpsEnabled(e.target.checked)}
+                        />
+                        <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                      </label>
+                    </div>
+
+                    {/* Toggle Manual Siswa */}
+                    <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 flex items-center justify-between gap-3 shadow-2xs hover:border-slate-300 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+                          <UserCheck size={18} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">Pencatatan Manual Guru / Wali Kelas</p>
+                          <p className="text-[11px] text-slate-500">Input absensi per rombel melalui menu web guru</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={studentManualEnabled}
+                          onChange={(e) => setStudentManualEnabled(e.target.checked)}
+                        />
+                        <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Kelompok Pegawai & Guru */}
+                <div className="bg-slate-50/50 p-5 md:p-6 rounded-2xl border border-slate-200/80 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-700 font-bold text-[11px] border border-violet-200/60">
+                        Kelompok
+                      </span>
+                      <h3 className="font-bold text-slate-900 text-sm">Metode Presensi Pegawai & Guru</h3>
+                    </div>
+                    <span className="text-xs text-slate-400 font-medium">Staf & Dewan Guru</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Toggle RFID Pegawai */}
+                    <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 flex items-center justify-between gap-3 shadow-2xs hover:border-slate-300 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
+                          <CreditCard size={18} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">Kartu RFID / Mesin Kiosk</p>
+                          <p className="text-[11px] text-slate-500">Tap kartu RFID / biometrik di mesin absensi</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={employeeRfidEnabled}
+                          onChange={(e) => setEmployeeRfidEnabled(e.target.checked)}
+                        />
+                        <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                      </label>
+                    </div>
+
+                    {/* Toggle Mandiri GPS Pegawai */}
+                    <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 flex items-center justify-between gap-3 shadow-2xs hover:border-slate-300 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-100">
+                          <Smartphone size={18} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">Presensi Mandiri GPS</p>
+                          <p className="text-[11px] text-slate-500">Check-in mandiri lewat HP/Web dengan geofencing</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={employeeGpsEnabled}
+                          onChange={(e) => setEmployeeGpsEnabled(e.target.checked)}
+                        />
+                        <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                      </label>
+                    </div>
+
+                    {/* Toggle Manual Pegawai */}
+                    <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 flex items-center justify-between gap-3 shadow-2xs hover:border-slate-300 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+                          <UserCheck size={18} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">Pencatatan Manual Admin / Pimpinan</p>
+                          <p className="text-[11px] text-slate-500">Input absensi staf oleh admin/tata usaha</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={employeeManualEnabled}
+                          onChange={(e) => setEmployeeManualEnabled(e.target.checked)}
+                        />
+                        <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Lokasi & Geofencing GPS */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
             {/* Standard Header Section */}
             <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3.5 bg-slate-50/50">
@@ -300,11 +524,12 @@ export const AttendanceSettings: React.FC = () => {
               </div>
 
               {/* Interactive Leaflet Map Container */}
-              <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-2xs">
+              <div className={`overflow-hidden rounded-2xl border border-slate-200 shadow-2xs transition-opacity ${!canManageAttendanceSettings ? 'pointer-events-none opacity-80' : ''}`}>
                 <MapLocationPicker
                   position={latitude !== '' && longitude !== '' ? [Number(latitude), Number(longitude)] : null}
                   radius={radiusMeter !== '' ? Number(radiusMeter) : null}
                   onLocationSelect={(lat, lng) => {
+                    if (!canManageAttendanceSettings) return;
                     setLatitude(lat);
                     setLongitude(lng);
                   }}
@@ -318,7 +543,7 @@ export const AttendanceSettings: React.FC = () => {
                   <input
                     type="number"
                     step="any"
-                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium"
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium disabled:bg-slate-100 disabled:text-slate-500"
                     value={latitude}
                     onChange={(e) => setLatitude(e.target.value === '' ? '' : Number(e.target.value))}
                     placeholder="-6.200000"
@@ -330,7 +555,7 @@ export const AttendanceSettings: React.FC = () => {
                   <input
                     type="number"
                     step="any"
-                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium"
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium disabled:bg-slate-100 disabled:text-slate-500"
                     value={longitude}
                     onChange={(e) => setLongitude(e.target.value === '' ? '' : Number(e.target.value))}
                     placeholder="106.816666"
@@ -341,7 +566,7 @@ export const AttendanceSettings: React.FC = () => {
                   <label className="text-xs font-semibold text-slate-700 block mb-1.5">Radius Geofencing (Meter)</label>
                   <input
                     type="number"
-                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium"
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-900 font-medium disabled:bg-slate-100 disabled:text-slate-500"
                     value={radiusMeter}
                     onChange={(e) => setRadiusMeter(e.target.value === '' ? '' : Number(e.target.value))}
                     placeholder="100"
@@ -350,6 +575,7 @@ export const AttendanceSettings: React.FC = () => {
               </div>
             </div>
           </div>
+        </fieldset>
 
           {/* Bottom Action Card */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 md:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -358,18 +584,23 @@ export const AttendanceSettings: React.FC = () => {
               <span>Pastikan seluruh waktu berurutan logis sebelum menyimpan pengaturan.</span>
             </div>
 
-            <Can permission={['attendance_settings.manage', 'attendance.write']}>
+            {canManageAttendanceSettings ? (
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-all hover:shadow-md w-full sm:w-auto justify-center"
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-all hover:shadow-md w-full sm:w-auto justify-center cursor-pointer disabled:opacity-50"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
               </button>
-            </Can>
+            ) : (
+              <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                Mode Hanya-Baca
+              </span>
+            )}
           </div>
         </form>
+        </div>
       )}
     </div>
   );

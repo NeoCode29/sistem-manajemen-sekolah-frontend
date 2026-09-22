@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getEmployees } from '../../api/employeeService';
-import { getEmployeeAttendances, upsertEmployeeAttendanceBatch, type EmployeeAttendance, type EmployeeAttendanceBatchItem } from '../../api/attendanceService';
+import { getEmployeeAttendances, upsertEmployeeAttendanceBatch, getAttendanceSetting, type EmployeeAttendance, type EmployeeAttendanceBatchItem } from '../../api/attendanceService';
 import { Save, Calendar, Search, CheckCircle2, Clock, UserCheck, AlertTriangle, Users, RotateCcw, Tv, ExternalLink } from 'lucide-react';
 import { TableSkeleton } from '../../components/Common/TableSkeleton';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Badge, type BadgeVariant } from '../../components/ui/Badge';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { notify } from '../../utils/feedback';
+import { notify, parseApiError } from '../../utils/feedback';
 
 interface AttendanceRow {
   employeeId: string;
@@ -20,8 +20,7 @@ interface AttendanceRow {
 }
 
 export const EmployeeAttendancePage: React.FC = () => {
-  const { hasPermission } = usePermissions();
-  const canRecordEmployeeAttendance = hasPermission('employee_attendance.record') || hasPermission('attendance.write');
+  const { canRecordEmployeeAttendance, canReadEmployeeAttendance } = usePermissions();
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,6 +28,7 @@ export const EmployeeAttendancePage: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isManualEnabled, setIsManualEnabled] = useState(true);
   
   const [rows, setRows] = useState<AttendanceRow[]>([]);
   const [originalRows, setOriginalRows] = useState<AttendanceRow[]>([]);
@@ -44,10 +44,15 @@ export const EmployeeAttendancePage: React.FC = () => {
     try {
       setLoading(true);
       
-      const [employeesData, attendancesData] = await Promise.all([
+      const [employeesData, attendancesData, settingData] = await Promise.all([
         getEmployees(),
-        getEmployeeAttendances({ date })
+        getEmployeeAttendances({ date }),
+        getAttendanceSetting().catch(() => null),
       ]);
+
+      if (settingData) {
+        setIsManualEnabled(settingData.employeeManualEnabled ?? true);
+      }
       
       // Filter active employees
       const activeEmployees = employeesData.filter(emp => emp.isActive);
@@ -73,7 +78,7 @@ export const EmployeeAttendancePage: React.FC = () => {
       setRows(newRows);
       setOriginalRows(JSON.parse(JSON.stringify(newRows)));
     } catch (err: any) {
-      notify.error(err, 'Gagal memuat data absensi pegawai');
+      notify.error(parseApiError(err, 'Gagal memuat data absensi pegawai'));
       setRows([]);
       setOriginalRows([]);
     } finally {
@@ -104,6 +109,10 @@ export const EmployeeAttendancePage: React.FC = () => {
   };
 
   const handleSetAllPresent = () => {
+    if (!canRecordEmployeeAttendance || !isManualEnabled) {
+      notify.error('Anda tidak memiliki izin atau metode pencatatan manual sedang dinonaktifkan.');
+      return;
+    }
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, '0');
     const mm = String(now.getMinutes()).padStart(2, '0');
@@ -125,11 +134,16 @@ export const EmployeeAttendancePage: React.FC = () => {
   };
 
   const handleReset = () => {
+    if (!canRecordEmployeeAttendance || !isManualEnabled) return;
     setRows(JSON.parse(JSON.stringify(originalRows)));
     notify.info('Perubahan status telah dikembalikan ke kondisi awal.');
   };
 
   const handleOpenConfirm = () => {
+    if (!canRecordEmployeeAttendance || !isManualEnabled) {
+      notify.error('Anda tidak memiliki izin untuk menyimpan presensi pegawai.');
+      return;
+    }
     if (!date) {
       notify.error('Harap pilih tanggal presensi.');
       return;
@@ -143,6 +157,10 @@ export const EmployeeAttendancePage: React.FC = () => {
   };
 
   const handleExecuteSave = async () => {
+    if (!canRecordEmployeeAttendance || !isManualEnabled) {
+      notify.error('Anda tidak memiliki izin untuk menyimpan presensi pegawai.');
+      return;
+    }
     try {
       setSaving(true);
       
@@ -164,7 +182,7 @@ export const EmployeeAttendancePage: React.FC = () => {
       setConfirmOpen(false);
       await fetchAttendanceData();
     } catch (err: any) {
-      notify.error(err, 'Gagal menyimpan absensi pegawai');
+      notify.error(parseApiError(err, 'Gagal menyimpan absensi pegawai'));
     } finally {
       setSaving(false);
     }
@@ -321,6 +339,36 @@ export const EmployeeAttendancePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Peringatan jika metode presensi manual pegawai dinonaktifkan */}
+      {!isManualEnabled && (
+        <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-center gap-3 text-amber-900 shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+            <AlertTriangle size={18} />
+          </div>
+          <div className="text-xs">
+            <p className="font-bold text-amber-950">Pencatatan Presensi Manual Pegawai Sedang Dinonaktifkan</p>
+            <p className="text-amber-800/90 mt-0.5">
+              Pihak sekolah mengalihkan absensi pegawai ke metode aktif lainnya (seperti Kartu RFID / Mandiri GPS). Aksi simpan manual disembunyikan.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Peringatan jika pengguna hanya memiliki izin lihat (Hanya-Baca) */}
+      {!canRecordEmployeeAttendance && (
+        <div className="bg-blue-50 border border-blue-200/80 rounded-2xl p-4 flex items-center gap-3 text-blue-900 shadow-xs animate-in fade-in duration-300">
+          <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 shrink-0">
+            <UserCheck size={18} />
+          </div>
+          <div className="text-xs">
+            <p className="font-bold text-blue-950">Mode Pratinjau (Hanya-Baca)</p>
+            <p className="text-blue-800/90 mt-0.5">
+              Anda memiliki hak akses untuk memantau rekapitulasi kehadiran pegawai & guru. Pengubahan data dibatasi hanya untuk administrator yang berwenang.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 4. Toolbar Tabel Presensi Pegawai (Clean Standard) */}
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Sisi Kiri: Tab Pilihan Mode & Status */}
@@ -349,12 +397,6 @@ export const EmployeeAttendancePage: React.FC = () => {
               Rekap Pegawai
             </button>
           </div>
-
-          <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl hidden sm:inline-flex items-center gap-1.5">
-            <Users size={13} />
-            {totalEmployees} Pegawai ({formattedDate})
-          </span>
-
           {isDirty && (
             <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl animate-pulse">
               Perubahan belum disimpan
@@ -363,7 +405,7 @@ export const EmployeeAttendancePage: React.FC = () => {
         </div>
 
         {/* Sisi Kanan: Aksi Massal & Simpan */}
-        {canRecordEmployeeAttendance && rows.length > 0 && (
+        {canRecordEmployeeAttendance && isManualEnabled && rows.length > 0 && (
           <div className="flex items-center gap-2 self-end md:self-auto">
             {activeTab === 'input' && (
               <>
@@ -451,9 +493,9 @@ export const EmployeeAttendancePage: React.FC = () => {
                       </td>
                       <td className="py-3 px-3">
                         <select 
-                          disabled={!canRecordEmployeeAttendance}
+                          disabled={!canRecordEmployeeAttendance || !isManualEnabled}
                           className={`w-full py-2 px-3 rounded-xl text-xs font-semibold outline-none transition-all shadow-sm focus:ring-2 focus:ring-offset-1 focus:border-transparent ${
-                            canRecordEmployeeAttendance ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'
+                            canRecordEmployeeAttendance && isManualEnabled ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'
                           } ${
                             row.status === 'Belum Absen' ? 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-400/50' :
                             row.status === 'Hadir' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 focus:ring-emerald-400/50' :
@@ -478,8 +520,8 @@ export const EmployeeAttendancePage: React.FC = () => {
                       <td className="py-3 px-3">
                         <input 
                           type="time" 
-                          disabled={!canRecordEmployeeAttendance || !isPresent}
-                          className={`input-std py-1 px-2.5 text-xs w-full ${!isPresent ? 'bg-gray-100 opacity-60 cursor-not-allowed' : ''}`}
+                          disabled={!canRecordEmployeeAttendance || !isManualEnabled || !isPresent}
+                          className={`input-std py-1 px-2.5 text-xs w-full ${!isPresent || !canRecordEmployeeAttendance || !isManualEnabled ? 'bg-gray-100 opacity-60 cursor-not-allowed' : ''}`}
                           value={row.checkinTime}
                           onChange={(e) => handleRowChange(originalIndex, 'checkinTime', e.target.value)}
                         />
@@ -487,8 +529,8 @@ export const EmployeeAttendancePage: React.FC = () => {
                       <td className="py-3 px-3">
                         <input 
                           type="time" 
-                          disabled={!canRecordEmployeeAttendance || !isPresent}
-                          className={`input-std py-1 px-2.5 text-xs w-full ${!isPresent ? 'bg-gray-100 opacity-60 cursor-not-allowed' : ''}`}
+                          disabled={!canRecordEmployeeAttendance || !isManualEnabled || !isPresent}
+                          className={`input-std py-1 px-2.5 text-xs w-full ${!isPresent || !canRecordEmployeeAttendance || !isManualEnabled ? 'bg-gray-100 opacity-60 cursor-not-allowed' : ''}`}
                           value={row.checkoutTime}
                           onChange={(e) => handleRowChange(originalIndex, 'checkoutTime', e.target.value)}
                         />
@@ -496,13 +538,13 @@ export const EmployeeAttendancePage: React.FC = () => {
                       <td className="py-3 px-4">
                         <input 
                           type="text" 
-                          disabled={!canRecordEmployeeAttendance}
+                          disabled={!canRecordEmployeeAttendance || !isManualEnabled}
                           className={`input-std py-1.5 px-3 text-xs shadow-sm w-full transition-colors ${
-                            canRecordEmployeeAttendance ? 'bg-white/70 focus:bg-white' : 'bg-gray-100 cursor-not-allowed opacity-80'
+                            canRecordEmployeeAttendance && isManualEnabled ? 'bg-white/70 focus:bg-white' : 'bg-gray-100 cursor-not-allowed opacity-80'
                           }`}
                           value={row.notes}
                           onChange={(e) => handleRowChange(originalIndex, 'notes', e.target.value)}
-                          placeholder={canRecordEmployeeAttendance ? "Keterangan opsional..." : "-"}
+                          placeholder={canRecordEmployeeAttendance && isManualEnabled ? "Keterangan opsional..." : "-"}
                         />
                       </td>
                     </tr>

@@ -8,7 +8,28 @@ export function parseApiError(error: unknown, fallbackMessage = 'Terjadi kesalah
 
   // Axios or API Response error object
   const err = error as any;
+  const status = err.response?.status || err.response?.data?.statusCode;
   const resData = err.response?.data;
+
+  // HTTP Status based intelligent translation
+  if (status === 403) {
+    return 'Anda tidak memiliki izin (hak akses) untuk melakukan aksi ini.';
+  }
+  if (status === 401) {
+    return 'Sesi login Anda telah berakhir. Silakan masuk kembali.';
+  }
+  if (status === 404 && (!resData?.message || resData.message === 'Not Found')) {
+    return 'Data yang diminta tidak ditemukan di server.';
+  }
+  if (status === 409 && (!resData?.message || resData.message === 'Conflict')) {
+    return 'Terjadi konflik data (misal: NIS, NIP, kode, atau email sudah terdaftar).';
+  }
+  if (status === 413) {
+    return 'Ukuran berkas atau foto yang diunggah terlalu besar.';
+  }
+  if (status === 500 && (!resData?.message || resData.message === 'Internal server error')) {
+    return 'Terjadi gangguan pada server. Silakan coba beberapa saat lagi.';
+  }
 
   if (resData) {
     // NestJS default validation pipe returns { message: string | string[], error: string, statusCode: number }
@@ -16,10 +37,23 @@ export function parseApiError(error: unknown, fallbackMessage = 'Terjadi kesalah
       return resData.message.join(', ');
     }
     if (typeof resData.message === 'string' && resData.message.trim().length > 0) {
-      return resData.message;
+      const msg = resData.message.trim();
+      if (msg === 'Forbidden resource' || msg === 'Forbidden') {
+        return 'Anda tidak memiliki izin (hak akses) untuk melakukan aksi ini.';
+      }
+      if (msg === 'Unauthorized') {
+        return 'Sesi login Anda telah berakhir. Silakan masuk kembali.';
+      }
+      if (msg === 'Not Found') {
+        return 'Data yang diminta tidak ditemukan di server.';
+      }
+      return msg;
     }
     if (typeof resData.error === 'string' && resData.error.trim().length > 0) {
-      return resData.error;
+      const errStr = resData.error.trim();
+      if (errStr === 'Forbidden') return 'Anda tidak memiliki izin (hak akses) untuk melakukan aksi ini.';
+      if (errStr === 'Unauthorized') return 'Sesi login Anda telah berakhir. Silakan masuk kembali.';
+      return errStr;
     }
   }
 

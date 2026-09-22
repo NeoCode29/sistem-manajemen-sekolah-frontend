@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, Upload, Download, AlertCircle, CheckCircle } from 'lucide-react';
 import { downloadImportTemplate, importStudents } from '../../api/studentService';
 import { Modal } from '../../components/ui/Modal';
+import { usePermissions } from '../../hooks/usePermissions';
+import { parseApiError } from '../../utils/feedback';
 
 interface ImportStudentModalProps {
   isOpen: boolean;
@@ -14,19 +16,28 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const { canImportExportStudent } = usePermissions();
 
   if (!isOpen) return null;
 
   const handleDownloadTemplate = async () => {
+    if (!canImportExportStudent) {
+      setError('Anda tidak memiliki izin untuk mengunduh template import siswa.');
+      return;
+    }
     try {
       await downloadImportTemplate();
     } catch (err) {
       console.error('Failed to download template', err);
-      setError('Gagal mengunduh template');
+      setError(parseApiError(err, 'Gagal mengunduh template'));
     }
   };
 
   const handleUpload = async () => {
+    if (!canImportExportStudent) {
+      setError('Anda tidak memiliki izin untuk mengimpor data siswa.');
+      return;
+    }
     if (!file) {
       setError('Pilih file Excel terlebih dahulu');
       return;
@@ -42,7 +53,7 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
       }
     } catch (err: any) {
       console.error('Import error', err);
-      setError(err.response?.data?.message || 'Terjadi kesalahan saat mengimport data');
+      setError(parseApiError(err, 'Terjadi kesalahan saat mengimpor data'));
     } finally {
       setIsUploading(false);
     }

@@ -3,6 +3,7 @@ import { getGraduations, batchGraduate as apiBatchGraduate, cancelGraduation as 
 import { getClassrooms, getAcademicYears } from '../api/academicService';
 import { getStudents, type Student } from '../api/studentService';
 import type { Classroom as ClassType } from '../api/academicService';
+import { parseApiError } from '../utils/feedback';
 
 export function useGraduations() {
   const [graduationsHistory, setGraduationsHistory] = useState<any[]>([]);
@@ -23,7 +24,7 @@ export function useGraduations() {
       setGraduationsHistory(data);
     } catch (err: any) {
       console.error('Failed to fetch graduations:', err);
-      setError('Gagal memuat riwayat kelulusan (Alumni)');
+      setError(parseApiError(err, 'Gagal memuat riwayat kelulusan (Alumni)'));
     } finally {
       setLoading(false);
     }
@@ -77,7 +78,7 @@ export function useGraduations() {
       await apiBatchGraduate(payload);
       await fetchHistory();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal memproses kelulusan');
+      throw new Error(parseApiError(err, 'Gagal memproses kelulusan'));
     }
   };
 
@@ -86,7 +87,7 @@ export function useGraduations() {
       await apiCancelGraduation(id);
       await fetchHistory();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal membatalkan kelulusan');
+      throw new Error(parseApiError(err, 'Gagal membatalkan status kelulusan'));
     }
   };
 

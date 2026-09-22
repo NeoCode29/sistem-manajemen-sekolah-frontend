@@ -6,11 +6,13 @@ import { usePermissions } from '../hooks/usePermissions';
 interface AuthorizedRouteProps {
   requiredPermissions?: string[];
   requireAll?: boolean;
+  disallowedRoles?: string[];
 }
 
 export const AuthorizedRoute: React.FC<AuthorizedRouteProps> = ({ 
   requiredPermissions = [], 
-  requireAll = false 
+  requireAll = false,
+  disallowedRoles = []
 }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { hasPermission } = usePermissions();
@@ -23,8 +25,11 @@ export const AuthorizedRoute: React.FC<AuthorizedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredPermissions.length === 0) {
-    return <Outlet />;
+  if (disallowedRoles.length > 0 && user.roles) {
+    const hasDisallowed = user.roles.some(r => disallowedRoles.includes(r.name));
+    if (hasDisallowed) {
+      return <Navigate to="/403" replace />;
+    }
   }
 
   const isSuperAdminOrAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') || user?.username === 'admin';

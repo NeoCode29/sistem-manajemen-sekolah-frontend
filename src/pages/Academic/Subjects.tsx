@@ -18,10 +18,12 @@ export const Subjects: React.FC = () => {
     deleteSubject
   } = useSubjects();
 
-  const { hasPermission } = usePermissions();
-  const canCreateSubject = hasPermission('subjects.create') || hasPermission('academic.write');
-  const canEditSubject = hasPermission('subjects.update') || hasPermission('academic.write');
-  const canDeleteSubject = hasPermission('subjects.delete') || hasPermission('academic.write');
+  const { 
+    canCreateSubject, 
+    canUpdateSubject, 
+    canDeleteSubject 
+  } = usePermissions();
+  const canEditSubject = canUpdateSubject;
   const hasActions = canEditSubject || canDeleteSubject;
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +54,10 @@ export const Subjects: React.FC = () => {
   });
 
   const handleOpenAdd = () => {
+    if (!canCreateSubject) {
+      notify.error('Anda tidak memiliki izin untuk menambah data mata pelajaran.');
+      return;
+    }
     setIsEditing(false);
     setEditId('');
     setCode(generateSubjectCode());
@@ -71,6 +77,10 @@ export const Subjects: React.FC = () => {
   };
 
   const handleEdit = (subject: Subject) => {
+    if (!canEditSubject) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data mata pelajaran.');
+      return;
+    }
     setIsEditing(true);
     setEditId(subject.id);
     setCode(subject.code);
@@ -80,6 +90,10 @@ export const Subjects: React.FC = () => {
   };
 
   const handleDelete = (subject: Subject) => {
+    if (!canDeleteSubject) {
+      notify.error('Anda tidak memiliki izin untuk menghapus mata pelajaran.');
+      return;
+    }
     setConfirmConfig({
       open: true,
       variant: 'danger',
@@ -109,6 +123,15 @@ export const Subjects: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isEditing && !canEditSubject) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data mata pelajaran.');
+      return;
+    }
+    if (!isEditing && !canCreateSubject) {
+      notify.error('Anda tidak memiliki izin untuk menambah mata pelajaran baru.');
+      return;
+    }
+
     if (!name.trim()) {
       notify.warning('Nama mata pelajaran wajib diisi');
       return;

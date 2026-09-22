@@ -18,10 +18,13 @@ export const Grades: React.FC = () => {
     deleteGrade
   } = useGrades();
 
-  const { hasPermission } = usePermissions();
-  const canCreateGrade = hasPermission('grades.create') || hasPermission('academic.write');
-  const canEditGrade = hasPermission('grades.update') || hasPermission('academic.write');
-  const canDeleteGrade = hasPermission('grades.delete') || hasPermission('academic.write');
+  const { 
+    canCreateGrade, 
+    canUpdateGrade, 
+    canDeleteGrade,
+    canReadGrades
+  } = usePermissions();
+  const canEditGrade = canUpdateGrade;
   const hasActions = canEditGrade || canDeleteGrade;
 
   const [showModal, setShowModal] = useState(false);
@@ -60,6 +63,10 @@ export const Grades: React.FC = () => {
   };
 
   const handleEdit = (grade: Grade) => {
+    if (!canEditGrade) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data tingkat kelas.');
+      return;
+    }
     setIsEditing(true);
     setEditId(grade.id);
     setCode(grade.code);
@@ -70,11 +77,19 @@ export const Grades: React.FC = () => {
   };
 
   const openAdd = () => {
+    if (!canCreateGrade) {
+      notify.error('Anda tidak memiliki izin untuk membuat tingkat kelas baru.');
+      return;
+    }
     setCode(generateGradeCode(educationLevel, level, name));
     setShowModal(true);
   };
 
   const handleDelete = (grade: Grade) => {
+    if (!canDeleteGrade) {
+      notify.error('Anda tidak memiliki izin untuk menghapus tingkat kelas.');
+      return;
+    }
     setConfirmConfig({
       open: true,
       title: `Hapus Tingkat Kelas "${grade.name}"`,
@@ -93,6 +108,18 @@ export const Grades: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isEditing && !canEditGrade) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data tingkat kelas.');
+      return;
+    }
+    if (!isEditing && !canCreateGrade) {
+      notify.error('Anda tidak memiliki izin untuk membuat tingkat kelas baru.');
+      return;
+    }
+    if (!name.trim() || !code.trim()) {
+      notify.error('Nama dan Kode Tingkat Kelas wajib diisi.');
+      return;
+    }
     try {
       setSubmitting(true);
       const payload = {

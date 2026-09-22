@@ -34,12 +34,12 @@ const DEFAULT_FORM: ViolationForm = {
 export const Violations: React.FC = () => {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
-  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') ?? false;
+  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah' || r.name === 'Kepala Sekolah' || r.name === 'Staf Kesiswaan') ?? false;
   const canCreateAll = isSuperAdmin || hasPermission('violations.create_all') || hasPermission('violations.manage');
   const canCreateAssigned = hasPermission('violations.create_assigned') || hasPermission('violations.create') || hasPermission('student_affairs.write') || hasPermission('students.write');
   const canCreate = canCreateAll || canCreateAssigned;
-  const canEdit = isSuperAdmin || hasPermission('violations.update') || canCreate;
-  const canDelete = isSuperAdmin || hasPermission('violations.delete') || hasPermission('student_affairs.write') || hasPermission('students.write');
+  const canEdit = isSuperAdmin || hasPermission('violations.update') || hasPermission('violations.manage') || canCreate;
+  const canDelete = isSuperAdmin || hasPermission('violations.delete') || hasPermission('violations.manage') || hasPermission('student_affairs.write') || hasPermission('students.write');
   const hasActions = canEdit || canDelete;
 
   const [violations, setViolations] = useState<Violation[]>([]);
@@ -151,6 +151,15 @@ export const Violations: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreate && !modal.editId) {
+      notify.error('Anda tidak memiliki izin untuk mencatat data pelanggaran siswa.');
+      return;
+    }
+    if (!canEdit && modal.editId) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data pelanggaran siswa.');
+      return;
+    }
+
     if (!form.studentId) {
       notify.error('Siswa harus dipilih');
       return;
@@ -186,6 +195,11 @@ export const Violations: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (!canDelete) {
+      notify.error('Anda tidak memiliki izin untuk menghapus data pelanggaran siswa.');
+      return;
+    }
+
     setConfirmDialog({
       open: true,
       title: 'Hapus Data Pelanggaran',

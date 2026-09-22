@@ -22,12 +22,24 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Pagination } from '../../components/Common/Pagination';
 import { Badge } from '../../components/ui/Badge';
+import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify } from '../../utils/feedback';
 
 export const HardwareLogs: React.FC = () => {
-  const { hasPermission } = usePermissions();
-  const canReadLogs = hasPermission('hardware.read_logs') || hasPermission('hardware.manage') || true;
+  const { user } = useAuth();
+  const { canReadHardwareLogs, hasPermission } = usePermissions();
+
+  const isManagementRole = user?.roles?.some((r) =>
+    ['Super Admin', 'Admin Sekolah', 'Kepala Sekolah', 'Staf TU'].includes(r.name),
+  );
+
+  const canReadLogs =
+    canReadHardwareLogs ||
+    isManagementRole ||
+    hasPermission('hardware.read_logs') ||
+    hasPermission('hardware.manage') ||
+    hasPermission('attendance.read');
 
   const [logs, setLogs] = useState<HardwareLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,6 +117,7 @@ export const HardwareLogs: React.FC = () => {
   }, [isLiveMode]);
 
   const fetchLogs = async () => {
+    if (!canReadLogs) return;
     try {
       setLoading(true);
       const data = await getScanLogs({ deviceId, scanType, limit: 100 });
@@ -117,6 +130,7 @@ export const HardwareLogs: React.FC = () => {
   };
 
   const fetchRecentOnly = async () => {
+    if (!canReadLogs) return;
     try {
       const data = await getRecentScans(deviceId, scanType, 15);
       setLogs(Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []));
@@ -128,6 +142,10 @@ export const HardwareLogs: React.FC = () => {
   const toggleLiveMode = (e?: React.MouseEvent) => {
     if (e) {
       (e.currentTarget as HTMLElement)?.blur();
+    }
+    if (!canReadLogs) {
+      notify.error(null, 'Anda tidak memiliki izin untuk memantau log mesin absensi');
+      return;
     }
     if (isLiveMode) {
       stopLiveMode();
@@ -155,6 +173,10 @@ export const HardwareLogs: React.FC = () => {
   };
 
   const handleLiveScan = async (codeToScan?: string) => {
+    if (!canReadLogs) {
+      notify.error(null, 'Anda tidak memiliki izin untuk memproses pemindaian kartu');
+      return;
+    }
     const code = (codeToScan || scanInput).trim();
     if (!code) return;
 

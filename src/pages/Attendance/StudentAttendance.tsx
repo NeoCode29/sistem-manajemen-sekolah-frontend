@@ -1,14 +1,25 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { getAcademicYears, getSemesters, getGrades, getClassrooms, type AcademicYear, type Semester, type Grade, type Classroom } from '../../api/academicService';
+import { 
+  getAcademicYears, 
+  getSemesters, 
+  getGrades, 
+  getClassrooms, 
+  getHomeroomByTeacher,
+  type AcademicYear, 
+  type Semester, 
+  type Grade, 
+  type Classroom 
+} from '../../api/academicService';
 import { getStudents } from '../../api/studentService';
-import { getStudentAttendances, upsertStudentAttendanceBatch, type StudentAttendance, type StudentAttendanceBatchItem } from '../../api/attendanceService';
+import { getStudentAttendances, upsertStudentAttendanceBatch, getAttendanceSetting, type StudentAttendance, type StudentAttendanceBatchItem } from '../../api/attendanceService';
 import { Save, Calendar, CheckCircle2, Clock, AlertTriangle, UserCheck, RotateCcw, Filter, Users, GraduationCap, Tv, ExternalLink } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../context/AuthContext';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Badge, type BadgeVariant } from '../../components/ui/Badge';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { TableSkeleton } from '../../components/Common/TableSkeleton';
-import { notify } from '../../utils/feedback';
+import { notify, parseApiError } from '../../utils/feedback';
 
 interface AttendanceRow {
   studentId: string;
@@ -19,8 +30,13 @@ interface AttendanceRow {
 }
 
 export const StudentAttendancePage: React.FC = () => {
-  const { hasPermission } = usePermissions();
-  const canRecordAttendance = hasPermission('student_attendance.record') || hasPermission('student_attendance.batch') || hasPermission('attendance.write');
+  const { user } = useAuth();
+  const { canRecordStudentAttendance } = usePermissions();
+  const canRecordAttendance = canRecordStudentAttendance;
+
+  const isTeacher = user?.roles?.some(r => r.name === 'Guru / Wali Kelas' || r.name === 'Guru') || false;
+  const [homeroomClassId, setHomeroomClassId] = useState<string | null>(null);
+  const [homeroomNotice, setHomeroomNotice] = useState<string | null>(null);
 
   // Filters
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -41,6 +57,7 @@ export const StudentAttendancePage: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isManualEnabled, setIsManualEnabled] = useState(true);
   const [rows, setRows] = useState<AttendanceRow[]>([]);
   const [originalRows, setOriginalRows] = useState<AttendanceRow[]>([]);
 
@@ -94,28 +111,55 @@ export const StudentAttendancePage: React.FC = () => {
 
   const fetchFilters = async () => {
     try {
-      const [ayRes, semRes, grRes] = await Promise.all([
+      const [ayRes, semRes, grRes, settingRes] = await Promise.all([
         getAcademicYears(),
         getSemesters(),
-        getGrades()
+        getGrades(),
+        getAttendanceSetting().catch(() => null),
       ]);
       setAcademicYears(ayRes);
       setSemesters(semRes);
       setGrades(grRes);
+      if (settingRes) {
+        setIsManualEnabled(settingRes.studentManualEnabled ?? true);
+      }
       
+      let activeAyId = '';
+      let activeSemId = '';
       const activeAy = ayRes.find(a => a.isActive) || ayRes[0];
       if (activeAy) {
-        const ayIdStr = activeAy.id.toString();
-        setSelectedAcademicYearId(ayIdStr);
+        activeAyId = activeAy.id.toString();
+        setSelectedAcademicYearId(activeAyId);
         const relevantSemesters = semRes.filter((s) => {
           const semAyId = s.academicYearId?.toString() || s.academicYear?.id?.toString();
-          return semAyId === ayIdStr;
+          return semAyId === activeAyId;
         });
         const activeSem = relevantSemesters.find(s => s.isActive) || relevantSemesters[0];
-        if (activeSem) setSelectedSemesterId(activeSem.id.toString());
+        if (activeSem) {
+          activeSemId = activeSem.id.toString();
+          setSelectedSemesterId(activeSemId);
+        }
+      }
+
+      // Auto-select homeroom classroom if user is a homeroom teacher
+      if (isTeacher && user?.employeeId && activeAyId && activeSemId) {
+        try {
+          const homeroom = await getHomeroomByTeacher(user.employeeId.toString(), activeAyId, activeSemId);
+          if (homeroom && homeroom.id) {
+            setHomeroomClassId(homeroom.id);
+            if (homeroom.gradeId) {
+              setSelectedGradeId(homeroom.gradeId);
+              const crData = await getClassrooms(homeroom.gradeId);
+              setClassrooms(crData);
+              setSelectedClassroomId(homeroom.id);
+            }
+          }
+        } catch {
+          // Abaikan jika guru belum di-assign sebagai wali kelas
+        }
       }
     } catch (err: any) {
-      notify.error(err, 'Gagal memuat filter akademik');
+      notify.error(parseApiError(err, 'Gagal memuat filter akademik'));
     }
   };
 
@@ -123,16 +167,23 @@ export const StudentAttendancePage: React.FC = () => {
     try {
       const data = await getClassrooms(gradeId);
       setClassrooms(data);
-      if (data.length > 0) setSelectedClassroomId(data[0].id);
-      else setSelectedClassroomId('');
+      const matchingHomeroom = homeroomClassId ? data.find(c => c.id === homeroomClassId) : null;
+      if (matchingHomeroom) {
+        setSelectedClassroomId(matchingHomeroom.id);
+      } else if (data.length > 0) {
+        setSelectedClassroomId(data[0].id);
+      } else {
+        setSelectedClassroomId('');
+      }
     } catch (err) {
-      notify.error(err, 'Gagal memuat daftar rombel');
+      notify.error(parseApiError(err, 'Gagal memuat daftar rombel'));
     }
   };
 
   const fetchAttendanceData = async () => {
     try {
       setLoading(true);
+      setHomeroomNotice(null);
       
       const [studentsData, attendancesData] = await Promise.all([
         getStudents({ 
@@ -170,9 +221,15 @@ export const StudentAttendancePage: React.FC = () => {
       setOriginalRows(JSON.parse(JSON.stringify(newRows)));
     } catch (err: any) {
       if (err.response?.status === 403) {
-        notify.error('Akses ditolak: Anda hanya berwenang melihat/mengabsen kelas perwalian Anda sendiri.');
+        const msg = err.response?.data?.message;
+        const isHomeroomRestriction = typeof msg === 'string' && (msg.toLowerCase().includes('perwalian') || msg.toLowerCase().includes('wali kelas'));
+        if (isHomeroomRestriction) {
+          setHomeroomNotice('Anda bukan wali kelas dari rombel ini. Sesuai kebijakan sistem sekolah, Anda hanya berwenang melihat dan mengabsen siswa di rombel perwalian Anda sendiri.');
+        } else {
+          notify.error(parseApiError(err, 'Akses ditolak: Anda tidak memiliki izin untuk mengelola absensi rombel ini.'));
+        }
       } else {
-        notify.error(err, 'Gagal memuat data absensi siswa');
+        notify.error(parseApiError(err, 'Gagal memuat data absensi siswa'));
       }
       setRows([]);
       setOriginalRows([]);
@@ -188,6 +245,10 @@ export const StudentAttendancePage: React.FC = () => {
   };
 
   const handleMarkAllPresent = () => {
+    if (!canRecordAttendance || !isManualEnabled) {
+      notify.error('Anda tidak memiliki izin atau metode pencatatan manual sedang dinonaktifkan.');
+      return;
+    }
     const updated = rows.map(r => {
       if (r.status === 'Belum Absen') {
         return { ...r, status: 'Hadir' };
@@ -199,11 +260,16 @@ export const StudentAttendancePage: React.FC = () => {
   };
 
   const handleReset = () => {
+    if (!canRecordAttendance || !isManualEnabled) return;
     setRows(JSON.parse(JSON.stringify(originalRows)));
     notify.info('Perubahan status telah dikembalikan ke kondisi awal.');
   };
 
   const handleOpenConfirm = () => {
+    if (!canRecordAttendance || !isManualEnabled) {
+      notify.error('Anda tidak memiliki izin untuk menyimpan presensi siswa.');
+      return;
+    }
     if (!selectedAcademicYearId || !selectedSemesterId || !selectedClassroomId || !date) {
       notify.error('Harap lengkapi semua filter kelas dan tanggal sebelum menyimpan.');
       return;
@@ -217,6 +283,10 @@ export const StudentAttendancePage: React.FC = () => {
   };
 
   const handleExecuteSave = async () => {
+    if (!canRecordAttendance || !isManualEnabled) {
+      notify.error('Anda tidak memiliki izin untuk menyimpan presensi siswa.');
+      return;
+    }
     try {
       setSaving(true);
       const attendances: StudentAttendanceBatchItem[] = rows
@@ -232,7 +302,7 @@ export const StudentAttendancePage: React.FC = () => {
       setConfirmOpen(false);
       await fetchAttendanceData();
     } catch (err: any) {
-      notify.error(err, 'Gagal menyimpan absensi siswa');
+      notify.error(parseApiError(err, 'Gagal menyimpan absensi siswa'));
     } finally {
       setSaving(false);
     }
@@ -359,7 +429,9 @@ export const StudentAttendancePage: React.FC = () => {
               >
                 <option value="">Pilih Kelas</option>
                 {classrooms.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.name}{c.id === homeroomClassId ? ' ⭐ (Kelas Perwalian Anda)' : ''}
+                  </option>
                 ))}
               </select>
             </div>
@@ -432,6 +504,49 @@ export const StudentAttendancePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Peringatan jika metode presensi manual siswa dinonaktifkan */}
+      {!isManualEnabled && (
+        <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-center gap-3 text-amber-900 shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+            <AlertTriangle size={18} />
+          </div>
+          <div className="text-xs">
+            <p className="font-bold text-amber-950">Pencatatan Presensi Manual Siswa Sedang Dinonaktifkan</p>
+            <p className="text-amber-800/90 mt-0.5">
+              Pihak sekolah mengalihkan absensi siswa ke metode aktif lainnya (seperti Kartu RFID / Kiosk). Aksi simpan manual disembunyikan.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Peringatan jika pengguna hanya memiliki izin lihat (Hanya-Baca) */}
+      {!canRecordAttendance && (
+        <div className="bg-blue-50 border border-blue-200/80 rounded-2xl p-4 flex items-center gap-3 text-blue-900 shadow-xs animate-in fade-in duration-300">
+          <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 shrink-0">
+            <UserCheck size={18} />
+          </div>
+          <div className="text-xs">
+            <p className="font-bold text-blue-950">Mode Pratinjau (Hanya-Baca)</p>
+            <p className="text-blue-800/90 mt-0.5">
+              Anda memiliki hak akses untuk memantau rekapitulasi kehadiran siswa. Pengubahan data dibatasi hanya untuk staf/wali kelas yang berwenang.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Peringatan jika akses kelas dibatasi kebijakan wali kelas */}
+      {homeroomNotice && (
+        <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-center gap-3 text-amber-900 shadow-xs animate-in fade-in duration-300">
+          <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+            <AlertTriangle size={18} />
+          </div>
+          <div className="text-xs">
+            <p className="font-bold text-amber-950">Akses Terbatas: Kebijakan Wali Kelas</p>
+            <p className="text-amber-800/90 mt-0.5">{homeroomNotice}</p>
+          </div>
+        </div>
+      )}
 
       {/* 4. Toolbar Tabel Presensi (Clean Standard) */}
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -521,14 +636,6 @@ export const StudentAttendancePage: React.FC = () => {
               </div>
             </div>
           )}
-
-          {selectedClassroomObj && (
-            <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl hidden lg:inline-flex items-center gap-1.5">
-              <Users size={13} />
-              {selectedClassroomObj.name} ({formattedDate})
-            </span>
-          )}
-
           {isDirty && (
             <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl animate-pulse">
               Perubahan belum disimpan
@@ -537,7 +644,7 @@ export const StudentAttendancePage: React.FC = () => {
         </div>
 
         {/* Sisi Kanan: Aksi Massal & Simpan */}
-        {canRecordAttendance && selectedClassroomObj && rows.length > 0 && (
+        {canRecordAttendance && isManualEnabled && selectedClassroomObj && rows.length > 0 && (
           <div className="flex items-center gap-2 self-end md:self-auto">
             {activeTab === 'input' && (
               <>
@@ -590,9 +697,17 @@ export const StudentAttendancePage: React.FC = () => {
           </div>
         ) : rows.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
-            {selectedClassroomId 
-              ? 'Tidak ada data siswa aktif di rombel kelas ini.' 
-              : 'Silakan pilih Tahun Ajaran, Tingkat, dan Rombel Kelas untuk memuat presensi.'}
+            {homeroomNotice ? (
+              <div className="max-w-md mx-auto space-y-2 text-center">
+                <AlertTriangle className="mx-auto text-amber-500" size={32} />
+                <p className="font-semibold text-slate-800 text-sm">Akses Presensi Rombel Terbatas</p>
+                <p className="text-xs text-slate-500 leading-relaxed">{homeroomNotice}</p>
+              </div>
+            ) : selectedClassroomId ? (
+              'Tidak ada data siswa aktif di rombel kelas ini.' 
+            ) : (
+              'Silakan pilih Tahun Ajaran, Tingkat, dan Rombel Kelas untuk memuat presensi.'
+            )}
           </div>
         ) : activeTab === 'input' ? (
           /* TAB 1: INPUT PRESENSI ROMBEL */
@@ -622,9 +737,9 @@ export const StudentAttendancePage: React.FC = () => {
                     </td>
                     <td className="py-3 px-3">
                       <select 
-                        disabled={!canRecordAttendance}
+                        disabled={!canRecordAttendance || !isManualEnabled}
                         className={`w-full py-2 px-3 rounded-xl text-xs font-semibold outline-none transition-all shadow-sm focus:ring-2 focus:ring-offset-1 focus:border-transparent ${
-                          canRecordAttendance ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'
+                          canRecordAttendance && isManualEnabled ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'
                         } ${
                           row.status === 'Belum Absen' ? 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-400/50' :
                           row.status === 'Hadir' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 focus:ring-emerald-400/50' :
@@ -647,13 +762,13 @@ export const StudentAttendancePage: React.FC = () => {
                     <td className="py-3 px-4">
                       <input 
                         type="text" 
-                        disabled={!canRecordAttendance}
+                        disabled={!canRecordAttendance || !isManualEnabled}
                         className={`input-std py-1.5 px-3 text-xs shadow-sm w-full transition-colors ${
-                          canRecordAttendance ? 'bg-white/70 focus:bg-white' : 'bg-gray-100 cursor-not-allowed opacity-80'
+                          canRecordAttendance && isManualEnabled ? 'bg-white/70 focus:bg-white' : 'bg-gray-100 cursor-not-allowed opacity-80'
                         }`}
                         value={row.notes}
                         onChange={(e) => handleRowChange(index, 'notes', e.target.value)}
-                        placeholder={canRecordAttendance ? "Tambahkan keterangan opsional..." : "-"}
+                        placeholder={canRecordAttendance && isManualEnabled ? "Tambahkan keterangan opsional..." : "-"}
                       />
                     </td>
                   </tr>

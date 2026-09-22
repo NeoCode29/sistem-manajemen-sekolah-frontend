@@ -7,6 +7,7 @@ import {
   toggleAcademicYearActive as apiToggleAcademicYearActive,
   type AcademicYear 
 } from '../api/academicService';
+import { parseApiError } from '../utils/feedback';
 
 export function useAcademicYears() {
   const [years, setYears] = useState<AcademicYear[]>([]);
@@ -21,7 +22,7 @@ export function useAcademicYears() {
       setYears(data);
     } catch (err: any) {
       console.error('Failed to fetch academic years:', err);
-      setError(err.response?.data?.message || 'Gagal memuat data tahun ajaran');
+      setError(parseApiError(err, 'Gagal memuat data tahun ajaran'));
     } finally {
       setLoading(false);
     }
@@ -36,8 +37,7 @@ export function useAcademicYears() {
       await apiCreateAcademicYear(payload);
       await fetchYears();
     } catch (err: any) {
-      const message = err.response?.data?.message;
-      throw new Error(Array.isArray(message) ? message.join(', ') : (message || 'Gagal menyimpan tahun ajaran'));
+      throw new Error(parseApiError(err, 'Gagal menyimpan tahun ajaran'));
     }
   };
 
@@ -46,8 +46,7 @@ export function useAcademicYears() {
       await apiUpdateAcademicYear(id, payload);
       await fetchYears();
     } catch (err: any) {
-      const message = err.response?.data?.message;
-      throw new Error(Array.isArray(message) ? message.join(', ') : (message || 'Gagal memperbarui tahun ajaran'));
+      throw new Error(parseApiError(err, 'Gagal memperbarui tahun ajaran'));
     }
   };
 
@@ -56,7 +55,7 @@ export function useAcademicYears() {
       await apiToggleAcademicYearActive(id);
       await fetchYears();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal mengubah status');
+      throw new Error(parseApiError(err, 'Gagal mengubah status'));
     }
   };
 
@@ -65,7 +64,7 @@ export function useAcademicYears() {
       await apiDeleteAcademicYear(id);
       await fetchYears();
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Gagal menghapus tahun ajaran');
+      throw new Error(parseApiError(err, 'Gagal menghapus tahun ajaran'));
     }
   };
 

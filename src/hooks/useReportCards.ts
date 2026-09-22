@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import api from '../api/axios';
+import { notify } from '../utils/feedback';
 
 export interface ReportCard {
   id: string;
@@ -85,7 +86,7 @@ export const useReportCards = () => {
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert('Gagal mengunduh PDF');
+      notify.error(err, 'Gagal mengunduh PDF rapor');
     }
   };
 

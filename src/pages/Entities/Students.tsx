@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, ChevronLeft, ChevronRight, FileUp, RefreshCw, User, Archive, Eye, Loader2, Search, Filter, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, FileUp, FileDown, RefreshCw, User, Archive, Eye, Loader2, Search, Filter, RotateCcw } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { ImportStudentModal } from './ImportStudentModal';
 import { useStudents } from '../../hooks/useStudents';
@@ -9,6 +9,7 @@ import { DataTable, type Column } from '../../components/Common/DataTable';
 import { PageHeader, Modal, FormField, Badge, Select, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { notify } from '../../utils/feedback';
 import { getAcademicYears, getSemesters, getClassrooms, getMajors, type AcademicYear, type Semester, type Classroom, type Major } from '../../api/academicService';
+import { exportStudents } from '../../api/studentService';
 
 interface WizardForm {
   nis: string;
@@ -53,11 +54,15 @@ export const Students: React.FC = () => {
     page: currentPage, limit: itemsPerPage, search: searchTerm, 
     status: filterStatus || undefined, isDeleted: activeTab === 'deleted'
   });
-  const { hasPermission } = usePermissions();
-  const canCreateStudent = hasPermission('students.create') || hasPermission('students.write');
-  const canDeleteStudent = hasPermission('students.delete') || hasPermission('students.write');
-  const canImportExport = hasPermission('students.export_import') || hasPermission('students.write');
+  const { 
+    canCreateStudent, 
+    canDeleteStudent, 
+    canImportExportStudent,
+    canReadStudents 
+  } = usePermissions();
+  const canImportExport = canImportExportStudent;
 
+  const [isExporting, setIsExporting] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [wizardModal, setWizardModal] = useState({ open: false, step: 1 });
   const [submittingWizard, setSubmittingWizard] = useState(false);
@@ -120,7 +125,27 @@ export const Students: React.FC = () => {
     fetchMasterData();
   }, []);
 
+  const openWizard = () => {
+    if (!canCreateStudent) {
+      notify.error('Anda tidak memiliki izin untuk mendaftarkan siswa baru.');
+      return;
+    }
+    setWizardModal({ open: true, step: 1 });
+  };
+
+  const openImport = () => {
+    if (!canImportExport) {
+      notify.error('Anda tidak memiliki izin untuk mengimpor data siswa.');
+      return;
+    }
+    setIsImportModalOpen(true);
+  };
+
   const handleRestore = (student: any) => {
+    if (!canDeleteStudent) {
+      notify.error('Anda tidak memiliki izin untuk memulihkan siswa dari Archive.');
+      return;
+    }
     setConfirmConfig({
       open: true,
       variant: 'warning',
@@ -140,6 +165,10 @@ export const Students: React.FC = () => {
   };
 
   const handleDelete = (student: any) => {
+    if (!canDeleteStudent) {
+      notify.error('Anda tidak memiliki izin untuk mengarsipkan siswa.');
+      return;
+    }
     setConfirmConfig({
       open: true,
       variant: 'danger',
@@ -165,6 +194,10 @@ export const Students: React.FC = () => {
 
   const submitWizard = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreateStudent) {
+      notify.error('Anda tidak memiliki izin untuk mendaftarkan siswa baru.');
+      return;
+    }
     try {
       setSubmittingWizard(true);
       await createWizard({
@@ -193,6 +226,37 @@ export const Students: React.FC = () => {
       notify.error(err, 'Terjadi kesalahan saat mendaftar siswa');
     } finally {
       setSubmittingWizard(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!canImportExport) {
+      notify.error('Anda tidak memiliki izin untuk mengekspor data siswa.');
+      return;
+    }
+    try {
+      setIsExporting(true);
+      const blob = await exportStudents({
+        search: searchTerm || undefined,
+        status: filterStatus || undefined,
+        isDeleted: activeTab === 'deleted',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      const todayStr = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `data-siswa-${todayStr}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      notify.success('Data siswa berhasil diekspor ke Excel!');
+    } catch (err: any) {
+      notify.error(err, 'Gagal mengekspor data siswa');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -321,30 +385,39 @@ export const Students: React.FC = () => {
         title="Siswa & Wali Murid" 
         subtitle="Pendaftaran dan manajemen riwayat siswa terpadu"
         action={
-          activeTab === 'active' ? (
-            <div className="flex flex-wrap items-center gap-3">
-              {canImportExport && (
-                <button 
-                  type="button"
-                  className="btn-std-secondary" 
-                  onClick={() => setIsImportModalOpen(true)}
-                >
-                  <FileUp size={18} /> 
-                  <span>Import Excel</span>
-                </button>
-              )}
-              {canCreateStudent && (
-                <button 
-                  type="button"
-                  className="btn-std-primary" 
-                  onClick={() => setWizardModal({ open: true, step: 1 })}
-                >
-                  <Plus size={18} /> 
-                  <span>Pendaftaran Siswa Baru</span>
-                </button>
-              )}
-            </div>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-3">
+            {canImportExport && (
+              <button 
+                type="button"
+                className="btn-std-secondary" 
+                onClick={handleExport}
+                disabled={isExporting}
+              >
+                {isExporting ? <Loader2 size={18} className="animate-spin text-indigo-600" /> : <FileDown size={18} />} 
+                <span>{isExporting ? 'Mengekspor...' : 'Export Excel'}</span>
+              </button>
+            )}
+            {activeTab === 'active' && canImportExport && (
+              <button 
+                type="button"
+                className="btn-std-secondary" 
+                onClick={openImport}
+              >
+                <FileUp size={18} /> 
+                <span>Import Excel</span>
+              </button>
+            )}
+            {activeTab === 'active' && canCreateStudent && (
+              <button 
+                type="button"
+                className="btn-std-primary" 
+                onClick={openWizard}
+              >
+                <Plus size={18} /> 
+                <span>Pendaftaran Siswa Baru</span>
+              </button>
+            )}
+          </div>
         }
       />
 
@@ -359,15 +432,17 @@ export const Students: React.FC = () => {
           <span>Siswa Aktif</span>
           {activeTab === 'active' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
         </button>
-        <button
-          type="button"
-          className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 cursor-pointer ${activeTab === 'deleted' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
-          onClick={() => { setActiveTab('deleted'); setCurrentPage(1); }}
-        >
-          <Archive size={16} />
-          <span>Archive</span>
-          {activeTab === 'deleted' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
-        </button>
+        {canDeleteStudent && (
+          <button
+            type="button"
+            className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 cursor-pointer ${activeTab === 'deleted' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => { setActiveTab('deleted'); setCurrentPage(1); }}
+          >
+            <Archive size={16} />
+            <span>Arsip / Terhapus</span>
+            {activeTab === 'deleted' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
+          </button>
+        )}
       </div>
 
       {/* 4. Filter Bar Pola Log Mesin (Hardware Logs Filter Pattern) */}

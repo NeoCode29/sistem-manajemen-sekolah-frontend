@@ -33,8 +33,8 @@ export const ExamScores: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
-  const canInputScore = hasPermission('assessments.input') || hasPermission('assessment.write');
-  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') ?? false;
+  const canInputScore = hasPermission('assessments.input') || hasPermission('assessments.manage') || hasPermission('assessment.write') || hasPermission('assessment.manage');
+  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah' || r.name === 'Kepala Sekolah') ?? false;
 
   const [exam, setExam] = useState<Exam | null>(null);
   const [rows, setRows] = useState<ScoreRow[]>([]);
@@ -261,7 +261,11 @@ export const ExamScores: React.FC = () => {
                 ? 'bg-purple-50 text-purple-700 border-purple-200' 
                 : 'bg-slate-100 text-slate-600 border-slate-200'
             }`}>
-              {isAssignedTeacher ? 'Anda Guru Pengampu' : isSuperAdmin ? 'Akses Admin' : 'Bukan Pengampu (Hanya-Baca)'}
+              {isAssignedTeacher 
+                ? 'Anda Guru Pengampu' 
+                : isSuperAdmin 
+                ? (user?.roles?.some(r => r.name === 'Kepala Sekolah') ? 'Akses Kepala Sekolah' : 'Akses Admin') 
+                : 'Bukan Pengampu (Hanya-Baca)'}
             </span>
           </div>
           

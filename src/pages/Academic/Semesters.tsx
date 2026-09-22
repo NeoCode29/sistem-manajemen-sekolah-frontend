@@ -21,8 +21,7 @@ export const Semesters: React.FC = () => {
     loading,
     toggleSemesterActive,
   } = useSemesters();
-  const { canManageAcademic, hasPermission } = usePermissions();
-  const canToggleSemester = hasPermission('semesters.toggle_active') || hasPermission('semesters.update') || canManageAcademic;
+  const { canToggleSemester } = usePermissions();
 
   const [selectedYearFilter, setSelectedYearFilter] = useState<string>('ALL');
   const [semesterTypeFilter, setSemesterTypeFilter] = useState<string>('ALL');
@@ -119,6 +118,10 @@ export const Semesters: React.FC = () => {
   ], [academicYears]);
 
   const handleToggle = (semester: Semester, yearName?: string) => {
+    if (!canToggleSemester) {
+      notify.error('Anda tidak memiliki izin untuk mengubah status aktif semester.');
+      return;
+    }
     if (semester.isActive) return;
 
     const yName = yearName || semester.academicYear?.name || 'terpilih';

@@ -1,26 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as academicService from '../api/academicService';
-import { useDialog } from '../contexts/DialogContext';
+import { parseApiError } from '../utils/feedback';
 
 export const useMajors = () => {
   const [majors, setMajors] = useState<academicService.Major[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { showAlert } = useDialog();
 
   const fetchMajors = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await academicService.getMajors();
       setMajors(data);
-      setError(null);
     } catch (err: any) {
-      setError(err.message || 'Gagal memuat data jurusan');
-      showAlert(err.message || 'Gagal memuat data jurusan', 'Gagal');
+      console.error('Failed to fetch majors:', err);
+      setError(parseApiError(err, 'Gagal memuat data jurusan'));
     } finally {
       setLoading(false);
     }
-  }, [showAlert]);
+  }, []);
 
   useEffect(() => {
     fetchMajors();
@@ -30,9 +29,8 @@ export const useMajors = () => {
     try {
       await academicService.createMajor(data);
       await fetchMajors();
-      showAlert('Data jurusan berhasil ditambahkan', 'Sukses');
     } catch (err: any) {
-      throw err;
+      throw new Error(parseApiError(err, 'Gagal menyimpan jurusan'));
     }
   };
 
@@ -40,9 +38,8 @@ export const useMajors = () => {
     try {
       await academicService.updateMajor(id, data);
       await fetchMajors();
-      showAlert('Data jurusan berhasil diperbarui', 'Sukses');
     } catch (err: any) {
-      throw err;
+      throw new Error(parseApiError(err, 'Gagal memperbarui jurusan'));
     }
   };
 
@@ -50,9 +47,8 @@ export const useMajors = () => {
     try {
       await academicService.toggleMajorActive(id);
       await fetchMajors();
-      showAlert('Status jurusan berhasil diubah', 'Sukses');
     } catch (err: any) {
-      showAlert(err.message || 'Gagal mengubah status jurusan', 'Gagal');
+      throw new Error(parseApiError(err, 'Gagal mengubah status jurusan'));
     }
   };
 
@@ -60,9 +56,8 @@ export const useMajors = () => {
     try {
       await academicService.deleteMajor(id);
       await fetchMajors();
-      showAlert('Data jurusan berhasil dihapus', 'Sukses');
     } catch (err: any) {
-      throw err;
+      throw new Error(parseApiError(err, 'Gagal menghapus jurusan'));
     }
   };
 

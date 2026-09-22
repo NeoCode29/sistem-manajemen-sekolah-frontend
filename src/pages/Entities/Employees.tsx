@@ -48,10 +48,8 @@ export const Employees: React.FC = () => {
     isDeleted: activeTab === 'deleted'
   });
 
-  const { hasPermission } = usePermissions();
-  const canCreateEmployee = hasPermission('employees.create') || hasPermission('employees.write');
-  const canEditEmployee = hasPermission('employees.update') || hasPermission('employees.write');
-  const canDeleteEmployee = hasPermission('employees.delete') || hasPermission('employees.write');
+  const { canCreateEmployee, canUpdateEmployee, canDeleteEmployee } = usePermissions();
+  const canEditEmployee = canUpdateEmployee;
   const hasActions = canEditEmployee || canDeleteEmployee;
 
   const [positions, setPositions] = useState<Position[]>([]);
@@ -82,21 +80,75 @@ export const Employees: React.FC = () => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const handlePositionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPosId = e.target.value;
+    const selectedPos = positions.find(p => String(p.id) === String(newPosId));
+    setForm(prev => {
+      const updated = { ...prev, positionId: newPosId };
+      if (selectedPos && selectedPos.mappedRoleId) {
+        updated.roleId = String(selectedPos.mappedRoleId);
+      }
+      return updated;
+    });
+  };
+
+  const handleCreateAccountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setForm(prev => {
+      const updated = { ...prev, createAccount: checked };
+      if (checked && !prev.roleId && prev.positionId) {
+        const selectedPos = positions.find(p => String(p.id) === String(prev.positionId));
+        if (selectedPos && selectedPos.mappedRoleId) {
+          updated.roleId = String(selectedPos.mappedRoleId);
+        }
+      }
+      return updated;
+    });
+  };
+
   useEffect(() => {
     const fetchMasterData = async () => {
+      // 1. Fetch positions safely
       try {
-        const [posData, rolesData] = await Promise.all([getPositions(true), getRoles()]);
+        const posData = await getPositions(true);
         setPositions(posData);
-        setRoles(rolesData);
       } catch (err) {
-        console.error('Failed to load master data', err);
+        console.error('Failed to load positions', err);
+      }
+
+      // 2. Only fetch roles if user has permission to create employee / assign roles
+      if (canCreateEmployee) {
+        try {
+          const rolesData = await getRoles();
+          setRoles(rolesData);
+        } catch (err) {
+          console.error('Failed to load roles for employee creation', err);
+        }
       }
     };
     fetchMasterData();
-  }, []);
+  }, [canCreateEmployee]);
 
-  const openAdd = () => { setForm(DEFAULT_FORM); setModal({ open: true, editId: null }); };
+  useEffect(() => {
+    if (!canDeleteEmployee && activeTab === 'deleted') {
+      setActiveTab('active');
+    }
+  }, [canDeleteEmployee, activeTab]);
+
+  const openAdd = () => {
+    if (!canCreateEmployee) {
+      notify.error('Anda tidak memiliki izin untuk menambah data pegawai.');
+      return;
+    }
+    setForm(DEFAULT_FORM);
+    setModal({ open: true, editId: null });
+  };
+
   const openEdit = (emp: Employee) => {
+    if (!canEditEmployee) {
+      notify.error('Anda tidak memiliki izin untuk mengubah data pegawai.');
+      return;
+    }
     setForm({
       positionId: emp.positionId,
       employeeNumber: emp.employeeNumber,
@@ -115,6 +167,10 @@ export const Employees: React.FC = () => {
   const closeModal = () => setModal({ open: false, editId: null });
 
   const handleToggle = async (emp: Employee) => {
+    if (!canEditEmployee) {
+      notify.error('Anda tidak memiliki izin untuk mengubah status aktif pegawai.');
+      return;
+    }
     try { 
       const nextStatus = !emp.isActive;
       await update(emp.id, { isActive: nextStatus }); 
@@ -126,6 +182,10 @@ export const Employees: React.FC = () => {
   };
 
   const handleRestore = (emp: Employee) => {
+    if (!canDeleteEmployee) {
+      notify.error('Anda tidak memiliki izin untuk memulihkan pegawai dari Archive.');
+      return;
+    }
     setConfirmConfig({
       open: true,
       variant: 'info',
@@ -145,6 +205,10 @@ export const Employees: React.FC = () => {
   };
 
   const handleDelete = (emp: Employee) => {
+    if (!canDeleteEmployee) {
+      notify.error('Anda tidak memiliki izin untuk mengarsipkan data pegawai.');
+      return;
+    }
     setConfirmConfig({
       open: true,
       variant: 'danger',
@@ -165,6 +229,15 @@ export const Employees: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (modal.editId && !canEditEmployee) {
+      notify.error('Anda tidak memiliki izin untuk memperbarui data pegawai.');
+      return;
+    }
+    if (!modal.editId && !canCreateEmployee) {
+      notify.error('Anda tidak memiliki izin untuk menambahkan pegawai baru.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       const payload: any = {
@@ -360,19 +433,21 @@ export const Employees: React.FC = () => {
           <span>Pegawai Aktif</span>
           {activeTab === 'active' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
         </button>
-        <button
-          type="button"
-          className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 ${
-            activeTab === 'deleted'
-              ? 'text-indigo-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          onClick={() => { setActiveTab('deleted'); setCurrentPage(1); }}
-        >
-          <Archive size={16} />
-          <span>Archive</span>
-          {activeTab === 'deleted' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
-        </button>
+        {canDeleteEmployee && (
+          <button
+            type="button"
+            className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 ${
+              activeTab === 'deleted'
+                ? 'text-indigo-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => { setActiveTab('deleted'); setCurrentPage(1); }}
+          >
+            <Archive size={16} />
+            <span>Archive</span>
+            {activeTab === 'deleted' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
+          </button>
+        )}
       </div>
 
       {/* 4. Filter Bar Pola Log Mesin (Hardware Logs Filter Pattern) */}
@@ -487,7 +562,7 @@ export const Employees: React.FC = () => {
                 <Select
                   wrapperClassName="w-full"
                   value={form.positionId}
-                  onChange={setField('positionId')}
+                  onChange={handlePositionChange}
                   options={[
                     { value: '', label: '-- Pilih Jabatan --' },
                     ...positions.map(pos => ({ value: pos.id, label: pos.name }))
@@ -565,18 +640,6 @@ export const Employees: React.FC = () => {
               />
             </FormField>
 
-            <div className="md:col-span-2">
-              <FormField label="URL / Path Tanda Tangan (Opsional)" hint="Digunakan untuk tanda tangan otomatis di Raport jika bertugas sebagai Wali Kelas.">
-                <input 
-                  type="text" 
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
-                  value={form.signatureUrl} 
-                  onChange={setField('signatureUrl')} 
-                  placeholder="Contoh: /uploads/signatures/guru1.png" 
-                />
-              </FormField>
-            </div>
-
             {!modal.editId ? (
               <div className="md:col-span-2 bg-indigo-50/50 border border-indigo-100 rounded-2xl p-5 mt-2">
                 <label className="flex items-center gap-3 cursor-pointer font-semibold text-gray-900 mb-4">
@@ -584,7 +647,7 @@ export const Employees: React.FC = () => {
                     type="checkbox" 
                     className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" 
                     checked={form.createAccount} 
-                    onChange={setField('createAccount')} 
+                    onChange={handleCreateAccountChange} 
                   />
                   Buat Akun Login untuk Pegawai Ini
                 </label>
@@ -610,20 +673,30 @@ export const Employees: React.FC = () => {
                         placeholder="Minimal 6 karakter" 
                       />
                     </FormField>
-                    <div className="md:col-span-2">
-                      <FormField label="Peran Akun (Role)" required>
-                        <Select
-                          wrapperClassName="w-full"
-                          value={form.roleId}
-                          onChange={setField('roleId')}
-                          options={[
-                            { value: '', label: '-- Pilih Peran Akun --' },
-                            ...roles.map(role => ({ value: role.id, label: role.name }))
-                          ]}
-                          required={form.createAccount}
-                        />
-                      </FormField>
-                    </div>
+                    {(() => {
+                      const selectedPos = positions.find(p => String(p.id) === String(form.positionId));
+                      const isAutoSynced = Boolean(selectedPos?.mappedRoleId && String(form.roleId) === String(selectedPos.mappedRoleId));
+                      return (
+                        <div className="md:col-span-2">
+                          <FormField 
+                            label="Peran Akun (Role)" 
+                            required 
+                            hint={isAutoSynced ? `Otomatis disinkronkan dengan jabatan "${selectedPos?.name}"` : undefined}
+                          >
+                            <Select
+                              wrapperClassName="w-full"
+                              value={form.roleId}
+                              onChange={setField('roleId')}
+                              options={[
+                                { value: '', label: '-- Pilih Peran Akun --' },
+                                ...roles.map(role => ({ value: role.id, label: role.name }))
+                              ]}
+                              required={form.createAccount}
+                            />
+                          </FormField>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

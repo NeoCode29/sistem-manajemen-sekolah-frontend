@@ -57,8 +57,7 @@ const getSubjectColor = (name: string) => {
 };
 
 export const Schedules: React.FC = () => {
-  const { hasPermission } = usePermissions();
-  const canManageSchedule = hasPermission('schedules.manage') || hasPermission('academic.write');
+  const { canManageSchedule, canManageSubjectAssignments } = usePermissions();
   const [activeTab, setActiveTab] = useState<'assignments' | 'schedule'>('assignments');
   const [assignmentSearch, setAssignmentSearch] = useState('');
 
@@ -197,6 +196,10 @@ export const Schedules: React.FC = () => {
 
   // ---- Assignment Actions ----
   const openAddAssignmentModal = () => {
+    if (!canManageSubjectAssignments) {
+      notify.error('Anda tidak memiliki izin untuk menambah penugasan guru.');
+      return;
+    }
     setEditingAssignment(null);
     setSubjectId('');
     setEmployeeId('');
@@ -204,6 +207,10 @@ export const Schedules: React.FC = () => {
   };
 
   const openEditAssignmentModal = (item: SubjectAssignment) => {
+    if (!canManageSubjectAssignments) {
+      notify.error('Anda tidak memiliki izin untuk mengubah penugasan guru.');
+      return;
+    }
     setEditingAssignment(item);
     setSubjectId(item.subjectId);
     setEmployeeId(item.employeeId);
@@ -212,6 +219,10 @@ export const Schedules: React.FC = () => {
 
   const handleAssignmentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageSubjectAssignments) {
+      notify.error('Anda tidak memiliki izin untuk menyimpan penugasan guru.');
+      return;
+    }
     if (!filterClassroomId) {
       notify.warning('Silakan pilih kelas terlebih dahulu');
       return;
@@ -251,6 +262,10 @@ export const Schedules: React.FC = () => {
   };
 
   const handleDeleteAssignment = (item: SubjectAssignment) => {
+    if (!canManageSubjectAssignments) {
+      notify.error('Anda tidak memiliki izin untuk menghapus penugasan guru.');
+      return;
+    }
     setConfirmConfig({
       open: true,
       variant: 'danger',
@@ -281,6 +296,10 @@ export const Schedules: React.FC = () => {
 
   // ---- Schedule Actions ----
   const openAddScheduleModal = (defaultDay?: number) => {
+    if (!canManageSchedule) {
+      notify.error('Anda tidak memiliki izin untuk menambah jadwal pelajaran.');
+      return;
+    }
     setEditingSchedule(null);
     setDayOfWeek(defaultDay || 1);
     setClassPeriodId(classPeriods.length > 0 ? classPeriods[0].id : '');
@@ -290,6 +309,10 @@ export const Schedules: React.FC = () => {
   };
 
   const openEditScheduleModal = (item: Schedule) => {
+    if (!canManageSchedule) {
+      notify.error('Anda tidak memiliki izin untuk mengubah jadwal pelajaran.');
+      return;
+    }
     setEditingSchedule(item);
     setDayOfWeek(item.dayOfWeek);
     setClassPeriodId(item.classPeriodId);
@@ -300,6 +323,10 @@ export const Schedules: React.FC = () => {
 
   const handleScheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageSchedule) {
+      notify.error('Anda tidak memiliki izin untuk menyimpan jadwal pelajaran.');
+      return;
+    }
     if (!filterClassroomId) {
       notify.warning('Silakan pilih kelas terlebih dahulu');
       return;
@@ -341,6 +368,10 @@ export const Schedules: React.FC = () => {
   };
 
   const handleDeleteSchedule = (item: Schedule) => {
+    if (!canManageSchedule) {
+      notify.error('Anda tidak memiliki izin untuk menghapus jadwal pelajaran.');
+      return;
+    }
     const dayName = DAYS.find(d => d.id === item.dayOfWeek)?.name || 'Hari ini';
     const subjName = item.subjectAssignment?.subject?.name || 'Mata Pelajaran';
     const teacherName = item.subjectAssignment?.employee?.fullName || 'Guru';
@@ -403,7 +434,7 @@ export const Schedules: React.FC = () => {
         </span>
       ) 
     },
-    ...(canManageSchedule ? [{
+    ...(canManageSubjectAssignments ? [{
       key: 'actions',
       header: 'Aksi',
       render: (row: SubjectAssignment) => (
@@ -585,7 +616,7 @@ export const Schedules: React.FC = () => {
                   </button>
                 )}
 
-                {canManageSchedule && (
+                {canManageSubjectAssignments && (
                   <button 
                     type="button"
                     className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors shrink-0 ml-auto"

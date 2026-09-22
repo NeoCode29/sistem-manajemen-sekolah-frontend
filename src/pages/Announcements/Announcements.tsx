@@ -6,7 +6,7 @@ import {
   deleteAnnouncement, 
   type Announcement 
 } from '../../api/announcementService';
-import { Megaphone, Plus, Search, Pin, Calendar, Users, Loader2 } from 'lucide-react';
+import { Megaphone, Plus, Search, Pin, Calendar, Users, Loader2, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { PageHeader, Modal, FormField, Badge, type BadgeVariant } from '../../components/ui';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -18,10 +18,31 @@ import { notify } from '../../utils/feedback';
 
 export const Announcements: React.FC = () => {
   const { user } = useAuth();
-  const { hasPermission } = usePermissions();
-  const canCreate = hasPermission('announcements.create') || hasPermission('announcements.write');
-  const canUpdate = hasPermission('announcements.update') || hasPermission('announcements.write');
-  const canDelete = hasPermission('announcements.delete') || hasPermission('announcements.write');
+  const {
+    canCreateAnnouncement,
+    canUpdateAnnouncement,
+    canDeleteAnnouncement,
+    hasPermission,
+  } = usePermissions();
+
+  const isManagementRole = user?.roles?.some((r) =>
+    ['Super Admin', 'Admin Sekolah', 'Kepala Sekolah', 'Staf TU'].includes(r.name),
+  );
+
+  const canCreate =
+    canCreateAnnouncement ||
+    isManagementRole ||
+    hasPermission('announcements.create') ||
+    hasPermission('announcements.write');
+  const canUpdate =
+    canUpdateAnnouncement ||
+    isManagementRole ||
+    hasPermission('announcements.update') ||
+    hasPermission('announcements.write');
+  const canDelete =
+    canDeleteAnnouncement ||
+    isManagementRole ||
+    hasPermission('announcements.delete');
   const hasActions = canUpdate || canDelete;
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -118,6 +139,14 @@ export const Announcements: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingId && !canUpdate) {
+      notify.error(null, 'Anda tidak memiliki izin untuk mengubah pengumuman');
+      return;
+    }
+    if (!editingId && !canCreate) {
+      notify.error(null, 'Anda tidak memiliki izin untuk membuat pengumuman');
+      return;
+    }
     try {
       setIsSubmitting(true);
       const payload = {
@@ -144,6 +173,10 @@ export const Announcements: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (!canDelete) {
+      notify.error(null, 'Anda tidak memiliki izin untuk menghapus pengumuman');
+      return;
+    }
     setConfirmDialog({
       open: true,
       title: 'Hapus Pengumuman',
@@ -277,22 +310,40 @@ export const Announcements: React.FC = () => {
       />
 
       {/* Filter & Search Bar */}
-      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-4 md:p-5">
-        <div className="max-w-md">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Pencarian Pengumuman</label>
-          <div className="relative">
-            <input 
-              type="text" 
-              className="input-std pl-10" 
-              placeholder="Cari judul atau isi pengumuman..." 
-              value={search} 
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1);
-              }} 
-            />
-            <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400" size={17} />
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4">
+          <div className="flex-1 max-w-lg">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+              Pencarian Pengumuman
+            </label>
+            <div className="relative group">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" size={17} />
+              <input 
+                type="text" 
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium" 
+                placeholder="Cari judul, isi, atau target audiens pengumuman..." 
+                value={search} 
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }} 
+              />
+            </div>
           </div>
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setCurrentPage(1);
+              }}
+              className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-rose-200 shadow-sm self-stretch sm:self-end cursor-pointer shrink-0"
+              title="Reset pencarian"
+            >
+              <RotateCcw size={14} />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       </div>
 

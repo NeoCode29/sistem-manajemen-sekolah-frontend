@@ -35,7 +35,7 @@ export const Sidebar: React.FC = () => {
   // Akademik & Kurikulum
   const canSubjects = canReadResource('subjects');
   const canClassPeriods = canReadResource('class_periods');
-  const canSchedules = canReadResource('schedules');
+  const canSchedules = canReadResource('schedules') || hasPermission('employees.assign_subjects');
   const canPromotions = canReadResource('promotions');
   const canGraduations = canReadResource('graduations');
 
