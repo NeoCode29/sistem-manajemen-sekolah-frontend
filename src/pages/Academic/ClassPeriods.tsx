@@ -325,7 +325,7 @@ export const ClassPeriods: React.FC = () => {
         open={showModal}
         onClose={handleCloseModal}
         title={isEditing ? 'Edit Jam Pelajaran' : 'Tambah Jam Pelajaran Baru'}
-        size="md"
+        size="lg"
       >
         <form id="period-form" onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

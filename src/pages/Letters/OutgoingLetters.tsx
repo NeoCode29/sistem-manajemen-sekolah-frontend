@@ -132,7 +132,7 @@ export const OutgoingLetters: React.FC = () => {
       if (editingId) {
         savedLetter = await updateOutgoingLetter(editingId, payload);
       } else {
-        savedLetter = await createOutgoingLetter({ ...payload, issuedById: user?.id?.toString() || '1' });
+        savedLetter = await createOutgoingLetter({ ...payload, issuedById: user?.employeeId?.toString() || '1' });
       }
 
       if (selectedFile && savedLetter?.id) {

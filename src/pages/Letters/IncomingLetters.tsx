@@ -137,7 +137,7 @@ export const IncomingLetters: React.FC = () => {
       if (editingId) {
         await updateIncomingLetter(editingId, payload);
       } else {
-        const newLetter = await createIncomingLetter({ ...payload, recordedById: user?.id?.toString() || '1' });
+        const newLetter = await createIncomingLetter({ ...payload, recordedById: user?.employeeId?.toString() || '1' });
         letterId = newLetter.id;
       }
 

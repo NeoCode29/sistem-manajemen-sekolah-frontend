@@ -30,7 +30,8 @@ import {
   Mail,
   Sliders,
   RotateCcw,
-  Loader2
+  Loader2,
+  ChevronDown
 } from 'lucide-react';
 import { PageHeader, Modal, FormField, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -57,6 +58,16 @@ export const Roles: React.FC = () => {
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [selectedPermIds, setSelectedPermIds] = useState<string[]>([]);
   const [originalPermIds, setOriginalPermIds] = useState<string[]>([]);
+
+  // Accordion: Set of group IDs yang sedang di-collapse
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const toggleGroupCollapse = (groupId: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId); else next.add(groupId);
+      return next;
+    });
+  };
 
   // Filtering & Search State
   const [roleSearch, setRoleSearch] = useState('');
@@ -635,15 +646,19 @@ export const Roles: React.FC = () => {
                   return (
                     <div key={group.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                       {/* Group Header */}
-                      <div className="p-4 bg-gray-50/70 border-b border-gray-100 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-white border border-gray-200 shadow-xs flex items-center justify-center">
+                      <div className="bg-gray-50/70 border-b border-gray-100 flex items-center">
+                        {/* Klik area kiri untuk toggle collapse */}
+                        <div
+                          onClick={() => toggleGroupCollapse(group.id)}
+                          className="flex-1 flex items-center gap-3 p-4 cursor-pointer select-none hover:bg-gray-100/70 transition-colors min-w-0"
+                        >
+                          <div className="w-8 h-8 rounded-xl bg-white border border-gray-200 shadow-xs flex items-center justify-center shrink-0">
                             {renderGroupIcon(group.icon)}
                           </div>
-                          <div>
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <h3 className="text-sm font-bold text-gray-900">{group.name}</h3>
-                              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
                                 activeInGroup > 0 
                                 ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' 
                                 : 'bg-gray-100 text-gray-500'
@@ -654,64 +669,76 @@ export const Roles: React.FC = () => {
                             <p className="text-[11px] text-gray-500 mt-0.5">{group.description}</p>
                           </div>
                         </div>
-
-                        {!isSuperAdmin && canManageRbac && (
-                          <button
-                            type="button"
-                            onClick={() => toggleGroup(group)}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-xl border border-gray-200 bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-colors text-gray-600 cursor-pointer"
-                          >
-                            {allGroupSelected ? (
-                              <>
-                                <Check size={12} className="text-indigo-600" /> Batal Pilih
-                              </>
-                            ) : (
-                              <>
-                                <Plus size={12} /> Pilih Semua
-                              </>
-                            )}
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Group Permissions Checkbox Grid */}
-                      <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                        {filteredGroupPerms.map((perm) => {
-                          const permObj = permNameToObject.get(perm.name);
-                          const permId = permObj ? String(permObj.id) : null;
-                          const isChecked = isSuperAdmin || (permId ? selectedPermIds.includes(permId) : false);
-
-                          return (
-                            <label
-                              key={perm.name}
-                              className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
-                                isChecked
-                                  ? 'bg-indigo-50/50 border-indigo-200 shadow-xs'
-                                  : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50/50'
-                              } ${isSuperAdmin ? 'cursor-default opacity-85' : ''}`}
+                        {/* Area tombol — lebar tetap agar chevron selalu rata */}
+                        <div className="w-32 shrink-0 flex items-center justify-end pr-3 select-auto">
+                          {!isSuperAdmin && canManageRbac && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleGroup(group); }}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-xl border border-gray-200 bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-colors text-gray-600 cursor-pointer select-auto"
                             >
-                              <input 
-                                type="checkbox" 
-                                checked={isChecked}
-                                disabled={isSuperAdmin || !canManageRbac || !permId}
-                                onChange={() => permId && togglePermission(permId)}
-                                className="mt-0.5 w-4 h-4 rounded text-indigo-600 border-gray-300 focus:ring-indigo-500 shrink-0"
-                              />
-                              <div className="min-w-0">
-                                <div className="text-xs font-semibold text-gray-900 flex items-center justify-between">
-                                  <span>{perm.label}</span>
-                                </div>
-                                <div className="text-[11px] font-mono text-gray-400 mt-0.5 truncate" title={perm.name}>
-                                  {perm.name}
-                                </div>
-                                <div className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">
-                                  {perm.description}
-                                </div>
-                              </div>
-                            </label>
-                          );
-                        })}
+                              {allGroupSelected ? (
+                                <><Check size={12} className="text-indigo-600" /> Batal Pilih</>
+                              ) : (
+                                <><Plus size={12} /> Pilih Semua</>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                        {/* Chevron — selalu di posisi sama (paling kanan, lebar tetap) */}
+                        <div
+                          onClick={() => toggleGroupCollapse(group.id)}
+                          className="w-10 shrink-0 flex items-center justify-center self-stretch cursor-pointer hover:bg-gray-100/70 transition-colors border-l border-gray-100"
+                        >
+                          <ChevronDown
+                            size={16}
+                            className={`text-gray-400 transition-transform duration-200 ${
+                              collapsedGroups.has(group.id) ? '' : 'rotate-180'
+                            }`}
+                          />
+                        </div>
                       </div>
+
+                      {/* Group Permissions Checkbox Grid — tersembunyi jika collapsed */}
+                      {!collapsedGroups.has(group.id) && (
+                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                          {filteredGroupPerms.map((perm) => {
+                            const permObj = permNameToObject.get(perm.name);
+                            const permId = permObj ? String(permObj.id) : null;
+                            const isChecked = isSuperAdmin || (permId ? selectedPermIds.includes(permId) : false);
+
+                            return (
+                              <label
+                                key={perm.name}
+                                className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                                  isChecked
+                                    ? 'bg-indigo-50/50 border-indigo-200 shadow-xs'
+                                    : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50/50'
+                                } ${isSuperAdmin ? 'cursor-default opacity-85' : ''}`}
+                              >
+                                <input 
+                                  type="checkbox" 
+                                  checked={isChecked}
+                                  disabled={isSuperAdmin || !canManageRbac || !permId}
+                                  onChange={() => permId && togglePermission(permId)}
+                                  className="mt-0.5 w-4 h-4 rounded text-indigo-600 border-gray-300 focus:ring-indigo-500 shrink-0"
+                                />
+                                <div className="min-w-0">
+                                  <div className="text-xs font-semibold text-gray-900 flex items-center justify-between">
+                                    <span>{perm.label}</span>
+                                  </div>
+                                  <div className="text-[11px] font-mono text-gray-400 mt-0.5 truncate" title={perm.name}>
+                                    {perm.name}
+                                  </div>
+                                  <div className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">
+                                    {perm.description}
+                                  </div>
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
