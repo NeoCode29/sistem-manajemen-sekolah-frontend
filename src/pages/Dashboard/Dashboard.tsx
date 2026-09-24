@@ -479,42 +479,15 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Slider Container Bergeser ke Samping Kanan dengan Proteksi Overflow & Edge Mask */}
-          <div className="relative group/carousel w-full min-w-0 max-w-full overflow-hidden">
-            {/* Left Fade Gradient Mask when scrolled */}
+          {/* Slider Container Bergeser ke Samping Kanan dengan Proteksi Overflow */}
+          <div className="relative w-full min-w-0 max-w-full overflow-hidden">
+            {/* Soft Edge Fade Mask (Halus & Rapi) */}
             {canScrollLeft && (
-              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-white via-white/80 to-transparent z-10 transition-opacity duration-300 rounded-l-2xl" />
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white/90 to-transparent z-10 transition-opacity duration-200" />
             )}
 
-            {/* Right Fade Gradient Mask when items exceed container */}
             {canScrollRight && (
-              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white via-white/80 to-transparent z-10 transition-opacity duration-300 rounded-r-2xl" />
-            )}
-
-            {/* Floating Left Button */}
-            {canScrollLeft && (
-              <button
-                type="button"
-                onClick={() => scrollSlider('left')}
-                className="absolute left-1.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/95 hover:bg-white text-slate-700 shadow-md border border-slate-200/80 flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-xs"
-                title="Geser sebelumnya"
-                aria-label="Geser sebelumnya"
-              >
-                <ChevronLeft size={16} />
-              </button>
-            )}
-
-            {/* Floating Right Button */}
-            {canScrollRight && (
-              <button
-                type="button"
-                onClick={() => scrollSlider('right')}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/95 hover:bg-white text-slate-700 shadow-md border border-slate-200/80 flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-xs"
-                title="Geser selanjutnya"
-                aria-label="Geser selanjutnya"
-              >
-                <ChevronRight size={16} />
-              </button>
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white/90 to-transparent z-10 transition-opacity duration-200" />
             )}
 
             {/* Slider Track */}
