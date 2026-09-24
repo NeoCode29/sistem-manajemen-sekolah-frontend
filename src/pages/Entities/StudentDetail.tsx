@@ -41,6 +41,7 @@ import {
   ChevronRight, HeartPulse, Bus, DollarSign, Home, Shield, Activity, Search, X
 } from 'lucide-react';
 import { Modal, FormField, Badge, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
+import { SearchableDropdown } from '../../components/ui/SearchableDropdown';
 import { notify } from '../../utils/feedback';
 import { usePermissions } from '../../hooks/usePermissions';
 import { 
@@ -1741,15 +1742,13 @@ export const StudentDetail: React.FC = () => {
                 </div>
                 <div className="md:col-span-2">
                   <FormField label="Kebutuhan Khusus">
-                    <select 
-                      className="input-std" 
-                      value={editProfilData.specialNeeds || ''} 
-                      onChange={(e)=>setEditProfilData({...editProfilData, specialNeeds: e.target.value})}
-                    >
-                      {SPECIAL_NEEDS_OPTIONS.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
+                    <SearchableDropdown
+                      options={SPECIAL_NEEDS_OPTIONS}
+                      value={editProfilData.specialNeeds || ''}
+                      onChange={(val) => setEditProfilData({...editProfilData, specialNeeds: val})}
+                      placeholder="-- Pilih Kebutuhan Khusus --"
+                      maxVisible={5}
+                    />
                   </FormField>
                 </div>
                 <div className="md:col-span-3">
@@ -1800,58 +1799,46 @@ export const StudentDetail: React.FC = () => {
                   </span>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField label="Provinsi">
-                      <select 
-                        className="input-std" 
-                        value={editProfilData.province || ''} 
-                        onChange={(e)=>handleProvinceChange(e.target.value)}
-                      >
-                        <option value="">-- Pilih Provinsi --</option>
-                        {provinces.map(p => (
-                          <option key={p.code} value={p.name}>{p.name}</option>
-                        ))}
-                      </select>
+                      <SearchableDropdown
+                        options={provinces.map(p => p.name)}
+                        value={editProfilData.province || ''}
+                        onChange={(val) => handleProvinceChange(val)}
+                        placeholder="-- Pilih Provinsi --"
+                        maxVisible={6}
+                      />
                     </FormField>
 
                     <FormField label="Kabupaten / Kota">
-                      <select 
-                        className="input-std" 
+                      <SearchableDropdown
+                        options={regencies.map(r => r.name)}
+                        value={editProfilData.city || ''}
+                        onChange={(val) => handleRegencyChange(val)}
+                        placeholder={regencies.length === 0 ? '-- Pilih Provinsi Terlebih Dahulu --' : '-- Pilih Kabupaten/Kota --'}
                         disabled={!editProfilData.province || regencies.length === 0}
-                        value={editProfilData.city || ''} 
-                        onChange={(e)=>handleRegencyChange(e.target.value)}
-                      >
-                        <option value="">{regencies.length === 0 ? '-- Pilih Provinsi Terlebih Dahulu --' : '-- Pilih Kabupaten/Kota --'}</option>
-                        {regencies.map(r => (
-                          <option key={r.code} value={r.name}>{r.name}</option>
-                        ))}
-                      </select>
+                        maxVisible={6}
+                      />
                     </FormField>
 
                     <FormField label="Kecamatan">
-                      <select 
-                        className="input-std" 
+                      <SearchableDropdown
+                        options={districts.map(d => d.name)}
+                        value={editProfilData.district || ''}
+                        onChange={(val) => handleDistrictChange(val)}
+                        placeholder={districts.length === 0 ? '-- Pilih Kab/Kota Terlebih Dahulu --' : '-- Pilih Kecamatan --'}
                         disabled={!editProfilData.city || districts.length === 0}
-                        value={editProfilData.district || ''} 
-                        onChange={(e)=>handleDistrictChange(e.target.value)}
-                      >
-                        <option value="">{districts.length === 0 ? '-- Pilih Kab/Kota Terlebih Dahulu --' : '-- Pilih Kecamatan --'}</option>
-                        {districts.map(d => (
-                          <option key={d.code} value={d.name}>{d.name}</option>
-                        ))}
-                      </select>
+                        maxVisible={6}
+                      />
                     </FormField>
 
                     <FormField label="Kelurahan / Desa">
-                      <select 
-                        className="input-std" 
+                      <SearchableDropdown
+                        options={villages.map(v => v.name)}
+                        value={editProfilData.village || ''}
+                        onChange={(val) => setEditProfilData({...editProfilData, village: val})}
+                        placeholder={villages.length === 0 ? '-- Pilih Kecamatan Terlebih Dahulu --' : '-- Pilih Desa/Kelurahan --'}
                         disabled={!editProfilData.district || villages.length === 0}
-                        value={editProfilData.village || ''} 
-                        onChange={(e)=>setEditProfilData({...editProfilData, village: e.target.value})}
-                      >
-                        <option value="">{villages.length === 0 ? '-- Pilih Kecamatan Terlebih Dahulu --' : '-- Pilih Desa/Kelurahan --'}</option>
-                        {villages.map(v => (
-                          <option key={v.code} value={v.name}>{v.name}</option>
-                        ))}
-                      </select>
+                        maxVisible={6}
+                      />
                     </FormField>
                   </div>
                 </div>
@@ -1861,16 +1848,13 @@ export const StudentDetail: React.FC = () => {
                   <span className="text-xs font-bold text-gray-800 uppercase tracking-wider block mb-3">Transportasi & Jarak</span>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField label="Moda Transportasi">
-                      <select 
-                        className="input-std" 
-                        value={editProfilData.transportation || ''} 
-                        onChange={(e)=>setEditProfilData({...editProfilData, transportation: e.target.value})}
-                      >
-                        <option value="">-- Pilih Transportasi --</option>
-                        {TRANSPORTATION_OPTIONS.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
+                      <SearchableDropdown
+                        options={TRANSPORTATION_OPTIONS}
+                        value={editProfilData.transportation || ''}
+                        onChange={(val) => setEditProfilData({...editProfilData, transportation: val})}
+                        placeholder="-- Pilih Transportasi --"
+                        maxVisible={6}
+                      />
                     </FormField>
                     <FormField label="Jarak ke Sekolah (km)">
                       <input 
@@ -2219,15 +2203,13 @@ export const StudentDetail: React.FC = () => {
             </FormField>
 
             <FormField label="Kebutuhan Khusus">
-              <select 
-                className="input-std" 
-                value={guardianData.specialNeeds || ''} 
-                onChange={(e)=>setGuardianData({...guardianData, specialNeeds: e.target.value})}
-              >
-                {SPECIAL_NEEDS_OPTIONS.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
+              <SearchableDropdown
+                options={SPECIAL_NEEDS_OPTIONS}
+                value={guardianData.specialNeeds || ''}
+                onChange={(val) => setGuardianData({...guardianData, specialNeeds: val})}
+                placeholder="-- Pilih Kebutuhan Khusus --"
+                maxVisible={5}
+              />
             </FormField>
 
             <FormField label="No. Telepon / WhatsApp">
