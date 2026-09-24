@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { 
   getAnnouncements, 
   createAnnouncement, 
@@ -6,7 +6,22 @@ import {
   deleteAnnouncement, 
   type Announcement 
 } from '../../api/announcementService';
-import { Megaphone, Plus, Search, Pin, Calendar, Users, Loader2, RotateCcw } from 'lucide-react';
+import { 
+  Megaphone, 
+  Plus, 
+  Search, 
+  Pin, 
+  Calendar, 
+  Users, 
+  Loader2, 
+  RotateCcw,
+  Paperclip,
+  Image as ImageIcon,
+  FileText,
+  UploadCloud,
+  X,
+  Trash2
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { PageHeader, Modal, FormField, Badge, type BadgeVariant } from '../../components/ui';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -15,6 +30,7 @@ import { ActionButtons } from '../../components/Common/ActionButtons';
 import { Pagination } from '../../components/Common/Pagination';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify } from '../../utils/feedback';
+import { AnnouncementDetailModal } from './AnnouncementDetailModal';
 
 export const Announcements: React.FC = () => {
   const { user } = useAuth();
@@ -43,13 +59,28 @@ export const Announcements: React.FC = () => {
     canDeleteAnnouncement ||
     isManagementRole ||
     hasPermission('announcements.delete');
-  const hasActions = canUpdate || canDelete;
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [search, setSearch] = useState('');
+
+  // Detail Modal State
+  const [selectedAnnouncementForDetail, setSelectedAnnouncementForDetail] = useState<Announcement | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // File Upload State
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [posterPreview, setPosterPreview] = useState<string | null>(null);
+  const [existingPosterUrl, setExistingPosterUrl] = useState<string | null>(null);
+  const [existingAttachmentName, setExistingAttachmentName] = useState<string | null>(null);
+  const [removePoster, setRemovePoster] = useState(false);
+  const [removeAttachment, setRemoveAttachment] = useState(false);
+
+  const posterInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -80,6 +111,8 @@ export const Announcements: React.FC = () => {
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const apiBaseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+
   useEffect(() => {
     fetchAnnouncements();
   }, []);
@@ -97,6 +130,16 @@ export const Announcements: React.FC = () => {
   };
 
   const openModal = (announcement?: Announcement) => {
+    // Reset file states
+    setPosterFile(null);
+    setAttachmentFile(null);
+    setRemovePoster(false);
+    setRemoveAttachment(false);
+
+    if (posterPreview && !posterPreview.startsWith('http')) {
+      URL.revokeObjectURL(posterPreview);
+    }
+
     if (announcement) {
       setFormData({
         title: announcement.title,
@@ -108,6 +151,9 @@ export const Announcements: React.FC = () => {
         expireDate: announcement.expireDate ? new Date(announcement.expireDate).toISOString().split('T')[0] : '',
       });
       setEditingId(announcement.id);
+      setExistingPosterUrl(announcement.posterUrl ? `${apiBaseUrl}${announcement.posterUrl}` : null);
+      setPosterPreview(announcement.posterUrl ? `${apiBaseUrl}${announcement.posterUrl}` : null);
+      setExistingAttachmentName(announcement.attachmentName || null);
     } else {
       setFormData({
         title: '',
@@ -118,6 +164,9 @@ export const Announcements: React.FC = () => {
         publishDate: new Date().toISOString().split('T')[0],
       });
       setEditingId(null);
+      setExistingPosterUrl(null);
+      setPosterPreview(null);
+      setExistingAttachmentName(null);
     }
     setIsModalOpen(true);
   };
@@ -125,6 +174,16 @@ export const Announcements: React.FC = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
+    if (posterPreview && !posterPreview.startsWith('http')) {
+      URL.revokeObjectURL(posterPreview);
+    }
+    setPosterPreview(null);
+    setPosterFile(null);
+    setAttachmentFile(null);
+    setExistingPosterUrl(null);
+    setExistingAttachmentName(null);
+    setRemovePoster(false);
+    setRemoveAttachment(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -137,6 +196,78 @@ export const Announcements: React.FC = () => {
     }
   };
 
+  const handlePosterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validasi tipe berkas
+    if (!file.type.match(/image\/(jpeg|png|webp)/i)) {
+      notify.error(null, 'Format poster harus berupa gambar (JPG, PNG, atau WEBP)');
+      return;
+    }
+
+    // Validasi ukuran berkas (maks 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      notify.error(null, 'Ukuran poster tidak boleh melebihi 5 MB');
+      return;
+    }
+
+    setPosterFile(file);
+    setRemovePoster(false);
+    if (posterPreview && !posterPreview.startsWith('http')) {
+      URL.revokeObjectURL(posterPreview);
+    }
+    setPosterPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemovePoster = () => {
+    if (posterPreview && !posterPreview.startsWith('http')) {
+      URL.revokeObjectURL(posterPreview);
+    }
+    setPosterFile(null);
+    setPosterPreview(null);
+    setRemovePoster(true);
+    if (posterInputRef.current) {
+      posterInputRef.current.value = '';
+    }
+  };
+
+  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validasi ekstensi
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!['pdf', 'doc', 'docx'].includes(ext || '')) {
+      notify.error(null, 'Format dokumen lampiran harus berupa PDF, DOC, atau DOCX');
+      return;
+    }
+
+    // Validasi ukuran berkas (maks 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      notify.error(null, 'Ukuran dokumen lampiran tidak boleh melebihi 10 MB');
+      return;
+    }
+
+    setAttachmentFile(file);
+    setRemoveAttachment(false);
+  };
+
+  const handleRemoveAttachment = () => {
+    setAttachmentFile(null);
+    setRemoveAttachment(true);
+    if (attachmentInputRef.current) {
+      attachmentInputRef.current.value = '';
+    }
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingId && !canUpdate) {
@@ -147,19 +278,42 @@ export const Announcements: React.FC = () => {
       notify.error(null, 'Anda tidak memiliki izin untuk membuat pengumuman');
       return;
     }
+
     try {
       setIsSubmitting(true);
-      const payload = {
-        ...formData,
-        publishDate: formData.publishDate ? new Date(formData.publishDate).toISOString() : undefined,
-        expireDate: formData.expireDate ? new Date(formData.expireDate).toISOString() : undefined,
-      };
+      const dataPayload = new FormData();
+      dataPayload.append('title', formData.title || '');
+      dataPayload.append('content', formData.content || '');
+      dataPayload.append('targetAudience', formData.targetAudience || 'SEMUA');
+      dataPayload.append('isPinned', String(!!formData.isPinned));
+      dataPayload.append('isActive', String(formData.isActive !== undefined ? formData.isActive : true));
+
+      if (formData.publishDate) {
+        dataPayload.append('publishDate', new Date(formData.publishDate).toISOString());
+      }
+      if (formData.expireDate) {
+        dataPayload.append('expireDate', new Date(formData.expireDate).toISOString());
+      }
+
+      if (posterFile) {
+        dataPayload.append('poster', posterFile);
+      }
+      if (attachmentFile) {
+        dataPayload.append('attachment', attachmentFile);
+      }
 
       if (editingId) {
-        await updateAnnouncement(editingId, payload);
+        if (removePoster) {
+          dataPayload.append('removePoster', 'true');
+        }
+        if (removeAttachment) {
+          dataPayload.append('removeAttachment', 'true');
+        }
+        await updateAnnouncement(editingId, dataPayload);
         notify.success('Pengumuman berhasil diperbarui');
       } else {
-        await createAnnouncement({ ...payload, createdById: user?.employeeId?.toString() || '1' });
+        dataPayload.append('createdById', user?.employeeId?.toString() || '1');
+        await createAnnouncement(dataPayload);
         notify.success('Pengumuman baru berhasil disebarkan');
       }
       
@@ -180,7 +334,7 @@ export const Announcements: React.FC = () => {
     setConfirmDialog({
       open: true,
       title: 'Hapus Pengumuman',
-      message: 'Apakah Anda yakin ingin menghapus pengumuman ini? Pengumuman tidak akan lagi dapat diakses oleh audiens.',
+      message: 'Apakah Anda yakin ingin menghapus pengumuman ini? Berkas poster dan lampiran terkait juga akan dihapus permanen.',
       variant: 'danger',
       action: async () => {
         try {
@@ -225,13 +379,22 @@ export const Announcements: React.FC = () => {
       header: 'Pengumuman', 
       render: (item) => (
         <div className="flex items-start gap-3">
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
-            item.isPinned 
-              ? 'bg-amber-50 text-amber-600 border-amber-200' 
-              : 'bg-indigo-50 text-indigo-600 border-indigo-100'
-          }`}>
-            <Megaphone size={17} />
-          </div>
+          {item.posterUrl ? (
+            <img 
+              src={`${apiBaseUrl}${item.posterUrl}`} 
+              alt={item.title} 
+              className="w-10 h-10 rounded-xl object-cover shrink-0 border border-slate-200 shadow-sm"
+            />
+          ) : (
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+              item.isPinned 
+                ? 'bg-amber-50 text-amber-600 border-amber-200' 
+                : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+            }`}>
+              <Megaphone size={18} />
+            </div>
+          )}
+
           <div className="overflow-hidden">
             <p className="font-bold text-sm text-slate-900 flex items-center gap-2">
               <span className="truncate">{item.title}</span>
@@ -244,6 +407,14 @@ export const Announcements: React.FC = () => {
             <p className="text-xs text-slate-500 mt-0.5 truncate max-w-sm" title={item.content}>
               {item.content}
             </p>
+            {item.attachmentUrl && (
+              <div className="mt-1">
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-700 bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-100">
+                  <Paperclip size={10} className="text-indigo-500" />
+                  <span className="truncate max-w-[200px]">{item.attachmentName || 'Lampiran Dokumen'}</span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )
@@ -282,69 +453,73 @@ export const Announcements: React.FC = () => {
         </div>
       )
     },
-    ...(hasActions ? [{
-      key: 'actions',
-      header: 'Aksi',
+    {
+      key: 'actions', 
+      header: 'Aksi', 
       render: (item: Announcement) => (
         <div className="flex justify-end">
           <ActionButtons 
+            onView={() => {
+              setSelectedAnnouncementForDetail(item);
+              setIsDetailModalOpen(true);
+            }}
             onEdit={canUpdate ? () => openModal(item) : undefined}
             onDelete={canDelete ? () => handleDelete(item.id) : undefined}
           />
         </div>
       )
-    }] : [])
+    }
   ];
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 page-enter">
-      <PageHeader 
-        title="Papan Pengumuman" 
-        subtitle="Kelola dan publikasikan pengumuman resmi untuk siswa, guru, dan staf sekolah."
-        action={canCreate ? (
-          <button className="btn-std-primary flex items-center gap-2" onClick={() => openModal()}>
-            <Plus size={18} />
-            <span>Buat Pengumuman</span>
-          </button>
-        ) : undefined}
+      {/* PageHeader Standar */}
+      <PageHeader
+        title="Pengumuman Sekolah"
+        subtitle="Publikasikan informasi penting, surat edaran, dan agenda kegiatan sekolah untuk siswa, guru, maupun staf."
+        action={
+          canCreate ? (
+            <button
+              onClick={() => openModal()}
+              className="btn-std-primary flex items-center gap-2"
+            >
+              <Plus size={16} />
+              <span>Buat Pengumuman</span>
+            </button>
+          ) : undefined
+        }
       />
 
-      {/* Filter & Search Bar */}
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4">
-          <div className="flex-1 max-w-lg">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
-              Pencarian Pengumuman
-            </label>
-            <div className="relative group">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" size={17} />
-              <input 
-                type="text" 
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium" 
-                placeholder="Cari judul, isi, atau target audiens pengumuman..." 
-                value={search} 
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }} 
-              />
-            </div>
-          </div>
-          {search && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch('');
+      {/* Filter Bar Bergaya Hardware Logs Filter Pattern */}
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-4 md:p-5 flex flex-wrap gap-4 items-end">
+        <div className="flex-1 min-w-[240px]">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Pencarian Pengumuman
+          </label>
+          <div className="relative group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
+            <input
+              type="text"
+              placeholder="Cari judul, konten, atau target..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-rose-200 shadow-sm self-stretch sm:self-end cursor-pointer shrink-0"
-              title="Reset pencarian"
-            >
-              <RotateCcw size={14} />
-              <span>Reset</span>
-            </button>
-          )}
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
+            />
+          </div>
         </div>
+
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-rose-200 shadow-sm"
+          >
+            <RotateCcw size={14} />
+            <span>Reset Pencarian</span>
+          </button>
+        )}
       </div>
 
       {/* Table Section */}
@@ -372,14 +547,14 @@ export const Announcements: React.FC = () => {
         )}
       </div>
 
-      {/* Modal Form */}
+      {/* Modal Form Pembuatan & Edit */}
       <Modal
         open={isModalOpen}
         onClose={closeModal}
         title={editingId ? 'Edit Pengumuman' : 'Buat Pengumuman Baru'}
         size="lg"
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6 max-h-[80vh] overflow-y-auto">
           <FormField label="Judul Pengumuman" required>
             <input
               type="text"
@@ -396,13 +571,111 @@ export const Announcements: React.FC = () => {
             <textarea
               name="content"
               className="input-std min-h-[120px]"
-              rows={5}
+              rows={4}
               value={formData.content}
               onChange={handleInputChange}
               required
               placeholder="Tuliskan pesan pengumuman secara lengkap dan jelas di sini..."
             />
           </FormField>
+
+          {/* Bagian Unggah Berkas & Media */}
+          <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-4">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <UploadCloud size={15} className="text-indigo-600" />
+              Berkas & Media Lampiran (Opsional)
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Dropzone Upload Poster */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                  <span>Poster / Gambar Cover</span>
+                  <span className="text-[11px] text-slate-400 font-normal">Maks 5 MB (JPG/PNG/WEBP)</span>
+                </label>
+
+                {posterPreview && !removePoster ? (
+                  <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 group">
+                    <img 
+                      src={posterPreview} 
+                      alt="Preview Poster" 
+                      className="w-full h-32 object-cover" 
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemovePoster}
+                      className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm transition-colors"
+                      title="Hapus poster"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-white transition-all text-center">
+                    <ImageIcon size={24} className="text-slate-400" />
+                    <span className="text-xs font-semibold text-indigo-600">Pilih Poster Gambar</span>
+                    <span className="text-[11px] text-slate-400">Klik untuk menjelajah berkas</span>
+                    <input
+                      ref={posterInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handlePosterChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Upload Dokumen SK / Berita Acara */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                  <span>Lampiran Dokumen Resmi (SK/Berita Acara)</span>
+                  <span className="text-[11px] text-slate-400 font-normal">Maks 10 MB (PDF/DOCX)</span>
+                </label>
+
+                {(attachmentFile || (existingAttachmentName && !removeAttachment)) ? (
+                  <div className="p-3 bg-white border border-indigo-200 rounded-xl flex items-center justify-between gap-2 shadow-sm">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                        <FileText size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-800 truncate" title={attachmentFile?.name || existingAttachmentName || ''}>
+                          {attachmentFile?.name || existingAttachmentName}
+                        </p>
+                        {attachmentFile && (
+                          <p className="text-[11px] text-slate-400">
+                            {formatFileSize(attachmentFile.size)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveAttachment}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors shrink-0"
+                      title="Hapus lampiran dokumen"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-white transition-all text-center">
+                    <FileText size={24} className="text-slate-400" />
+                    <span className="text-xs font-semibold text-indigo-600">Pilih Berkas Dokumen</span>
+                    <span className="text-[11px] text-slate-400">PDF, DOC, atau DOCX</span>
+                    <input
+                      ref={attachmentInputRef}
+                      type="file"
+                      accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      onChange={handleAttachmentChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Target Audiens" required>
@@ -462,7 +735,7 @@ export const Announcements: React.FC = () => {
                 type="date"
                 name="publishDate"
                 className="input-std"
-                value={formData.publishDate}
+                value={formData.publishDate || ''}
                 onChange={handleInputChange}
               />
             </FormField>
@@ -472,7 +745,7 @@ export const Announcements: React.FC = () => {
                 type="date"
                 name="expireDate"
                 className="input-std"
-                value={formData.expireDate}
+                value={formData.expireDate || ''}
                 onChange={handleInputChange}
               />
             </FormField>
@@ -498,6 +771,16 @@ export const Announcements: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Detail Pratinjau Modal */}
+      <AnnouncementDetailModal
+        announcement={selectedAnnouncementForDetail}
+        open={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedAnnouncementForDetail(null);
+        }}
+      />
 
       {/* ConfirmDialog */}
       <ConfirmDialog
