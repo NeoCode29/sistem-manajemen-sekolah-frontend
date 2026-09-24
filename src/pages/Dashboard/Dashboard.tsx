@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
@@ -13,7 +13,11 @@ import {
   UserCheck,
   Building2,
   Sparkles,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Paperclip
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getMyAnnouncements } from '../../api/announcementService';
@@ -22,6 +26,7 @@ import { getDashboardSummary } from '../../api/dashboardService';
 import type { DashboardSummary } from '../../api/dashboardService';
 import { GeolocationCheckin } from '../../components/widgets/GeolocationCheckin';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { AnnouncementDetailModal } from '../Announcements/AnnouncementDetailModal';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -32,6 +37,18 @@ export const Dashboard: React.FC = () => {
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+
+  // Announcement Slider & Modal State
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  const scrollSlider = (direction: 'left' | 'right') => {
+    if (sliderRef.current) {
+      const scrollAmount = direction === 'left' ? -340 : 340;
+      sliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     fetchAnnouncements();
@@ -374,54 +391,159 @@ export const Dashboard: React.FC = () => {
 
       </div>
 
-      {/* 5. Pengumuman Sekolah */}
+      {/* 5. Papan Pengumuman Sekolah (Horizontal Slider / Carousel) */}
       {announcements.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6">
-          <div className="flex items-center justify-between gap-4 mb-5 pb-3 border-b border-slate-100">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4">
+          <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2.5 text-indigo-600">
-              <Megaphone size={18} />
-              <h3 className="text-base font-bold text-slate-900">Papan Pengumuman Sekolah</h3>
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                <Megaphone size={18} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 leading-tight">Papan Pengumuman Sekolah</h3>
+                <p className="text-xs text-slate-500 font-normal">Informasi resmi, poster kegiatan, dan surat edaran sekolah</p>
+              </div>
             </div>
-            <button 
-              onClick={() => navigate('/announcements')}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              <span>Lihat Semua</span>
-              <ArrowUpRight size={14} />
-            </button>
+
+            <div className="flex items-center gap-2">
+              {/* Tombol Navigasi Geser (Slide Horizontal) */}
+              <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200/60">
+                <button
+                  type="button"
+                  onClick={() => scrollSlider('left')}
+                  className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors shadow-2xs border border-slate-200/70 cursor-pointer"
+                  title="Geser ke kiri"
+                  aria-label="Geser ke kiri"
+                >
+                  <ChevronLeft size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollSlider('right')}
+                  className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors shadow-2xs border border-slate-200/70 cursor-pointer"
+                  title="Geser ke kanan"
+                  aria-label="Geser ke kanan"
+                >
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+
+              <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+
+              <button 
+                onClick={() => navigate('/announcements')}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1 cursor-pointer px-2.5 py-1.5 rounded-lg hover:bg-indigo-50"
+              >
+                <span>Lihat Semua</span>
+                <ArrowUpRight size={14} />
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {announcements.slice(0, 3).map((ann) => (
-              <div 
-                key={ann.id}
-                onClick={() => navigate('/announcements')}
-                className={`p-5 rounded-2xl border transition-all cursor-pointer hover:shadow-md ${
-                  ann.isPinned 
-                    ? 'bg-amber-50/40 border-amber-200/80 hover:border-amber-300' 
-                    : 'bg-slate-50/50 border-slate-200/80 hover:border-indigo-200'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-indigo-100 text-indigo-700">
-                    {ann.targetAudience || 'UMUM'}
-                  </span>
-                  {ann.isPinned && (
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md">
-                      <Pin size={10} /> Disematkan
-                    </span>
+          {/* Slider Container Bergeser ke Samping Kanan */}
+          <div 
+            ref={sliderRef}
+            className="flex gap-4.5 overflow-x-auto snap-x scroll-smooth pb-2 pt-1"
+            style={{ scrollbarWidth: 'thin' }}
+          >
+            {announcements.map((ann) => {
+              const apiBaseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+              const posterUrl = ann.posterUrl ? `${apiBaseUrl}${ann.posterUrl}` : null;
+              
+              return (
+                <div 
+                  key={ann.id}
+                  onClick={() => {
+                    setSelectedAnnouncement(ann);
+                    setIsDetailOpen(true);
+                  }}
+                  className={`w-[290px] sm:w-[320px] shrink-0 snap-start rounded-2xl border transition-all cursor-pointer hover:shadow-md flex flex-col justify-between overflow-hidden group select-none ${
+                    ann.isPinned 
+                      ? 'bg-amber-50/25 border-amber-200 hover:border-amber-300' 
+                      : 'bg-white border-slate-200/90 hover:border-indigo-300'
+                  }`}
+                >
+                  {/* Poster Banner (Dengan Proteksi Ukuran & Rasio Tetap) */}
+                  {posterUrl ? (
+                    <div className="relative h-36 w-full bg-slate-900 overflow-hidden shrink-0 border-b border-slate-100">
+                      <img 
+                        src={posterUrl} 
+                        alt={ann.title} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-slate-900/85 text-white backdrop-blur-md shadow-xs">
+                          {ann.targetAudience || 'SEMUA'}
+                        </span>
+                        {ann.isPinned && (
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-300 px-2 py-0.5 rounded-md shadow-xs">
+                            <Pin size={10} className="fill-amber-900" /> Semat
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 pb-0 flex items-start justify-between gap-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        {ann.targetAudience || 'SEMUA'}
+                      </span>
+                      {ann.isPinned && (
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                          <Pin size={10} className="fill-amber-600" /> Disematkan
+                        </span>
+                      )}
+                    </div>
                   )}
+
+                  {/* Konten Card dengan Proteksi Teks (Anti-Bleed) */}
+                  <div className="p-4.5 flex-1 flex flex-col justify-between gap-3 min-w-0">
+                    <div className="space-y-1.5 min-w-0">
+                      <h4 className="font-bold text-sm text-slate-900 group-hover:text-indigo-600 transition-colors truncate" title={ann.title}>
+                        {ann.title}
+                      </h4>
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed break-words [overflow-wrap:anywhere]">
+                        {ann.content}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-slate-100">
+                      {/* Chip Dokumen Lampiran Resmi (SK / Berita Acara) */}
+                      {ann.attachmentUrl && (
+                        <div className="flex items-center gap-1.5 text-[11px] font-medium text-indigo-700 bg-indigo-50/80 px-2.5 py-1 rounded-lg border border-indigo-100/80 truncate">
+                          <FileText size={13} className="text-indigo-600 shrink-0" />
+                          <span className="truncate" title={ann.attachmentName || 'Dokumen Resmi'}>
+                            {ann.attachmentName || 'Dokumen Resmi (SK/Surat)'}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <Calendar size={11} />
+                          {new Date(ann.publishDate || ann.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                        <span className="text-indigo-600 font-semibold group-hover:underline flex items-center gap-0.5">
+                          Baca Detail &rarr;
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <h4 className="font-bold text-sm text-slate-900 mb-1 line-clamp-1">{ann.title}</h4>
-                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{ann.content}</p>
-                <div className="mt-3 pt-2 border-t border-slate-200/60 text-[10px] text-slate-400 font-mono">
-                  {new Date(ann.publishDate || ann.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
+
+      {/* Announcement Detail Modal */}
+      <AnnouncementDetailModal
+        announcement={selectedAnnouncement}
+        open={isDetailOpen}
+        onClose={() => {
+          setIsDetailOpen(false);
+          setSelectedAnnouncement(null);
+        }}
+      />
     </div>
   );
 };
