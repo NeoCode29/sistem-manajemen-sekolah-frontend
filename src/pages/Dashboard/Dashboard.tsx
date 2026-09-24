@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
@@ -42,13 +42,37 @@ export const Dashboard: React.FC = () => {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    if (sliderRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  }, []);
 
   const scrollSlider = (direction: 'left' | 'right') => {
     if (sliderRef.current) {
       const scrollAmount = direction === 'left' ? -340 : 340;
       sliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      setTimeout(updateScrollState, 350);
     }
   };
+
+  useEffect(() => {
+    updateScrollState();
+    const el = sliderRef.current;
+    if (el) {
+      el.addEventListener('scroll', updateScrollState, { passive: true });
+      window.addEventListener('resize', updateScrollState);
+      return () => {
+        el.removeEventListener('scroll', updateScrollState);
+        window.removeEventListener('resize', updateScrollState);
+      };
+    }
+  }, [announcements, updateScrollState]);
 
   useEffect(() => {
     fetchAnnouncements();
@@ -394,13 +418,18 @@ export const Dashboard: React.FC = () => {
       {/* 5. Papan Pengumuman Sekolah (Horizontal Slider / Carousel) */}
       {announcements.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4">
-          <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-100">
+          <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-100 flex-wrap">
             <div className="flex items-center gap-2.5 text-indigo-600">
               <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
                 <Megaphone size={18} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900 leading-tight">Papan Pengumuman Sekolah</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-900 leading-tight">Papan Pengumuman Sekolah</h3>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    {announcements.length} Pengumuman
+                  </span>
+                </div>
                 <p className="text-xs text-slate-500 font-normal">Informasi resmi, poster kegiatan, dan surat edaran sekolah</p>
               </div>
             </div>
@@ -411,7 +440,12 @@ export const Dashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => scrollSlider('left')}
-                  className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors shadow-2xs border border-slate-200/70 cursor-pointer"
+                  disabled={!canScrollLeft}
+                  className={`p-1.5 rounded-lg transition-colors shadow-2xs border border-slate-200/70 ${
+                    canScrollLeft 
+                      ? 'bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer' 
+                      : 'bg-slate-100 text-slate-300 cursor-not-allowed border-transparent'
+                  }`}
                   title="Geser ke kiri"
                   aria-label="Geser ke kiri"
                 >
@@ -420,7 +454,12 @@ export const Dashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => scrollSlider('right')}
-                  className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors shadow-2xs border border-slate-200/70 cursor-pointer"
+                  disabled={!canScrollRight}
+                  className={`p-1.5 rounded-lg transition-colors shadow-2xs border border-slate-200/70 ${
+                    canScrollRight 
+                      ? 'bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer' 
+                      : 'bg-slate-100 text-slate-300 cursor-not-allowed border-transparent'
+                  }`}
                   title="Geser ke kanan"
                   aria-label="Geser ke kanan"
                 >
@@ -440,97 +479,156 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Slider Container Bergeser ke Samping Kanan */}
-          <div 
-            ref={sliderRef}
-            className="flex gap-4.5 overflow-x-auto snap-x scroll-smooth pb-2 pt-1"
-            style={{ scrollbarWidth: 'thin' }}
-          >
-            {announcements.map((ann) => {
-              const apiBaseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
-              const posterUrl = ann.posterUrl ? `${apiBaseUrl}${ann.posterUrl}` : null;
-              
-              return (
-                <div 
-                  key={ann.id}
-                  onClick={() => {
-                    setSelectedAnnouncement(ann);
-                    setIsDetailOpen(true);
-                  }}
-                  className={`w-[290px] sm:w-[320px] shrink-0 snap-start rounded-2xl border transition-all cursor-pointer hover:shadow-md flex flex-col justify-between overflow-hidden group select-none ${
-                    ann.isPinned 
-                      ? 'bg-amber-50/25 border-amber-200 hover:border-amber-300' 
-                      : 'bg-white border-slate-200/90 hover:border-indigo-300'
-                  }`}
-                >
-                  {/* Poster Banner (Dengan Proteksi Ukuran & Rasio Tetap) */}
-                  {posterUrl ? (
-                    <div className="relative h-36 w-full bg-slate-900 overflow-hidden shrink-0 border-b border-slate-100">
-                      <img 
-                        src={posterUrl} 
-                        alt={ann.title} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-slate-900/85 text-white backdrop-blur-md shadow-xs">
-                          {ann.targetAudience || 'SEMUA'}
-                        </span>
-                        {ann.isPinned && (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-300 px-2 py-0.5 rounded-md shadow-xs">
-                            <Pin size={10} className="fill-amber-900" /> Semat
+          {/* Slider Container Bergeser ke Samping Kanan dengan Proteksi Overflow & Edge Mask */}
+          <div className="relative group/carousel">
+            {/* Left Fade Gradient Mask when scrolled */}
+            {canScrollLeft && (
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-white via-white/80 to-transparent z-10 transition-opacity duration-300 rounded-l-2xl" />
+            )}
+
+            {/* Right Fade Gradient Mask when items exceed container */}
+            {canScrollRight && (
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white via-white/80 to-transparent z-10 transition-opacity duration-300 rounded-r-2xl" />
+            )}
+
+            {/* Floating Left Button */}
+            {canScrollLeft && (
+              <button
+                type="button"
+                onClick={() => scrollSlider('left')}
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/95 hover:bg-white text-slate-700 shadow-md border border-slate-200/80 flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-xs"
+                title="Geser sebelumnya"
+                aria-label="Geser sebelumnya"
+              >
+                <ChevronLeft size={16} />
+              </button>
+            )}
+
+            {/* Floating Right Button */}
+            {canScrollRight && (
+              <button
+                type="button"
+                onClick={() => scrollSlider('right')}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/95 hover:bg-white text-slate-700 shadow-md border border-slate-200/80 flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-xs"
+                title="Geser selanjutnya"
+                aria-label="Geser selanjutnya"
+              >
+                <ChevronRight size={16} />
+              </button>
+            )}
+
+            {/* Slider Track */}
+            <div 
+              ref={sliderRef}
+              className="flex gap-4.5 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 pt-1 px-1 scroll-pl-1"
+              style={{ scrollbarWidth: 'thin' }}
+            >
+              {announcements.map((ann) => {
+                const apiBaseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+                const posterUrl = ann.posterUrl ? `${apiBaseUrl}${ann.posterUrl}` : null;
+                
+                return (
+                  <div 
+                    key={ann.id}
+                    onClick={() => {
+                      setSelectedAnnouncement(ann);
+                      setIsDetailOpen(true);
+                    }}
+                    className={`w-[290px] sm:w-[320px] h-[360px] shrink-0 snap-start rounded-2xl border transition-all cursor-pointer hover:shadow-md flex flex-col justify-between overflow-hidden group select-none ${
+                      ann.isPinned 
+                        ? 'bg-amber-50/20 border-amber-200 hover:border-amber-300' 
+                        : 'bg-white border-slate-200/90 hover:border-indigo-300'
+                    }`}
+                  >
+                    {/* Poster Banner (Dengan Proteksi Ukuran & Rasio Tetap) */}
+                    {posterUrl ? (
+                      <div className="relative h-36 w-full bg-slate-900 overflow-hidden shrink-0 border-b border-slate-100">
+                        <img 
+                          src={posterUrl} 
+                          alt={ann.title} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-slate-900/85 text-white backdrop-blur-md shadow-xs">
+                            {ann.targetAudience || 'SEMUA'}
                           </span>
-                        )}
+                          {ann.isPinned && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-300 px-2 py-0.5 rounded-md shadow-xs">
+                              <Pin size={10} className="fill-amber-900" /> Semat
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="p-4 pb-0 flex items-start justify-between gap-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100">
-                        {ann.targetAudience || 'SEMUA'}
-                      </span>
-                      {ann.isPinned && (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
-                          <Pin size={10} className="fill-amber-600" /> Disematkan
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Konten Card dengan Proteksi Teks (Anti-Bleed) */}
-                  <div className="p-4.5 flex-1 flex flex-col justify-between gap-3 min-w-0">
-                    <div className="space-y-1.5 min-w-0">
-                      <h4 className="font-bold text-sm text-slate-900 group-hover:text-indigo-600 transition-colors truncate" title={ann.title}>
-                        {ann.title}
-                      </h4>
-                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed break-words [overflow-wrap:anywhere]">
-                        {ann.content}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2 pt-2 border-t border-slate-100">
-                      {/* Chip Dokumen Lampiran Resmi (SK / Berita Acara) */}
-                      {ann.attachmentUrl && (
-                        <div className="flex items-center gap-1.5 text-[11px] font-medium text-indigo-700 bg-indigo-50/80 px-2.5 py-1 rounded-lg border border-indigo-100/80 truncate">
-                          <FileText size={13} className="text-indigo-600 shrink-0" />
-                          <span className="truncate" title={ann.attachmentName || 'Dokumen Resmi'}>
-                            {ann.attachmentName || 'Dokumen Resmi (SK/Surat)'}
+                    ) : (
+                      <div className="relative h-36 w-full bg-gradient-to-br from-indigo-500 via-indigo-600 to-indigo-700 overflow-hidden shrink-0 border-b border-indigo-100 flex items-center justify-center">
+                        <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-white/10 blur-xs pointer-events-none" />
+                        <div className="absolute -left-4 -top-4 w-20 h-20 rounded-full bg-white/10 blur-xs pointer-events-none" />
+                        <div className="flex flex-col items-center justify-center gap-1 text-white/90 z-10">
+                          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-xs">
+                            <Megaphone size={19} className="text-white" />
+                          </div>
+                          <span className="text-[11px] font-semibold tracking-wide text-indigo-100">
+                            Pengumuman Sekolah
                           </span>
                         </div>
-                      )}
+                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap z-10">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-white/25 text-white backdrop-blur-md shadow-xs border border-white/20">
+                            {ann.targetAudience || 'SEMUA'}
+                          </span>
+                          {ann.isPinned && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-300 px-2 py-0.5 rounded-md shadow-xs">
+                              <Pin size={10} className="fill-amber-900" /> Semat
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={11} />
-                          {new Date(ann.publishDate || ann.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
-                        <span className="text-indigo-600 font-semibold group-hover:underline flex items-center gap-0.5">
-                          Baca Detail &rarr;
-                        </span>
+                    {/* Konten Card dengan Proteksi Teks (Anti-Bleed) */}
+                    <div className="p-4 flex-1 flex flex-col justify-between gap-2.5 min-w-0">
+                      <div className="space-y-1 min-w-0">
+                        <h4 
+                          className="font-bold text-sm text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1 break-words [overflow-wrap:anywhere] [word-break:break-word]" 
+                          title={ann.title}
+                        >
+                          {ann.title}
+                        </h4>
+                        <p 
+                          className="text-xs text-slate-500 line-clamp-2 leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word]"
+                          title={ann.content}
+                        >
+                          {ann.content}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2 pt-2 border-t border-slate-100 shrink-0">
+                        {/* Chip Dokumen Lampiran Resmi (SK / Berita Acara) */}
+                        {ann.attachmentUrl ? (
+                          <div className="flex items-center gap-1.5 text-[11px] font-medium text-indigo-700 bg-indigo-50/80 px-2.5 py-1 rounded-lg border border-indigo-100/80 min-w-0">
+                            <FileText size={13} className="text-indigo-600 shrink-0" />
+                            <span className="truncate min-w-0 flex-1" title={ann.attachmentName || 'Dokumen Resmi'}>
+                              {ann.attachmentName || 'Dokumen Resmi (SK/Surat)'}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="h-6" />
+                        )}
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <span className="flex items-center gap-1 shrink-0">
+                            <Calendar size={11} />
+                            {new Date(ann.publishDate || ann.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                          <span className="text-indigo-600 font-semibold group-hover:underline flex items-center gap-0.5 shrink-0">
+                            Baca Detail &rarr;
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

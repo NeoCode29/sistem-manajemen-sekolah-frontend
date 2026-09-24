@@ -53,9 +53,9 @@ export const AnnouncementDetailModal: React.FC<AnnouncementDetailModalProps> = (
       title="Detail Pengumuman"
       size="lg"
     >
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6 max-w-full overflow-hidden min-w-0">
         {/* Header Info */}
-        <div className="space-y-3 pb-4 border-b border-slate-100">
+        <div className="space-y-3 pb-4 border-b border-slate-100 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={getTargetBadgeVariant(announcement.targetAudience)}>
               <span className="flex items-center gap-1">
@@ -75,33 +75,33 @@ export const AnnouncementDetailModal: React.FC<AnnouncementDetailModalProps> = (
             )}
           </div>
 
-          <h2 className="text-xl md:text-2xl font-bold text-slate-900 leading-snug">
+          <h2 className="text-xl md:text-2xl font-bold text-slate-900 leading-snug break-words [overflow-wrap:anywhere] [word-break:break-word]">
             {announcement.title}
           </h2>
 
-          <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs font-medium text-slate-500">
-            <span className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs font-medium text-slate-500 min-w-0">
+            <span className="flex items-center gap-1.5 shrink-0">
               <Calendar size={13} className="text-slate-400" />
               Mulai: {announcement.publishDate ? new Date(announcement.publishDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
             </span>
 
             {announcement.expireDate && (
-              <span className="flex items-center gap-1.5 text-rose-600">
+              <span className="flex items-center gap-1.5 text-rose-600 shrink-0">
                 <Calendar size={13} />
                 Berakhir: {new Date(announcement.expireDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
               </span>
             )}
 
-            <span className="flex items-center gap-1.5">
-              <User size={13} className="text-slate-400" />
-              Diposkan oleh: <strong className="text-slate-700">{announcement.createdBy?.name || announcement.createdBy?.username || 'Staf Admin'}</strong>
+            <span className="flex items-center gap-1.5 min-w-0 break-words">
+              <User size={13} className="text-slate-400 shrink-0" />
+              Diposkan oleh: <strong className="text-slate-700 truncate">{announcement.createdBy?.name || announcement.createdBy?.username || 'Staf Admin'}</strong>
             </span>
           </div>
         </div>
 
         {/* Poster Banner (Jika ada) */}
         {posterFullUrl && (
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             <div className="relative group rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 shadow-sm max-h-[380px] flex items-center justify-center">
               <img
                 src={posterFullUrl}
@@ -121,8 +121,8 @@ export const AnnouncementDetailModal: React.FC<AnnouncementDetailModalProps> = (
           </div>
         )}
 
-        {/* Content Body */}
-        <div className="prose max-w-none text-slate-800 text-sm md:text-base leading-relaxed whitespace-pre-wrap font-normal">
+        {/* Content Body (Anti-Bleed: Break unbroken strings like long repetitive characters) */}
+        <div className="prose max-w-none text-slate-800 text-sm md:text-base leading-relaxed whitespace-pre-wrap font-normal break-words [overflow-wrap:anywhere] [word-break:break-word] max-w-full overflow-hidden">
           {announcement.content}
         </div>
 

@@ -76,7 +76,7 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Body — scrollable */}
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto overflow-x-hidden flex-1 min-w-0">
           {children}
         </div>
 
