@@ -294,10 +294,10 @@ export const Announcements: React.FC = () => {
       dataPayload.append('isPinned', String(!!formData.isPinned));
       dataPayload.append('isActive', String(formData.isActive !== undefined ? formData.isActive : true));
 
-      if (formData.publishDate) {
+      if (formData.publishDate && formData.publishDate.trim() !== '') {
         dataPayload.append('publishDate', new Date(formData.publishDate).toISOString());
       }
-      if (formData.expireDate) {
+      if (formData.expireDate && formData.expireDate.trim() !== '') {
         dataPayload.append('expireDate', new Date(formData.expireDate).toISOString());
       }
 
