@@ -127,7 +127,7 @@ export const Dashboard: React.FC = () => {
   const isEmployee = user?.roles?.some(r => ['Guru / Wali Kelas', 'Staf', 'Kepala Sekolah'].includes(r.name));
 
   return (
-    <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
+    <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6 w-full min-w-0 max-w-full">
       {/* 1. PageHeader Tunggal Elegan */}
       <PageHeader
         title="Dashboard Utama"
@@ -417,7 +417,7 @@ export const Dashboard: React.FC = () => {
 
       {/* 5. Papan Pengumuman Sekolah (Horizontal Slider / Carousel) */}
       {announcements.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 w-full min-w-0 max-w-full overflow-hidden">
           <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-100 flex-wrap">
             <div className="flex items-center gap-2.5 text-indigo-600">
               <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
@@ -480,7 +480,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Slider Container Bergeser ke Samping Kanan dengan Proteksi Overflow & Edge Mask */}
-          <div className="relative group/carousel">
+          <div className="relative group/carousel w-full min-w-0 max-w-full overflow-hidden">
             {/* Left Fade Gradient Mask when scrolled */}
             {canScrollLeft && (
               <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-white via-white/80 to-transparent z-10 transition-opacity duration-300 rounded-l-2xl" />
@@ -520,7 +520,7 @@ export const Dashboard: React.FC = () => {
             {/* Slider Track */}
             <div 
               ref={sliderRef}
-              className="flex gap-4.5 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 pt-1 px-1 scroll-pl-1"
+              className="flex gap-4.5 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 pt-1 px-1 scroll-pl-1 w-full min-w-0 max-w-full"
               style={{ scrollbarWidth: 'thin' }}
             >
               {announcements.map((ann) => {

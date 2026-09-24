@@ -55,11 +55,11 @@ export const Layout: React.FC = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50 w-full max-w-full overflow-x-hidden">
       <Toaster position="top-right" />
       <Sidebar />
-      <div className="flex-1 ml-[260px] flex flex-col">
-        <header className="h-[72px] bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-30">
+      <div className="flex-1 ml-[260px] flex flex-col min-w-0 max-w-[calc(100vw-260px)] overflow-x-hidden">
+        <header className="h-[72px] bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-30 min-w-0 max-w-full">
           <div ref={searchRef} className="relative w-[400px]">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input 
@@ -118,7 +118,7 @@ export const Layout: React.FC = () => {
             </div>
           </div>
         </header>
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-8 min-w-0 max-w-full overflow-x-hidden">
           <Outlet />
         </main>
       </div>

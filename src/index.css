@@ -8,9 +8,10 @@
     @apply box-border m-0 p-0;
   }
   
-  body {
-    @apply bg-gray-100 text-gray-900 antialiased font-sans;
+  html, body {
+    @apply bg-gray-100 text-gray-900 antialiased font-sans max-w-full overflow-x-hidden;
     font-family: var(--font-family);
+    width: 100%;
   }
 
   a {
