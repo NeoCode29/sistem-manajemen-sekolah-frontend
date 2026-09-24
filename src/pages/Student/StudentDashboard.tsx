@@ -89,7 +89,7 @@ export const StudentDashboard: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 page-enter max-w-7xl mx-auto w-full min-w-0 max-w-full">
+    <div className="space-y-6 page-enter max-w-7xl mx-auto w-full min-w-0 max-w-full overflow-x-hidden">
       
       {/* 1. Hero Header Sambutan */}
       <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">

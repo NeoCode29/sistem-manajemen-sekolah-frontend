@@ -27,10 +27,10 @@ export const StudentLayout: React.FC = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50 w-full max-w-full overflow-x-hidden">
       <StudentSidebar />
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen transition-all duration-300">
-        <header className="h-[72px] bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-end px-6 lg:px-8 sticky top-0 z-30 shadow-sm">
+      <div className="flex-1 ml-[260px] flex flex-col min-h-screen min-w-0 max-w-[calc(100vw-260px)] overflow-x-hidden">
+        <header className="h-[72px] bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-end px-6 lg:px-8 sticky top-0 z-30 shadow-sm min-w-0 max-w-full">
           <div className="flex items-center gap-6">
             {activeAy && activeSem && (
               <div className="hidden sm:flex items-center bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide border border-indigo-100 shadow-sm">
@@ -50,7 +50,7 @@ export const StudentLayout: React.FC = () => {
             </div>
           </div>
         </header>
-        <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0 max-w-full overflow-x-hidden">
           <Outlet />
         </main>
       </div>
