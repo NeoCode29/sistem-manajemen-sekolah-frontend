@@ -104,6 +104,19 @@ export const GuardianDashboardView: React.FC<GuardianDashboardViewProps> = ({
             </div>
           </div>
         );
+      case 'TERLAMBAT':
+        return (
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 shadow-2xs">
+            <AlertCircle size={18} className="text-amber-600 shrink-0" />
+            <div className="min-w-0">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-900 block">Hadir (Terlambat)</span>
+              <span className="text-xs text-amber-700 font-medium">
+                Masuk: {todayAttendance.checkinTime ? `pkl ${todayAttendance.checkinTime} WIB` : '-'}
+                {todayAttendance.checkoutTime && ` • Pulang: pkl ${todayAttendance.checkoutTime} WIB`}
+              </span>
+            </div>
+          </div>
+        );
       case 'SAKIT':
         return (
           <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 shadow-2xs">
