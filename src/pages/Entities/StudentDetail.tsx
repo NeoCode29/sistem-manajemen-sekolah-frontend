@@ -544,7 +544,7 @@ export const StudentDetail: React.FC = () => {
       if (guardianData.address) payload.address = guardianData.address;
 
       if (editingGuardian?.id) {
-        await updateGuardian(student.id, editingGuardian.id, payload);
+        await updateGuardian(student.id, String(editingGuardian.id), payload);
         notify.success('Data wali berhasil diperbarui!');
       } else {
         await createGuardian(student.id, payload);
