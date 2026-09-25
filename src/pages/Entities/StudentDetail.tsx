@@ -2503,33 +2503,21 @@ export const StudentDetail: React.FC = () => {
         open={showCreateAccountModal}
         onClose={() => !accountSubmitting && setShowCreateAccountModal(false)}
         title={
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0">
-              <KeyRound size={20} />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-base font-bold text-gray-900 leading-snug">Buat Akun Portal Wali</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100">
-                  Wali Utama
-                </span>
-              </div>
-              {selectedGuardianForAccount && (
-                <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-xs text-gray-500 font-normal">
-                  <span className="font-semibold text-gray-800">{selectedGuardianForAccount.fullName}</span>
-                  <span className="text-gray-300">•</span>
-                  <span>Siswa: <strong className="text-gray-700">{student?.fullName || '-'}</strong> ({student?.nis || '-'})</span>
-                </div>
-              )}
-            </div>
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 leading-snug">Buat Akun Portal Wali</h3>
+            {selectedGuardianForAccount && (
+              <p className="text-xs text-gray-500 font-normal mt-0.5">
+                Wali: <strong className="text-gray-700 font-medium">{selectedGuardianForAccount.fullName}</strong> • Siswa: {student?.fullName || '-'} ({student?.nis || '-'})
+              </p>
+            )}
           </div>
         }
         size="md"
         footer={
-          <div className="px-6 py-4 bg-slate-50/90 border-t border-slate-100 flex items-center justify-between w-full rounded-b-2xl">
+          <div className="px-6 py-4 bg-gray-50 flex items-center justify-between rounded-b-2xl border-t border-gray-100">
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 hover:text-gray-900 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl shadow-2xs transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 font-medium cursor-pointer"
               onClick={() =>
                 handleCopyCredentials(
                   `Username: ${accountForm.username}\nPassword: ${accountForm.password}`,
@@ -2541,20 +2529,20 @@ export const StudentDetail: React.FC = () => {
             >
               {copiedField === 'create_footer' ? (
                 <>
-                  <CheckCheck size={13} className="text-emerald-600" />
-                  <span className="text-emerald-600 font-bold">Tersalin!</span>
+                  <CheckCheck size={14} className="text-emerald-600" />
+                  <span className="text-emerald-600">Kredensial Tersalin</span>
                 </>
               ) : (
                 <>
-                  <Copy size={13} />
-                  Salin Ringkas
+                  <Copy size={14} />
+                  Salin Kredensial
                 </>
               )}
             </button>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="px-4 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                className="btn-std-secondary"
                 onClick={() => setShowCreateAccountModal(false)}
                 disabled={accountSubmitting}
               >
@@ -2562,63 +2550,28 @@ export const StudentDetail: React.FC = () => {
               </button>
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+                className="btn-std-primary"
                 onClick={handleSaveGuardianAccount}
                 disabled={accountSubmitting}
               >
-                {accountSubmitting ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <CheckCircle2 size={14} />
-                )}
-                {accountSubmitting ? 'Membuat Akun...' : 'Simpan Akun'}
+                {accountSubmitting && <Loader2 size={16} className="animate-spin" />}
+                {accountSubmitting ? 'Menyimpan...' : 'Simpan Akun'}
               </button>
             </div>
           </div>
         }
       >
         <form onSubmit={handleSaveGuardianAccount} className="p-6 space-y-4">
-          {/* Smart Generator Toolbar */}
-          <div className="p-3 bg-gradient-to-r from-indigo-50/80 via-slate-50 to-indigo-50/30 border border-indigo-100/80 rounded-xl flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
-                <Sparkles size={15} />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-                  Generator Kredensial Otomatis
-                </div>
-                <div className="text-[11px] text-gray-500 truncate">
-                  Format username: <code className="font-mono text-indigo-700 font-semibold bg-white px-1 py-0.2 rounded border border-indigo-100">wali.[nis]</code>
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleAutoGenerateCredentials}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-indigo-50 text-indigo-700 hover:text-indigo-800 border border-indigo-200/80 rounded-lg text-xs font-semibold shadow-2xs hover:shadow-xs transition-all cursor-pointer shrink-0 active:scale-95"
-              title="Acak ulang kredensial"
-            >
-              <RotateCcw size={12} />
-              Acak Ulang
-            </button>
-          </div>
-
-          {/* Username Input */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Username Login <span className="text-rose-500">*</span>
-              </label>
-              <span className="text-[11px] text-gray-400">Identitas login portal</span>
-            </div>
-            <div className="relative flex rounded-xl border border-gray-200 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 overflow-hidden bg-white shadow-2xs transition-all">
-              <span className="px-3 bg-gray-50 border-r border-gray-200 text-gray-400 font-mono text-xs font-semibold flex items-center select-none">
-                @
-              </span>
+          <FormField
+            label="Username Login"
+            required
+            hint="Format standar sistem: wali.[nis]. Digunakan wali murid untuk login portal."
+          >
+            <div className="relative flex items-center">
+              <span className="absolute left-3 text-gray-400 font-mono text-sm select-none">@</span>
               <input
                 type="text"
-                className="w-full pl-3 pr-10 py-2.5 text-sm font-mono font-semibold text-gray-900 placeholder-gray-400 outline-none bg-transparent"
+                className="input-std pl-8 pr-10 font-mono text-sm font-semibold"
                 placeholder="wali.SW001"
                 value={accountForm.username}
                 onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
@@ -2627,136 +2580,112 @@ export const StudentDetail: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleCopyCredentials(accountForm.username, 'create_user', 'Username')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                className="absolute right-2 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
                 title="Salin Username"
               >
                 {copiedField === 'create_user' ? (
-                  <CheckCheck size={14} className="text-emerald-600" />
+                  <CheckCheck size={16} className="text-emerald-600" />
                 ) : (
-                  <Copy size={14} />
+                  <Copy size={16} />
                 )}
               </button>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">Minimal 4 karakter, unik untuk login portal wali.</p>
-          </div>
+          </FormField>
 
-          {/* Password Input (Visible by default) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Password Login <span className="text-rose-500">*</span>
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Check size={10} /> Sandi Terbuka
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-[11px] text-gray-500 hover:text-indigo-600 font-medium inline-flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
-                  {showPassword ? 'Sembunyikan' : 'Tampilkan'}
-                </button>
-              </div>
-            </div>
-            <div className="relative flex rounded-xl border border-gray-200 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 overflow-hidden bg-white shadow-2xs transition-all">
+          <FormField
+            label="Password Login"
+            required
+            hint="Sandi acak dibuat otomatis dan dapat diedit manual sebelum disimpan."
+          >
+            <div className="relative flex items-center">
               <input
                 type={showPassword ? 'text' : 'password'}
-                className="w-full pl-3.5 pr-20 py-2.5 text-sm font-mono font-semibold text-gray-900 placeholder-gray-400 outline-none bg-transparent"
-                placeholder="Masukkan atau buat sandi"
+                className="input-std pr-24 font-mono text-sm font-semibold tracking-wide"
+                placeholder="Masukkan atau acak password"
                 value={accountForm.password}
                 onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
                 required
               />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+              <div className="absolute right-1.5 flex items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                  title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
                 <button
                   type="button"
                   onClick={() => {
                     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
                     setAccountForm((prev) => ({ ...prev, password: `Wali#${randomSuffix}` }));
                   }}
-                  className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
-                  title="Acak Sandi Baru"
+                  className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors cursor-pointer"
+                  title="Acak sandi baru"
                 >
-                  <RotateCcw size={14} />
+                  <RotateCcw size={16} />
                 </button>
                 <button
                   type="button"
                   onClick={() => handleCopyCredentials(accountForm.password, 'create_pwd', 'Password')}
-                  className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
-                  title="Salin Password"
+                  className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors cursor-pointer"
+                  title="Salin password"
                 >
                   {copiedField === 'create_pwd' ? (
-                    <CheckCheck size={14} className="text-emerald-600" />
+                    <CheckCheck size={16} className="text-emerald-600" />
                   ) : (
-                    <Copy size={14} />
+                    <Copy size={16} />
                   )}
                 </button>
               </div>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">Sandi terlihat agar admin dapat mencatat/mengonfirmasi ke wali murid.</p>
-          </div>
+          </FormField>
 
-          {/* WhatsApp Ready Share Card */}
-          <div className="p-3.5 bg-gradient-to-br from-emerald-50/70 via-white to-emerald-50/30 border border-emerald-200/80 rounded-xl space-y-2.5 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
-                <MessageSquare size={13} className="text-emerald-600" /> Format Pesan WhatsApp
+          {/* WhatsApp Sharing Cardlet */}
+          <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-4 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-gray-800 flex items-center gap-1.5">
+                <MessageSquare size={15} className="text-emerald-600" />
+                Kirim Informasi ke Wali Murid
               </span>
-              <div className="flex items-center gap-1.5">
-                {selectedGuardianForAccount?.phone && (
-                  <a
-                    href={getWhatsAppUrl(selectedGuardianForAccount.phone, getWhatsAppCreateMessage()) || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold shadow-2xs transition-all cursor-pointer active:scale-95"
-                    title={`Kirim pesan via WhatsApp ke ${selectedGuardianForAccount.phone}`}
-                  >
-                    <Send size={11} /> Kirim WA
-                    <ExternalLink size={10} className="opacity-70" />
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleCopyCredentials(getWhatsAppCreateMessage(), 'create_wa', 'Format Pesan WA')}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 hover:bg-emerald-50 shadow-2xs transition-all cursor-pointer active:scale-95"
-                  title="Salin teks pesan WhatsApp"
-                >
-                  {copiedField === 'create_wa' ? (
-                    <>
-                      <CheckCheck size={12} className="text-emerald-600" />
-                      <span className="text-emerald-600 font-bold">Tersalin!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={11} /> Salin Pesan
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="p-2.5 bg-white rounded-lg border border-emerald-100 text-slate-700 text-xs space-y-1.5 select-all shadow-2xs">
-              <p className="text-[11px] text-slate-600 leading-snug">
-                Yth. Bapak/Ibu <strong className="text-slate-800">{selectedGuardianForAccount?.fullName}</strong>, berikut akses Portal Wali Murid untuk memantau ananda <strong className="text-slate-800">{student?.fullName}</strong>:
-              </p>
-              <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 space-y-1 font-mono text-[11px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Username:</span>
-                  <span className="font-bold text-gray-900">{accountForm.username || '-'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Password:</span>
-                  <span className="font-bold text-indigo-700">{accountForm.password || '-'}</span>
-                </div>
-              </div>
               {selectedGuardianForAccount?.phone && (
-                <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] text-gray-400">
-                  <span>No. WhatsApp:</span>
-                  <span className="font-mono text-emerald-700 font-semibold">{selectedGuardianForAccount.phone}</span>
-                </div>
+                <span className="text-xs text-gray-500 font-mono">
+                  No. WA: {selectedGuardianForAccount.phone}
+                </span>
               )}
+            </div>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Kirim kredensial langsung via WhatsApp atau salin format pesan untuk dikirim secara manual.
+            </p>
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              {selectedGuardianForAccount?.phone && (
+                <a
+                  href={getWhatsAppUrl(selectedGuardianForAccount.phone, getWhatsAppCreateMessage()) || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                >
+                  <Send size={12} /> Kirim WhatsApp
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => handleCopyCredentials(getWhatsAppCreateMessage(), 'create_wa', 'Pesan WhatsApp')}
+                className="btn-std-secondary text-xs py-1.5 px-3"
+              >
+                {copiedField === 'create_wa' ? (
+                  <>
+                    <CheckCheck size={13} className="text-emerald-600" />
+                    <span className="text-emerald-600">Pesan Tersalin</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={13} />
+                    Salin Format Pesan
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </form>
@@ -2767,35 +2696,21 @@ export const StudentDetail: React.FC = () => {
         open={showResetPasswordModal}
         onClose={() => !accountSubmitting && setShowResetPasswordModal(false)}
         title={
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
-              <RotateCcw size={20} />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-base font-bold text-gray-900 leading-snug">Reset Password Akun Wali</span>
-                {selectedGuardianForAccount?.userAccount && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200/80">
-                    @{selectedGuardianForAccount.userAccount.username}
-                  </span>
-                )}
-              </div>
-              {selectedGuardianForAccount && (
-                <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-xs text-gray-500 font-normal">
-                  <span className="font-semibold text-gray-800">{selectedGuardianForAccount.fullName}</span>
-                  <span className="text-gray-300">•</span>
-                  <span>Siswa: <strong className="text-gray-700">{student?.fullName || '-'}</strong> ({student?.nis || '-'})</span>
-                </div>
-              )}
-            </div>
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 leading-snug">Reset Password Akun Wali</h3>
+            {selectedGuardianForAccount && (
+              <p className="text-xs text-gray-500 font-normal mt-0.5">
+                Wali: <strong className="text-gray-700 font-medium">{selectedGuardianForAccount.fullName}</strong> • Siswa: {student?.fullName || '-'} ({student?.nis || '-'})
+              </p>
+            )}
           </div>
         }
         size="md"
         footer={
-          <div className="px-6 py-4 bg-slate-50/90 border-t border-slate-100 flex items-center justify-between w-full rounded-b-2xl">
+          <div className="px-6 py-4 bg-gray-50 flex items-center justify-between rounded-b-2xl border-t border-gray-100">
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 hover:text-gray-900 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 font-medium cursor-pointer disabled:opacity-50"
               onClick={() =>
                 handleCopyCredentials(
                   `Username: ${selectedGuardianForAccount?.userAccount?.username || '-'}\nPassword Baru: ${resetPasswordForm.newPassword}`,
@@ -2803,25 +2718,24 @@ export const StudentDetail: React.FC = () => {
                   'Password Baru'
                 )
               }
-              title="Salin password baru ke clipboard"
               disabled={!resetPasswordForm.newPassword}
             >
               {copiedField === 'reset_footer' ? (
                 <>
-                  <CheckCheck size={13} className="text-emerald-600" />
-                  <span className="text-emerald-600 font-bold">Tersalin!</span>
+                  <CheckCheck size={14} className="text-emerald-600" />
+                  <span className="text-emerald-600">Password Tersalin</span>
                 </>
               ) : (
                 <>
-                  <Copy size={13} />
-                  Salin Sandi
+                  <Copy size={14} />
+                  Salin Password
                 </>
               )}
             </button>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="px-4 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                className="btn-std-secondary"
                 onClick={() => setShowResetPasswordModal(false)}
                 disabled={accountSubmitting}
               >
@@ -2829,15 +2743,11 @@ export const StudentDetail: React.FC = () => {
               </button>
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl text-xs font-semibold shadow-md shadow-amber-600/20 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+                className="btn-std-primary"
                 onClick={handleSaveResetPassword}
                 disabled={accountSubmitting}
               >
-                {accountSubmitting ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <RotateCcw size={14} />
-                )}
+                {accountSubmitting && <Loader2 size={16} className="animate-spin" />}
                 {accountSubmitting ? 'Menyimpan...' : 'Simpan Password'}
               </button>
             </div>
@@ -2845,149 +2755,114 @@ export const StudentDetail: React.FC = () => {
         }
       >
         <form onSubmit={handleSaveResetPassword} className="p-6 space-y-4">
-          {/* Smart Generator Toolbar */}
-          <div className="p-3 bg-gradient-to-r from-amber-50/80 via-slate-50 to-amber-50/30 border border-amber-200/70 rounded-xl flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                <Zap size={15} />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-                  Generate Sandi Acak
-                </div>
-                <div className="text-[11px] text-gray-500 truncate">
-                  Password acak aman siap pakai untuk wali murid
-                </div>
-              </div>
+          {/* Target Account Overview */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200/80 text-xs">
+            <div>
+              <span className="text-gray-400 block text-[11px]">Akun Wali</span>
+              <span className="font-semibold text-gray-800">{selectedGuardianForAccount?.fullName}</span>
             </div>
-            <button
-              type="button"
-              onClick={handleAutoGenerateResetPassword}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-amber-50 text-amber-700 hover:text-amber-800 border border-amber-200/80 rounded-lg text-xs font-semibold shadow-2xs hover:shadow-xs transition-all cursor-pointer shrink-0 active:scale-95"
-              title="Buat password acak baru"
-            >
-              <RotateCcw size={12} />
-              Buat Password
-            </button>
+            <div className="text-right">
+              <span className="text-gray-400 block text-[11px]">Username</span>
+              <span className="font-mono font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                @{selectedGuardianForAccount?.userAccount?.username || '-'}
+              </span>
+            </div>
           </div>
 
-          {/* Password Baru Input */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Password Baru <span className="text-rose-500">*</span>
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Check size={10} /> Sandi Terbuka
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-[11px] text-gray-500 hover:text-amber-700 font-medium inline-flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
-                  {showPassword ? 'Sembunyikan' : 'Tampilkan'}
-                </button>
-              </div>
-            </div>
-            <div className="relative flex rounded-xl border border-gray-200 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/10 overflow-hidden bg-white shadow-2xs transition-all">
+          <FormField
+            label="Password Baru"
+            required
+            hint="Minimal 6 karakter kombinasi huruf dan angka. Sandi acak telah dibuat otomatis."
+          >
+            <div className="relative flex items-center">
               <input
                 type={showPassword ? 'text' : 'password'}
-                className="w-full pl-3.5 pr-20 py-2.5 text-sm font-mono font-semibold text-gray-900 placeholder-gray-400 outline-none bg-transparent"
+                className="input-std pr-24 font-mono text-sm font-semibold tracking-wide"
                 placeholder="Masukkan password baru"
                 value={resetPasswordForm.newPassword}
                 onChange={(e) => setResetPasswordForm({ newPassword: e.target.value })}
                 required
               />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+              <div className="absolute right-1.5 flex items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                  title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
                 <button
                   type="button"
                   onClick={() => {
                     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
                     setResetPasswordForm({ newPassword: `Wali#${randomSuffix}` });
                   }}
-                  className="p-1.5 text-gray-400 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                  title="Acak Sandi Baru"
+                  className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors cursor-pointer"
+                  title="Acak sandi baru"
                 >
-                  <RotateCcw size={14} />
+                  <RotateCcw size={16} />
                 </button>
                 <button
                   type="button"
                   onClick={() => handleCopyCredentials(resetPasswordForm.newPassword, 'reset_pwd', 'Password Baru')}
-                  className="p-1.5 text-gray-400 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                  title="Salin Password Baru"
+                  className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors cursor-pointer"
+                  title="Salin password baru"
                 >
                   {copiedField === 'reset_pwd' ? (
-                    <CheckCheck size={14} className="text-emerald-600" />
+                    <CheckCheck size={16} className="text-emerald-600" />
                   ) : (
-                    <Copy size={14} />
+                    <Copy size={16} />
                   )}
                 </button>
               </div>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">Minimal 6 karakter kombinasi huruf dan angka.</p>
-          </div>
+          </FormField>
 
-          {/* WhatsApp Share Card for Reset */}
-          <div className="p-3.5 bg-gradient-to-br from-emerald-50/70 via-white to-emerald-50/30 border border-emerald-200/80 rounded-xl space-y-2.5 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
-                <MessageSquare size={13} className="text-emerald-600" /> Format Pembaruan WhatsApp
+          {/* WhatsApp Sharing Cardlet */}
+          <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-4 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-gray-800 flex items-center gap-1.5">
+                <MessageSquare size={15} className="text-emerald-600" />
+                Kirim Informasi ke Wali Murid
               </span>
-              <div className="flex items-center gap-1.5">
-                {selectedGuardianForAccount?.phone && (
-                  <a
-                    href={getWhatsAppUrl(selectedGuardianForAccount.phone, getWhatsAppResetMessage()) || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold shadow-2xs transition-all cursor-pointer active:scale-95"
-                    title={`Kirim pesan via WhatsApp ke ${selectedGuardianForAccount.phone}`}
-                  >
-                    <Send size={11} /> Kirim WA
-                    <ExternalLink size={10} className="opacity-70" />
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleCopyCredentials(getWhatsAppResetMessage(), 'reset_wa', 'Format Pesan WA')}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 hover:bg-emerald-50 shadow-2xs transition-all cursor-pointer active:scale-95"
-                  title="Salin pesan pembaruan sandi via WhatsApp"
-                >
-                  {copiedField === 'reset_wa' ? (
-                    <>
-                      <CheckCheck size={12} className="text-emerald-600" />
-                      <span className="text-emerald-600 font-bold">Tersalin!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={11} /> Salin Pesan
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="p-2.5 bg-white rounded-lg border border-emerald-100 text-slate-700 text-xs space-y-1.5 select-all shadow-2xs">
-              <p className="text-[11px] text-slate-600 leading-snug">
-                Yth. Bapak/Ibu <strong className="text-slate-800">{selectedGuardianForAccount?.fullName}</strong>, sandi akun portal wali Anda telah diperbarui:
-              </p>
-              <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 space-y-1 font-mono text-[11px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Username:</span>
-                  <span className="font-bold text-gray-900">{selectedGuardianForAccount?.userAccount?.username || '-'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Password Baru:</span>
-                  <span className="font-bold text-amber-700">{resetPasswordForm.newPassword || '-'}</span>
-                </div>
-              </div>
               {selectedGuardianForAccount?.phone && (
-                <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] text-gray-400">
-                  <span>No. WhatsApp:</span>
-                  <span className="font-mono text-emerald-700 font-semibold">{selectedGuardianForAccount.phone}</span>
-                </div>
+                <span className="text-xs text-gray-500 font-mono">
+                  No. WA: {selectedGuardianForAccount.phone}
+                </span>
               )}
+            </div>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Kirim password baru langsung ke nomor WhatsApp wali murid atau salin format pesan.
+            </p>
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              {selectedGuardianForAccount?.phone && (
+                <a
+                  href={getWhatsAppUrl(selectedGuardianForAccount.phone, getWhatsAppResetMessage()) || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                >
+                  <Send size={12} /> Kirim WhatsApp
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => handleCopyCredentials(getWhatsAppResetMessage(), 'reset_wa', 'Pesan WhatsApp')}
+                className="btn-std-secondary text-xs py-1.5 px-3"
+              >
+                {copiedField === 'reset_wa' ? (
+                  <>
+                    <CheckCheck size={13} className="text-emerald-600" />
+                    <span className="text-emerald-600">Pesan Tersalin</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={13} />
+                    Salin Format Pesan
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </form>
