@@ -70,3 +70,39 @@ export const getDashboardSummary = async (): Promise<DashboardSummary> => {
     return baseSummary;
   }
 };
+
+export interface TodayScheduleItem {
+  id: string;
+  periodNumber: number;
+  startTime: string;
+  endTime: string;
+  classroomName: string;
+  subjectName: string;
+  room?: string;
+}
+
+export interface HomeroomPreview {
+  classroomId: string;
+  classroomName: string;
+  totalStudents: number;
+  presentToday: number;
+  sickToday: number;
+  leaveToday: number;
+  absentToday: number;
+  alertDisciplineCount: number;
+}
+
+export interface TeacherDashboardSummary {
+  todayTeachingHours: number;
+  todayClassesCount: number;
+  pendingAssessmentsCount: number;
+  teacherMonthlyAttendanceRate: number;
+  todaySchedule: TodayScheduleItem[];
+  homeroomPreview: HomeroomPreview | null;
+}
+
+export const getTeacherDashboardSummary = async (): Promise<TeacherDashboardSummary> => {
+  const response = await api.get('/dashboard/teacher-summary');
+  return response.data;
+};
+

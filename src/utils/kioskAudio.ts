@@ -127,21 +127,14 @@ class KioskAudioManager {
     }
   }
 
-  private findBestVoice(lang: string = 'id'): SpeechSynthesisVoice | null {
+  private findBestVoice(): SpeechSynthesisVoice | null {
     if (this.cachedVoices.length === 0 && typeof window !== 'undefined' && 'speechSynthesis' in window) {
       this.cachedVoices = window.speechSynthesis.getVoices();
     }
-    if (lang === 'ar') {
-      const arVoice = this.cachedVoices.find(
-        v => v.lang.startsWith('ar') || v.name.toLowerCase().includes('arabic')
-      );
-      if (arVoice) return arVoice;
-    } else {
-      const idVoice = this.cachedVoices.find(
-        v => v.lang.includes('id') || v.lang.includes('ID') || v.name.toLowerCase().includes('indonesia')
-      );
-      if (idVoice) return idVoice;
-    }
+    const idVoice = this.cachedVoices.find(
+      v => v.lang.includes('id') || v.lang.includes('ID') || v.name.toLowerCase().includes('indonesia')
+    );
+    if (idVoice) return idVoice;
     return this.cachedVoices.find(v => v.default) || this.cachedVoices[0] || null;
   }
 
@@ -163,11 +156,11 @@ class KioskAudioManager {
             }
 
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = lang === 'ar' ? 'ar-SA' : 'id-ID';
-            utterance.rate = lang === 'ar' ? 0.90 : 0.95;
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.95;
             utterance.pitch = 1.0;
 
-            const voice = this.findBestVoice(lang);
+            const voice = this.findBestVoice();
             if (voice) {
               utterance.voice = voice;
             }
@@ -190,7 +183,7 @@ class KioskAudioManager {
   /**
    * Speaks a test phrase when language is switched
    */
-  public speakLanguageSwitch(language: 'id' | 'jv' | 'su' | 'ar') {
+  public speakLanguageSwitch(language: 'id' | 'jv' | 'su') {
     if (this.isMuted) return;
     this.playSuccessChime();
     let phrase = 'Mode Bahasa Indonesia diaktifkan.';
@@ -198,8 +191,6 @@ class KioskAudioManager {
       phrase = 'Sugeng rawuh. Mode Basa Jawi dipun ginakaken.';
     } else if (language === 'su') {
       phrase = 'Wilujeng sumping. Mode Basa Sunda parantos diaktipkeun.';
-    } else if (language === 'ar') {
-      phrase = 'أهلاً وسهلاً. تم تفعيل اللغة العربية.';
     }
     this.speakRaw(phrase, 350, language);
   }
@@ -212,24 +203,14 @@ class KioskAudioManager {
     attendanceStatus: string,
     alreadyCheckedIn: boolean = false,
     checkinTime: string = '',
-    language: 'id' | 'jv' | 'su' | 'ar' = 'id'
+    language: 'id' | 'jv' | 'su' = 'id'
   ) {
     if (this.isMuted) return;
     const hour = new Date().getHours();
     const shortName = name.split(' ').slice(0, 2).join(' ');
     let text = '';
 
-    if (language === 'ar') {
-      // --- AL-LUGHAH AL-'ARABIYYAH (BAHASA ARAB) ---
-      const arGreeting = (hour >= 4 && hour < 12) ? 'صباح الخير' : 'مساء الخير';
-      if (alreadyCheckedIn) {
-        text = `عفواً، ${shortName}. لقد تم تسجيل حضورك مسبقاً اليوم${checkinTime ? ` في الساعة ${checkinTime}` : ''}.`;
-      } else if (attendanceStatus === 'Terlambat') {
-        text = `${arGreeting}، ${shortName}. لقد تم تسجيل حضورك متأخراً اليوم.`;
-      } else {
-        text = `${arGreeting}، ${shortName}. تم تسجيل حضورك بنجاح. شكراً لك.`;
-      }
-    } else if (language === 'jv') {
+    if (language === 'jv') {
       // --- BAHASA JAWA (KRAMA ALUS) ---
       let jvGreeting = 'Sugeng enjang';
       if (hour >= 11 && hour < 15) jvGreeting = 'Sugeng siang';
@@ -280,13 +261,11 @@ class KioskAudioManager {
   /**
    * Speaks a warning phrase when card is unrecognized / not detected
    */
-  public speakUnrecognized(language: 'id' | 'jv' | 'su' | 'ar' = 'id') {
+  public speakUnrecognized(language: 'id' | 'jv' | 'su' = 'id') {
     if (this.isMuted) return;
     this.playWarningTone();
     let text = 'Tidak terdeteksi. Kartu belum terdaftar di sistem.';
-    if (language === 'ar') {
-      text = 'لم يتم التعرف على البطاقة. يرجى المحاولة مرة أخرى.';
-    } else if (language === 'jv') {
+    if (language === 'jv') {
       text = 'Mboten kadeteksi. Kertu dereng katampi wonten sistem.';
     } else if (language === 'su') {
       text = 'Henteu kadeteksi. Kartu teu acan kadaptar dina sistem.';

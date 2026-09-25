@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
-import { Lock, User, ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, User, ChevronRight, AlertCircle, Loader2, ScanLine, ArrowUpRight } from 'lucide-react';
 import { AppLogo } from '../../components/Common/AppLogo';
 
 export const Login: React.FC = () => {
@@ -150,6 +150,38 @@ export const Login: React.FC = () => {
             </button>
           </form>
           
+          {/* Divider Pemisah */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200/80"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-slate-50 px-3 text-slate-400 font-medium tracking-wide">
+                atau akses terminal
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Access Kiosk Button (Tanpa Badge) */}
+          <Link
+            to="/kiosk/attendance"
+            className="w-full border border-slate-200/80 bg-white hover:bg-slate-50/90 hover:border-indigo-300/80 rounded-xl p-3.5 transition-all flex items-center justify-between group cursor-pointer shadow-sm text-left block"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm">
+                <ScanLine size={20} />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                  Buka Monitor Kiosk Presensi
+                </h4>
+                <p className="text-xs text-slate-500 font-normal">
+                  Layar presensi mandiri tap kartu RFID & biometrik
+                </p>
+              </div>
+            </div>
+            <ArrowUpRight size={18} className="text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all flex-shrink-0" />
+          </Link>
           <p className="text-center text-sm text-gray-500 font-medium mt-10">
             &copy; {new Date().getFullYear()} SekolahApp. Hak Cipta Dilindungi.
           </p>

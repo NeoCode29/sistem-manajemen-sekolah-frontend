@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Clock, 
   Maximize2, 
@@ -14,11 +15,22 @@ import {
   Sparkles, 
   Radio, 
   Send,
-  User
+  User,
+  LogIn
 } from 'lucide-react';
 import { scanHardware, getKioskStats } from '../../api/hardwareService';
 import { useSchoolProfile } from '../../hooks/useSchoolProfile';
 import { kioskAudio } from '../../utils/kioskAudio';
+import { AppLogo } from '../../components/Common/AppLogo';
+
+const getLogoSrc = (url?: string) => {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const backendBase = import.meta.env.VITE_API_URL 
+    ? (import.meta.env.VITE_API_URL as string).replace(/\/api(\/v1)?$/, '') 
+    : 'http://localhost:3000';
+  return `${backendBase}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 interface RecentScanItem {
   id: string;
@@ -32,14 +44,28 @@ interface RecentScanItem {
   alreadyCheckedIn?: boolean;
 }
 
-export type KioskLanguage = 'id' | 'jv' | 'su' | 'ar';
+export type KioskLanguage = 'id' | 'jv' | 'su';
 
 export const KioskAttendancePage: React.FC = () => {
+  const navigate = useNavigate();
   const { profile } = useSchoolProfile();
+  const [logoFailed, setLogoFailed] = useState(false);
 
-  // Language state (Indonesian, Javanese, Sundanese, or Arabic)
+  const handleExitKiosk = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch {
+      // Ignore fullscreen exit error
+    }
+    navigate('/login');
+  };
+
+  // Language state (Indonesian, Javanese, or Sundanese)
   const [language, setLanguage] = useState<KioskLanguage>(() => {
-    return (localStorage.getItem('kiosk_attendance_lang') as KioskLanguage) || 'id';
+    const saved = localStorage.getItem('kiosk_attendance_lang') as KioskLanguage;
+    return (saved === 'id' || saved === 'jv' || saved === 'su') ? saved : 'id';
   });
   const languageRef = useRef<KioskLanguage>(language);
 
@@ -301,18 +327,6 @@ export const KioskAttendancePage: React.FC = () => {
       const year = currentTime.getFullYear();
       return `${dayName}, ${dayNum} ${monthName} ${year}`;
     }
-    if (language === 'ar') {
-      const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-      const monthNames = [
-        'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-        'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
-      ];
-      const dayName = dayNames[currentTime.getDay()];
-      const dayNum = currentTime.getDate();
-      const monthName = monthNames[currentTime.getMonth()];
-      const year = currentTime.getFullYear();
-      return `${dayName}، ${dayNum} ${monthName} ${year}`;
-    }
     return currentTime.toLocaleDateString('id-ID', {
       weekday: 'long',
       day: 'numeric',
@@ -335,11 +349,16 @@ export const KioskAttendancePage: React.FC = () => {
       {/* 1. Top Bar */}
       <header className="px-8 py-5 flex items-center justify-between border-b border-slate-800/60 bg-slate-950/70 backdrop-blur-md z-10">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/20 border border-indigo-400/30">
-            {profile.logoUrl ? (
-              <img src={profile.logoUrl} alt="Logo" className="w-full h-full object-contain rounded-2xl p-1" />
+          <div className="w-12 h-12 rounded-2xl bg-indigo-600/30 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/20 border border-indigo-400/30 overflow-hidden flex-shrink-0">
+            {profile.logoUrl && !logoFailed ? (
+              <img 
+                src={getLogoSrc(profile.logoUrl) || ''} 
+                alt={profile.name || 'Logo Sekolah'} 
+                onError={() => setLogoFailed(true)}
+                className="w-full h-full object-contain p-1" 
+              />
             ) : (
-              <Sparkles size={24} />
+              <AppLogo size="md" variant="white" className="w-full h-full shadow-none border-none bg-transparent" />
             )}
           </div>
           <div>
@@ -352,8 +371,6 @@ export const KioskAttendancePage: React.FC = () => {
                   ? 'Kori Utama / Lobi'
                   : language === 'su'
                   ? 'Panto Utama / Lobi'
-                  : language === 'ar'
-                  ? 'المدخل الرئيسي / الردهة'
                   : 'Gerbang Utama / Lobi'}
               </span>
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-600" />
@@ -362,8 +379,6 @@ export const KioskAttendancePage: React.FC = () => {
                   ? 'Monitor Presensi Mandiri'
                   : language === 'su'
                   ? 'Monitor Presénsi Mandiri'
-                  : language === 'ar'
-                  ? 'شاشة الحضور الذاتي'
                   : 'Monitor Presensi Mandiri'}
               </span>
             </p>
@@ -383,13 +398,11 @@ export const KioskAttendancePage: React.FC = () => {
                 ? 'SISTEM SIAP'
                 : language === 'su'
                 ? 'SISTEM SAYAGA'
-                : language === 'ar'
-                ? 'النظام متصل وجاهز'
                 : 'SISTEM ONLINE & SIAP'}
             </span>
           </div>
 
-          {/* Segmented Language Selector (ID, JV, SU, AR) */}
+          {/* Segmented Language Selector (ID, JV, SU) */}
           <div className="flex items-center bg-slate-900/90 border border-slate-700/80 rounded-2xl p-1 gap-1 shadow-sm">
             <button 
               onClick={() => handleLanguageChange('id')}
@@ -429,19 +442,6 @@ export const KioskAttendancePage: React.FC = () => {
               <span>ᮞ</span>
               <span>Sunda</span>
             </button>
-
-            <button 
-              onClick={() => handleLanguageChange('ar')}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${
-                language === 'ar'
-                  ? 'bg-teal-600 text-white shadow-md shadow-teal-600/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-              title="اللغة العربية"
-            >
-              <span>🇸🇦</span>
-              <span>عربي</span>
-            </button>
           </div>
 
           <button 
@@ -458,6 +458,14 @@ export const KioskAttendancePage: React.FC = () => {
             title={isFullscreen ? 'Keluar Fullscreen' : 'Layar Penuh (F11)'}
           >
             {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          </button>
+
+          <button 
+            onClick={handleExitKiosk}
+            className="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-rose-400 hover:border-rose-900/40 transition-all shadow-sm"
+            title="Keluar ke Halaman Login"
+          >
+            <LogIn size={18} className="rotate-180" />
           </button>
 
           <button
@@ -535,8 +543,6 @@ export const KioskAttendancePage: React.FC = () => {
                     ? 'Sumangga Tempelaken Kertu RFID'
                     : language === 'su'
                     ? 'Mangga Témpélkeun Kartu RFID'
-                    : language === 'ar'
-                    ? 'يرجى تمرير بطاقة RFID'
                     : 'Silakan Tempelkan Kartu RFID'}
                 </h3>
                 <p className="text-sm text-slate-400">
@@ -544,8 +550,6 @@ export const KioskAttendancePage: React.FC = () => {
                     ? 'Caketaken kertu identitas panjenengan dhateng mesin scanner USB ing meja utawi gapura'
                     : language === 'su'
                     ? 'Caketkeun kartu idéntitas anjeun kana mesin scanner USB dina méja atanapi gapura'
-                    : language === 'ar'
-                    ? 'قرب بطاقتك الذكية من جهاز القارئ عند المدخل أو المكتب'
                     : 'Dekatkan kartu identitas Anda pada mesin scanner USB di meja atau gerbang'}
                 </p>
               </div>
@@ -564,8 +568,6 @@ export const KioskAttendancePage: React.FC = () => {
                     ? 'Mriksa Kertu...'
                     : language === 'su'
                     ? 'Mariksa Kartu...'
-                    : language === 'ar'
-                    ? 'جاري التحقق من البطاقة...'
                     : 'Memverifikasi Kartu...'}
                 </h3>
                 <p className="text-sm text-slate-400">
@@ -573,8 +575,6 @@ export const KioskAttendancePage: React.FC = () => {
                     ? 'Nyathet data rawuh panjenengan dhateng sistem...'
                     : language === 'su'
                     ? 'Nyatet data kahadiran anjeun kana sistem...'
-                    : language === 'ar'
-                    ? 'جاري تسجيل بيانات الحضور في النظام...'
                     : 'Mencatat data kehadiran Anda ke sistem...'}
                 </p>
               </div>
@@ -606,14 +606,14 @@ export const KioskAttendancePage: React.FC = () => {
                       : 'text-emerald-400'
                   }`}>
                     {activeScan.alreadyCheckedIn
-                      ? (language === 'jv' ? 'Presensi Sampun Kasimpen' : language === 'su' ? 'Presénsi Parantos Kacatet' : language === 'ar' ? 'تم تسجيل الحضور مسبقاً' : 'Presensi Sudah Tersimpan')
+                      ? (language === 'jv' ? 'Presensi Sampun Kasimpen' : language === 'su' ? 'Presénsi Parantos Kacatet' : 'Presensi Sudah Tersimpan')
                       : activeScan.attendanceStatus === 'Terlambat'
-                      ? (language === 'jv' ? 'Kecathet Kasep' : language === 'su' ? 'Kacatet Telat' : language === 'ar' ? 'تم التسجيل متأخراً' : 'Tercatat Terlambat')
-                      : (language === 'jv' ? 'Presensi Kasembadan' : language === 'su' ? 'Presénsi Parantos Hasil' : language === 'ar' ? 'تم تسجيل الحضور بنجاح' : 'Presensi Berhasil Dicatat')}
+                      ? (language === 'jv' ? 'Kecathet Kasep' : language === 'su' ? 'Kacatet Telat' : 'Tercatat Terlambat')
+                      : (language === 'jv' ? 'Presensi Kasembadan' : language === 'su' ? 'Presénsi Parantos Hasil' : 'Presensi Berhasil Dicatat')}
                   </span>
                 </div>
                 <span className="text-xs font-mono font-semibold text-slate-400 bg-slate-800/80 px-3 py-1 rounded-full">
-                  {language === 'jv' || language === 'su' ? 'Tabuh' : language === 'ar' ? 'الساعة' : 'Pukul'} {activeScan.time} {language === 'ar' ? '' : 'WIB'}
+                  {language === 'jv' || language === 'su' ? 'Tabuh' : 'Pukul'} {activeScan.time} WIB
                 </span>
               </div>
 
@@ -645,8 +645,8 @@ export const KioskAttendancePage: React.FC = () => {
                     }`}>
                       {activeScan.attendableType === 'Student' ? <GraduationCap size={14} /> : <Briefcase size={14} />}
                       {activeScan.attendableType === 'Student' 
-                        ? (language === 'ar' ? 'طالب' : language === 'su' ? 'Murid / Siswa' : 'Siswa') 
-                        : (language === 'ar' ? 'معلم / موظف' : language === 'jv' ? 'Guru / Karyawan' : language === 'su' ? 'Guru / Pagawé' : 'Guru / Pegawai')}
+                        ? (language === 'su' ? 'Murid / Siswa' : 'Siswa') 
+                        : (language === 'jv' ? 'Guru / Karyawan' : language === 'su' ? 'Guru / Pagawé' : 'Guru / Pegawai')}
                     </span>
                     <span className="text-xs text-slate-400 font-mono">
                       {activeScan.identifier}
@@ -674,8 +674,6 @@ export const KioskAttendancePage: React.FC = () => {
                           ? 'SAMPUN PRESENSI DINTEN MENIKA' 
                           : language === 'su'
                           ? 'PARANTOS PRESÉNSI DINTEN IEU'
-                          : language === 'ar'
-                          ? 'تم تسجيل الحضور مسبقاً اليوم'
                           : 'SUDAH MELAKUKAN PRESENSI HARI INI'}
                       </div>
                       <div className="text-xs opacity-85">
@@ -683,18 +681,16 @@ export const KioskAttendancePage: React.FC = () => {
                           ? `Wau sampun kacathet tabuh ${activeScan.time} WIB lan mboten dipuncathet malih.`
                           : language === 'su'
                           ? `Data kahadiran parantos kacatet tabuh ${activeScan.time} WIB sarta henteu dicatet deui.`
-                          : language === 'ar'
-                          ? `تم حفظ بيانات حضورك في الساعة ${activeScan.time}. لن يتم تسجيلها مرة أخرى.`
                           : `Data kehadiran Anda sudah tersimpan pada pukul ${activeScan.time} WIB. Tidak dicatat ulang.`}
                       </div>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <span className="text-xs font-semibold uppercase tracking-wider block opacity-75">
-                      {language === 'jv' ? 'Kahanan' : language === 'su' ? 'Kaayaan' : language === 'ar' ? 'الحالة' : 'Status'}
+                      {language === 'jv' ? 'Kahanan' : language === 'su' ? 'Kaayaan' : 'Status'}
                     </span>
                     <span className="text-sm font-extrabold uppercase text-cyan-300">
-                      {language === 'jv' ? 'Sampun Absen' : language === 'su' ? 'Parantos Absen' : language === 'ar' ? 'حاضر مسبقاً' : 'Sudah Absen'}
+                      {language === 'jv' ? 'Sampun Absen' : language === 'su' ? 'Parantos Absen' : 'Sudah Absen'}
                     </span>
                   </div>
                 </div>
@@ -708,8 +704,6 @@ export const KioskAttendancePage: React.FC = () => {
                           ? 'KECATHET KASEP / TELAT' 
                           : language === 'su'
                           ? 'KACATET TELAT'
-                          : language === 'ar'
-                          ? 'تم تسجيل الحضور متأخراً'
                           : 'TERCATAT TERLAMBAT'}
                       </div>
                       <div className="text-xs opacity-90">
@@ -717,18 +711,16 @@ export const KioskAttendancePage: React.FC = () => {
                           ? `Rawuh tabuh ${activeScan.time} WIB nglangkungi wates wekdal. Dinten candhakipun mugi rawuh langkung enjang.`
                           : language === 'su'
                           ? `Sumping tabuh ${activeScan.time} WIB langkung tina wates waktos. Enjing-enjing mugi tiasa sumping langkung awal.`
-                          : language === 'ar'
-                          ? `الوصول في الساعة ${activeScan.time} تجاوز وقت الدوام. يرجى الحضور مبكراً في الأيام القادمة.`
                           : `Tiba pukul ${activeScan.time} WIB melewati batas toleransi. Harap hadir lebih awal di hari berikutnya.`}
                       </div>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <span className="text-xs font-semibold uppercase tracking-wider block opacity-75">
-                      {language === 'jv' ? 'Kahanan' : language === 'su' ? 'Kaayaan' : language === 'ar' ? 'الحالة' : 'Status'}
+                      {language === 'jv' ? 'Kahanan' : language === 'su' ? 'Kaayaan' : 'Status'}
                     </span>
                     <span className="text-sm font-extrabold uppercase text-amber-300">
-                      {language === 'jv' ? 'Kasep' : language === 'su' ? 'Telat' : language === 'ar' ? 'متأخر' : 'Terlambat'}
+                      {language === 'jv' ? 'Kasep' : language === 'su' ? 'Telat' : 'Terlambat'}
                     </span>
                   </div>
                 </div>
@@ -742,8 +734,6 @@ export const KioskAttendancePage: React.FC = () => {
                           ? 'RAWUH TEPAT WEKDAL' 
                           : language === 'su'
                           ? 'SUMPING TEPAT WAKTOS'
-                          : language === 'ar'
-                          ? 'حضور في الوقت المحدد'
                           : 'HADIR TEPAT WAKTU'}
                       </div>
                       <div className="text-xs opacity-80">
@@ -751,18 +741,16 @@ export const KioskAttendancePage: React.FC = () => {
                           ? 'Matur nuwun sanget, sugeng sinau lan makarya!' 
                           : language === 'su'
                           ? 'Hatur nuhun pisan, wilujeng diajar sarta ngajalankeun kagiatan!'
-                          : language === 'ar'
-                          ? 'شكراً جزيلاً لك، ونتمنى لك يوماً دراسياً موفقاً!'
                           : 'Terima kasih dan selamat belajar / beraktivitas!'}
                       </div>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <span className="text-xs font-semibold uppercase tracking-wider block opacity-75">
-                      {language === 'jv' ? 'Kahanan' : language === 'su' ? 'Kaayaan' : language === 'ar' ? 'الحالة' : 'Status'}
+                      {language === 'jv' ? 'Kahanan' : language === 'su' ? 'Kaayaan' : 'Status'}
                     </span>
                     <span className="text-sm font-extrabold uppercase text-emerald-300">
-                      {language === 'jv' ? 'Hadir' : language === 'su' ? 'Hadir' : language === 'ar' ? 'حاضر' : 'Hadir'}
+                      {language === 'jv' ? 'Hadir' : language === 'su' ? 'Hadir' : 'Hadir'}
                     </span>
                   </div>
                 </div>
@@ -781,8 +769,6 @@ export const KioskAttendancePage: React.FC = () => {
                     ? 'Kertu Mboten Kadeteksi'
                     : language === 'su'
                     ? 'Kartu Henteu Kadetéksi'
-                    : language === 'ar'
-                    ? 'لم يتم التعرف على البطاقة'
                     : 'Kartu Tidak Terdeteksi'}
                 </h3>
                 <p className="text-base text-rose-300 font-medium max-w-md mx-auto">
@@ -791,8 +777,6 @@ export const KioskAttendancePage: React.FC = () => {
                       ? 'Nomer kertu RFID dereng kacathet wonten sistem.'
                       : language === 'su'
                       ? 'Nomer kartu RFID teu acan kadaptar dina sistem.'
-                      : language === 'ar'
-                      ? 'رقم البطاقة غير مسجل في النظام أو الشخص غير مفعّل.'
                       : 'Nomor kartu RFID belum terdaftar di sistem.'
                   )}
                 </p>
@@ -802,8 +786,6 @@ export const KioskAttendancePage: React.FC = () => {
                   ? 'Sumangga hubungi operator administrasi sekolah kagem ndaptaraken kertu RFID.'
                   : language === 'su'
                   ? 'Mangga wartosan operator administrasi sakola kanggo ngadaptarkeun kartu RFID.'
-                  : language === 'ar'
-                  ? 'يرجى مراجعة إدارة المدرسة لتسجيل وتفعيل بطاقة RFID.'
                   : 'Silakan hubungi operator administrasi sekolah untuk pendaftaran kartu RFID.'}
               </p>
             </div>
@@ -821,7 +803,7 @@ export const KioskAttendancePage: React.FC = () => {
               </div>
               <div className="text-2xl font-black text-white">{stats.total}</div>
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                {language === 'jv' ? 'Gunggung Rawuh' : language === 'su' ? 'Jumlah Lebet' : language === 'ar' ? 'إجمالي الحضور' : 'Total Masuk'}
+                {language === 'jv' ? 'Gunggung Rawuh' : language === 'su' ? 'Jumlah Lebet' : 'Total Masuk'}
               </div>
             </div>
 
@@ -831,7 +813,7 @@ export const KioskAttendancePage: React.FC = () => {
               </div>
               <div className="text-2xl font-black text-white">{stats.students}</div>
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                {language === 'su' ? 'Murid / Siswa' : language === 'ar' ? 'الطلاب' : 'Siswa'}
+                {language === 'su' ? 'Murid / Siswa' : 'Siswa'}
               </div>
             </div>
 
@@ -841,7 +823,7 @@ export const KioskAttendancePage: React.FC = () => {
               </div>
               <div className="text-2xl font-black text-white">{stats.employees}</div>
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                {language === 'jv' ? 'Guru / Karyawan' : language === 'su' ? 'Guru / Pagawé' : language === 'ar' ? 'المعلمون / الموظفون' : 'Guru / Staf'}
+                {language === 'jv' ? 'Guru / Karyawan' : language === 'su' ? 'Guru / Pagawé' : 'Guru / Staf'}
               </div>
             </div>
           </div>
@@ -851,7 +833,7 @@ export const KioskAttendancePage: React.FC = () => {
             <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-800">
               <h4 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
                 <Clock size={16} className="text-indigo-400" />
-                {language === 'jv' ? 'Aktivitas Tap Enggal' : language === 'su' ? 'Aktivitas Tap Panganyarna' : language === 'ar' ? 'آخر عمليات الحضور' : 'Aktivitas Tap Terkini'}
+                {language === 'jv' ? 'Aktivitas Tap Enggal' : language === 'su' ? 'Aktivitas Tap Panganyarna' : 'Aktivitas Tap Terkini'}
               </h4>
               <span className="text-xs font-medium text-slate-500">Live Real-time</span>
             </div>
@@ -865,8 +847,6 @@ export const KioskAttendancePage: React.FC = () => {
                       ? 'Dereng wonten aktivitas tap kertu ing wekdal menika.'
                       : language === 'su'
                       ? 'Teu acan aya aktivitas tap kartu dina waktos ieu.'
-                      : language === 'ar'
-                      ? 'لا توجد عمليات حضور مسجلة حتى الآن.'
                       : 'Belum ada aktivitas tap kartu pada sesi ini.'}
                   </p>
                 </div>
@@ -921,8 +901,6 @@ export const KioskAttendancePage: React.FC = () => {
               ? `Sugeng rawuh ing ${profile.name || 'Sekolah'}. Budayakaken mesem, aruh-aruh, salam, sopan, lan santun. Pasthekaken kertu panjenengan dipuntap nalika rawuh lan saderengipun kondur.`
               : language === 'su'
               ? `Wilujeng sumping di ${profile.name || 'Sakola'}. Biasakeun seuri, sapa, salam, sopan, sarta santun. Pastikeun kartu anjeun ditap nalika sumping sarta sateuacan mulih.`
-              : language === 'ar'
-              ? `أهلاً وسهلاً بكم في ${profile.name || 'المدرسة'}. يرجى التأكد من تمرير بطاقتك الذكية عند الحضور وعند الانصراف.`
               : `Selamat datang di ${profile.name || 'Sekolah'}. Budayakan senyum, sapa, salam, sopan, dan santun. Pastikan kartu Anda ditap saat tiba dan sebelum meninggalkan sekolah.`}
           </div>
         </div>
