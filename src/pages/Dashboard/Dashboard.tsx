@@ -33,7 +33,7 @@ export const Dashboard: React.FC = () => {
   const isAdminSekolah = userRoleNames.includes('Admin Sekolah');
   const isKepalaSekolah = userRoleNames.includes('Kepala Sekolah');
   const isTeacher = userRoleNames.some((r) => ['Guru / Wali Kelas', 'Guru'].includes(r));
-  const isStudent = userRoleNames.includes('Siswa') && !isSuperAdmin && !isAdminSekolah && !isTeacher && !isKepalaSekolah;
+  const isStudentOrGuardian = (userRoleNames.includes('Siswa') || userRoleNames.includes('Orang Tua / Wali')) && !isSuperAdmin && !isAdminSekolah && !isTeacher && !isKepalaSekolah;
 
   // Pure teacher if has teacher role and no executive/admin role
   const isPureTeacher = isTeacher && !isSuperAdmin && !isAdminSekolah && !isKepalaSekolah;
@@ -81,7 +81,7 @@ export const Dashboard: React.FC = () => {
   }, [announcements, updateScrollState]);
 
   useEffect(() => {
-    if (isStudent) return;
+    if (isStudentOrGuardian) return;
 
     const loadData = async () => {
       setLoading(true);
@@ -104,10 +104,10 @@ export const Dashboard: React.FC = () => {
     };
 
     loadData();
-  }, [isStudent, isPureTeacher]);
+  }, [isStudentOrGuardian, isPureTeacher]);
 
-  // Siswa dialihkan langsung ke Student Portal
-  if (isStudent) {
+  // Siswa dan Wali Murid dialihkan langsung ke Portal Siswa/Wali
+  if (isStudentOrGuardian) {
     return <Navigate to="/student/dashboard" replace />;
   }
 

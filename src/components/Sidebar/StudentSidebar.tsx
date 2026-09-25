@@ -5,8 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 import { AppLogo } from '../Common/AppLogo';
 
 export const StudentSidebar: React.FC = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const isGuardian = user?.roles?.some(r => r.name === 'Orang Tua / Wali');
 
   const handleLogout = async () => {
     await logout();
@@ -30,7 +32,9 @@ export const StudentSidebar: React.FC = () => {
       <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <AppLogo size="md" variant="white" />
         <div>
-          <h1 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.025em' }}>Portal Siswa</h1>
+          <h1 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.025em' }}>
+            {isGuardian ? 'Portal Wali Murid' : 'Portal Siswa'}
+          </h1>
         </div>
       </div>
       <nav style={{ flex: 1, padding: '1.5rem 0', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -38,7 +42,7 @@ export const StudentSidebar: React.FC = () => {
           <Home size={18} style={{ marginRight: '0.75rem' }} /> Dashboard
         </NavLink>
         <NavLink to="/student/profile" style={({ isActive }) => navItemStyle(isActive)}>
-          <User size={18} style={{ marginRight: '0.75rem' }} /> Profil Saya
+          <User size={18} style={{ marginRight: '0.75rem' }} /> {isGuardian ? 'Profil Siswa' : 'Profil Saya'}
         </NavLink>
         <NavLink to="/student/grades" style={({ isActive }) => navItemStyle(isActive)}>
           <BookOpen size={18} style={{ marginRight: '0.75rem' }} /> Nilai & Rapor
