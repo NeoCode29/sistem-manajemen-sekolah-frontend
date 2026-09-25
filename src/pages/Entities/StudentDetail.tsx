@@ -2474,13 +2474,17 @@ export const StudentDetail: React.FC = () => {
 
       {/* Modal Buat Akun Portal Wali */}
       <Modal
-        isOpen={showCreateAccountModal}
+        open={showCreateAccountModal}
         onClose={() => !accountSubmitting && setShowCreateAccountModal(false)}
-        title="Buat Akun Portal Wali Murid"
-        subtitle={
-          selectedGuardianForAccount
-            ? `Wali: ${selectedGuardianForAccount.fullName} • Siswa: ${student?.fullName || '-'}`
-            : undefined
+        title={
+          <div>
+            <div className="text-base font-bold text-gray-900">Buat Akun Portal Wali Murid</div>
+            {selectedGuardianForAccount && (
+              <p className="text-xs text-gray-500 font-normal mt-0.5">
+                Wali: {selectedGuardianForAccount.fullName} • Siswa: {student?.fullName || '-'}
+              </p>
+            )}
+          </div>
         }
         size="md"
         footer={
@@ -2542,7 +2546,7 @@ export const StudentDetail: React.FC = () => {
             </div>
           </div>
 
-          <FormField label="Username Login" required helper="Minimal 4 karakter, unik untuk login portal">
+          <FormField label="Username Login" required hint="Minimal 4 karakter, unik untuk login portal">
             <input
               type="text"
               className="input-std font-mono font-medium"
@@ -2553,7 +2557,7 @@ export const StudentDetail: React.FC = () => {
             />
           </FormField>
 
-          <FormField label="Password" required helper="Minimal 6 karakter kombinasi huruf dan angka">
+          <FormField label="Password" required hint="Minimal 6 karakter kombinasi huruf dan angka">
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -2578,13 +2582,17 @@ export const StudentDetail: React.FC = () => {
 
       {/* Modal Reset Password Akun Wali */}
       <Modal
-        isOpen={showResetPasswordModal}
+        open={showResetPasswordModal}
         onClose={() => !accountSubmitting && setShowResetPasswordModal(false)}
-        title="Reset Password Akun Wali Murid"
-        subtitle={
-          selectedGuardianForAccount?.userAccount
-            ? `Username: ${selectedGuardianForAccount.userAccount.username} • Wali: ${selectedGuardianForAccount.fullName}`
-            : undefined
+        title={
+          <div>
+            <div className="text-base font-bold text-gray-900">Reset Password Akun Wali Murid</div>
+            {selectedGuardianForAccount?.userAccount && (
+              <p className="text-xs text-gray-500 font-normal mt-0.5">
+                Username: {selectedGuardianForAccount.userAccount.username} • Wali: {selectedGuardianForAccount.fullName}
+              </p>
+            )}
+          </div>
         }
         size="md"
         footer={
@@ -2647,7 +2655,7 @@ export const StudentDetail: React.FC = () => {
             </div>
           </div>
 
-          <FormField label="Password Baru" required helper="Minimal 6 karakter">
+          <FormField label="Password Baru" required hint="Minimal 6 karakter">
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
