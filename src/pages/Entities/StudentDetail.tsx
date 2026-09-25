@@ -7,6 +7,8 @@ import {
   createGuardian, 
   updateGuardian, 
   deleteGuardian, 
+  createGuardianAccount,
+  resetGuardianPassword,
   updateEnrollment, 
   type Student, 
   type StudentGuardian, 
@@ -38,7 +40,8 @@ import {
   ArrowLeft, User, BookOpen, Award, Pencil, Plus, Trash2, MapPin, Calendar, 
   Phone, Briefcase, GraduationCap, Users, Loader2, UserX, RefreshCw, Trophy, 
   ShieldAlert, ShieldCheck, AlertTriangle, AlertCircle, FileText, CheckCircle2, 
-  ChevronRight, HeartPulse, Bus, DollarSign, Home, Shield, Activity, Search, X
+  ChevronRight, HeartPulse, Bus, DollarSign, Home, Shield, Activity, Search, X,
+  KeyRound, RotateCcw, Copy, Check, Eye, EyeOff, Zap
 } from 'lucide-react';
 import { Modal, FormField, Badge, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { SearchableDropdown } from '../../components/ui/SearchableDropdown';
@@ -583,6 +586,83 @@ export const StudentDetail: React.FC = () => {
         }
       }
     });
+  };
+
+  // --- GUARDIAN ACCOUNT HANDLERS ---
+  const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [selectedGuardianForAccount, setSelectedGuardianForAccount] = useState<StudentGuardian | null>(null);
+  const [accountForm, setAccountForm] = useState({ username: '', password: '', name: '' });
+  const [resetPasswordForm, setResetPasswordForm] = useState({ newPassword: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [accountSubmitting, setAccountSubmitting] = useState(false);
+  const [copiedNotification, setCopiedNotification] = useState(false);
+
+  const handleAutoGenerateCredentials = () => {
+    if (!student || !selectedGuardianForAccount) return;
+    const baseNis = student.nis ? student.nis.trim() : (selectedGuardianForAccount.phone ? selectedGuardianForAccount.phone.slice(-6) : '123456');
+    const autoUsername = `wali.${baseNis}`;
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const autoPassword = `Wali#${randomSuffix}`;
+    setAccountForm({
+      username: autoUsername,
+      password: autoPassword,
+      name: selectedGuardianForAccount.fullName || `Wali ${student.fullName}`,
+    });
+  };
+
+  const handleAutoGenerateResetPassword = () => {
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    setResetPasswordForm({
+      newPassword: `Wali#${randomSuffix}`,
+    });
+  };
+
+  const handleCopyCredentials = (textToCopy: string) => {
+    navigator.clipboard.writeText(textToCopy);
+    setCopiedNotification(true);
+    setTimeout(() => setCopiedNotification(false), 2000);
+    notify.success('Kredensial berhasil disalin ke clipboard');
+  };
+
+  const handleSaveGuardianAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedGuardianForAccount?.id) return;
+    if (!accountForm.username || !accountForm.password) {
+      notify.error('Username dan password wajib diisi');
+      return;
+    }
+    try {
+      setAccountSubmitting(true);
+      await createGuardianAccount(selectedGuardianForAccount.id, accountForm);
+      notify.success(`Akun portal untuk ${selectedGuardianForAccount.fullName} berhasil dibuat!`);
+      setShowCreateAccountModal(false);
+      fetchStudent();
+    } catch (err: any) {
+      notify.error(err, 'Gagal membuat akun portal wali');
+    } finally {
+      setAccountSubmitting(false);
+    }
+  };
+
+  const handleSaveResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedGuardianForAccount?.id) return;
+    if (!resetPasswordForm.newPassword || resetPasswordForm.newPassword.length < 6) {
+      notify.error('Password baru minimal 6 karakter');
+      return;
+    }
+    try {
+      setAccountSubmitting(true);
+      await resetGuardianPassword(selectedGuardianForAccount.id, resetPasswordForm);
+      notify.success('Password akun wali murid berhasil di-reset!');
+      setShowResetPasswordModal(false);
+      fetchStudent();
+    } catch (err: any) {
+      notify.error(err, 'Gagal me-reset password akun wali');
+    } finally {
+      setAccountSubmitting(false);
+    }
   };
 
   // --- ENROLLMENT HANDLERS ---
@@ -1162,6 +1242,73 @@ export const StudentDetail: React.FC = () => {
                                 </span>
                               </div>
                             </div>
+
+                            {/* Seksi Akun Portal Wali (Khusus Wali Utama / isPrimary) */}
+                            {g.isPrimary && (
+                              <div className="mt-3 pt-3 border-t border-gray-100">
+                                {g.userAccount ? (
+                                  <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100/80 flex flex-wrap items-center justify-between gap-2.5">
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 uppercase tracking-wider mb-1">
+                                        <KeyRound size={12} className="text-indigo-600 shrink-0" /> Akun Portal Wali (Aktif)
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-mono font-bold text-xs sm:text-sm text-indigo-950 bg-white px-2 py-0.5 rounded border border-indigo-200/80 select-all shadow-2xs">
+                                          {g.userAccount.username}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded">
+                                          Aktif
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {canManageGuardians && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedGuardianForAccount(g);
+                                          setResetPasswordForm({ newPassword: '' });
+                                          setShowPassword(false);
+                                          setShowResetPasswordModal(true);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-amber-50 text-amber-700 border border-amber-200/80 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                                      >
+                                        <RotateCcw size={12} /> Reset Password
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200/60 flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <span className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider block">
+                                        Akses Portal Wali
+                                      </span>
+                                      <span className="text-xs text-amber-600 font-medium">
+                                        Belum dibuatkan akun login
+                                      </span>
+                                    </div>
+                                    {canManageGuardians && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedGuardianForAccount(g);
+                                          const baseNis = student?.nis ? student.nis.trim() : (g.phone ? g.phone.slice(-6) : '123456');
+                                          setAccountForm({
+                                            username: `wali.${baseNis}`,
+                                            password: `Wali#${Math.floor(1000 + Math.random() * 9000)}`,
+                                            name: g.fullName || `Wali ${student?.fullName || ''}`,
+                                          });
+                                          setShowPassword(false);
+                                          setShowCreateAccountModal(true);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer shrink-0"
+                                      >
+                                        <KeyRound size={13} /> + Buat Akun Portal
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -2322,6 +2469,204 @@ export const StudentDetail: React.FC = () => {
               )}
             </div>
           </div>
+        </form>
+      </Modal>
+
+      {/* Modal Buat Akun Portal Wali */}
+      <Modal
+        isOpen={showCreateAccountModal}
+        onClose={() => !accountSubmitting && setShowCreateAccountModal(false)}
+        title="Buat Akun Portal Wali Murid"
+        subtitle={
+          selectedGuardianForAccount
+            ? `Wali: ${selectedGuardianForAccount.fullName} • Siswa: ${student?.fullName || '-'}`
+            : undefined
+        }
+        size="md"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
+              onClick={() =>
+                handleCopyCredentials(
+                  `Akun Portal Wali Murid:\nUsername: ${accountForm.username}\nPassword: ${accountForm.password}\nSiswa: ${student?.fullName || '-'}`
+                )
+              }
+              title="Salin username dan password ke clipboard"
+            >
+              {copiedNotification ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+              {copiedNotification ? 'Tersalin!' : 'Salin Kredensial'}
+            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="btn-std-secondary"
+                onClick={() => setShowCreateAccountModal(false)}
+                disabled={accountSubmitting}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="btn-std-primary"
+                onClick={handleSaveGuardianAccount}
+                disabled={accountSubmitting}
+              >
+                {accountSubmitting && <Loader2 size={16} className="animate-spin" />}
+                {accountSubmitting ? 'Membuat Akun...' : 'Simpan Akun'}
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <form onSubmit={handleSaveGuardianAccount} className="p-6 space-y-4">
+          <div className="p-3.5 bg-indigo-50/70 border border-indigo-100/90 rounded-2xl flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Zap size={16} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-indigo-950">Generator Cepat Kredensial</span>
+                <button
+                  type="button"
+                  onClick={handleAutoGenerateCredentials}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                >
+                  <Zap size={12} /> Generate Ulang
+                </button>
+              </div>
+              <p className="text-[11px] text-indigo-700 mt-1 leading-relaxed">
+                Kredensial otomatis dibuat berdasarkan format standar (<span className="font-mono">wali.[nis]</span>). Anda tetap dapat mengubahnya secara manual sebelum menyimpan.
+              </p>
+            </div>
+          </div>
+
+          <FormField label="Username Login" required helper="Minimal 4 karakter, unik untuk login portal">
+            <input
+              type="text"
+              className="input-std font-mono font-medium"
+              placeholder="Contoh: wali.10293"
+              value={accountForm.username}
+              onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
+              required
+            />
+          </FormField>
+
+          <FormField label="Password" required helper="Minimal 6 karakter kombinasi huruf dan angka">
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="input-std font-mono font-medium pr-10"
+                placeholder="Masukkan atau generate password"
+                value={accountForm.password}
+                onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-1"
+                title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </FormField>
+        </form>
+      </Modal>
+
+      {/* Modal Reset Password Akun Wali */}
+      <Modal
+        isOpen={showResetPasswordModal}
+        onClose={() => !accountSubmitting && setShowResetPasswordModal(false)}
+        title="Reset Password Akun Wali Murid"
+        subtitle={
+          selectedGuardianForAccount?.userAccount
+            ? `Username: ${selectedGuardianForAccount.userAccount.username} • Wali: ${selectedGuardianForAccount.fullName}`
+            : undefined
+        }
+        size="md"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
+              onClick={() =>
+                handleCopyCredentials(
+                  `Kredensial Baru Akun Wali:\nUsername: ${selectedGuardianForAccount?.userAccount?.username || '-'}\nPassword Baru: ${resetPasswordForm.newPassword}`
+                )
+              }
+              title="Salin password baru ke clipboard"
+              disabled={!resetPasswordForm.newPassword}
+            >
+              {copiedNotification ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+              {copiedNotification ? 'Tersalin!' : 'Salin Password'}
+            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="btn-std-secondary"
+                onClick={() => setShowResetPasswordModal(false)}
+                disabled={accountSubmitting}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="btn-std-primary"
+                onClick={handleSaveResetPassword}
+                disabled={accountSubmitting}
+              >
+                {accountSubmitting && <Loader2 size={16} className="animate-spin" />}
+                {accountSubmitting ? 'Menyimpan...' : 'Simpan Password'}
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <form onSubmit={handleSaveResetPassword} className="p-6 space-y-4">
+          <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <RotateCcw size={16} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-amber-950">Generate Password Acak</span>
+                <button
+                  type="button"
+                  onClick={handleAutoGenerateResetPassword}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                >
+                  <Zap size={12} /> Buat Password
+                </button>
+              </div>
+              <p className="text-[11px] text-amber-800 mt-1 leading-relaxed">
+                Buat password acak baru atau ketikkan password khusus secara manual di bawah ini.
+              </p>
+            </div>
+          </div>
+
+          <FormField label="Password Baru" required helper="Minimal 6 karakter">
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="input-std font-mono font-medium pr-10"
+                placeholder="Masukkan password baru"
+                value={resetPasswordForm.newPassword}
+                onChange={(e) => setResetPasswordForm({ newPassword: e.target.value })}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-1"
+                title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </FormField>
         </form>
       </Modal>
 
