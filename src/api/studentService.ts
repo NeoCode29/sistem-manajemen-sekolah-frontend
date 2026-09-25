@@ -6,9 +6,18 @@ export interface OccupationRef {
   name: string;
 }
 
+export interface GuardianUserAccount {
+  id: string;
+  username: string;
+  name: string;
+  isActive: boolean;
+  createdAt?: string;
+  lastLoginAt?: string | null;
+}
+
 export interface StudentGuardian {
-  id?: string;
-  studentId?: string;
+  id?: string | number;
+  studentId?: string | number;
   relationship: string;
   fullName: string;
   nationalId?: string;
@@ -16,7 +25,7 @@ export interface StudentGuardian {
   birthYear?: number;
   isAlive?: boolean;
   education?: string;
-  occupationId?: string;
+  occupationId?: string | number | null;
   occupationRef?: OccupationRef;
   occupation?: string;
   monthlyIncome?: string;
@@ -25,6 +34,7 @@ export interface StudentGuardian {
   email?: string;
   address?: string;
   isPrimary: boolean;
+  userAccount?: GuardianUserAccount | null;
 }
 
 export interface StudentEnrollment {
@@ -171,6 +181,22 @@ export const updateGuardian = async (studentId: string, id: string, data: Partia
 
 export const deleteGuardian = async (studentId: string, id: string): Promise<void> => {
   await api.delete(`/students/${studentId}/guardians/${id}`);
+};
+
+export const createGuardianAccount = async (
+  guardianId: string | number,
+  data: { username: string; password: string; name?: string }
+): Promise<GuardianUserAccount> => {
+  const response = await api.post(`/users/guardian/${guardianId}`, data);
+  return response.data;
+};
+
+export const resetGuardianPassword = async (
+  guardianId: string | number,
+  data: { newPassword: string }
+): Promise<{ message: string; userId: string; username: string }> => {
+  const response = await api.post(`/users/guardian/${guardianId}/reset-password`, data);
+  return response.data;
 };
 
 // ==========================================

@@ -393,138 +393,130 @@ export const Roles: React.FC = () => {
       <PageHeader 
         title="Peran & Hak Akses (Roles & Permissions)" 
         subtitle="Atur daftar peran dan konfigurasi wewenang granular per submodul"
-        action={
-          canManageRbac ? (
-            <button 
-              type="button"
-              onClick={() => setShowCreateModal(true)}
-              className="btn-std-primary flex items-center gap-2"
-            >
-              <Plus size={18} /> Tambah Peran Baru
-            </button>
-          ) : undefined
-        }
       />
 
-      {/* 2. 2-Panel Master-Detail Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* 2. Layout Atas-Bawah */}
+      <div className="flex flex-col gap-6 items-start">
         
-        {/* PANEL KIRI: DAFTAR ROLE */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-gray-100 bg-gray-50/70">
-            <div className="flex items-center justify-between mb-2.5">
-              <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
-                <UserCheck size={16} className="text-indigo-600" />
-                Daftar Peran ({filteredRoles.length})
-              </h3>
+        {/* PANEL ATAS: DAFTAR ROLE (TAB STYLE) */}
+        <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0 border border-indigo-100">
+                <UserCheck size={20} className="text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">Manajemen Peran</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Pilih peran untuk mengatur hak aksesnya</p>
+              </div>
             </div>
-            {/* Role Search */}
-            <div className="relative group">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" />
-              <input 
-                type="text" 
-                placeholder="Cari peran..."
-                value={roleSearch}
-                onChange={(e) => setRoleSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-800 font-medium"
-              />
+
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="relative group flex-1 md:w-64">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" />
+                <input 
+                  type="text" 
+                  placeholder="Cari peran..."
+                  value={roleSearch}
+                  onChange={(e) => setRoleSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-800 font-medium"
+                />
+              </div>
+              {canManageRbac && (
+                <button 
+                  type="button"
+                  onClick={() => setShowCreateModal(true)}
+                  className="btn-std-primary flex items-center gap-2 text-xs py-2 px-4 shrink-0"
+                >
+                  <Plus size={16} /> Peran Baru
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="divide-y divide-gray-100 max-h-[calc(100vh-280px)] overflow-y-auto">
+          <div className="p-4 bg-white">
             {loading ? (
-              <div className="p-8 text-center text-gray-400 text-sm">Memuat data peran...</div>
+              <div className="py-6 text-center text-gray-400 text-sm flex items-center justify-center gap-2">
+                <Loader2 size={16} className="animate-spin" /> Memuat daftar peran...
+              </div>
             ) : filteredRoles.length === 0 ? (
-              <div className="p-8 text-center text-gray-400 text-xs">Tidak ada peran ditemukan.</div>
+              <div className="py-6 text-center text-gray-400 text-xs">Tidak ada peran ditemukan.</div>
             ) : (
-              filteredRoles.map((role) => {
-                const isSelected = String(role.id) === String(selectedRoleId);
-                const isSystem = SYSTEM_ROLES.includes(role.name);
-                const permCount = role.name === 'Super Admin' 
-                  ? allPermissions.length 
-                  : (role.permissions?.length || 0);
-
-                return (
-                  <div
-                    key={String(role.id)}
-                    onClick={() => handleSelectRole(role)}
-                    className={`p-3.5 flex items-center justify-between cursor-pointer transition-all ${
-                      isSelected 
-                        ? 'bg-indigo-50/80 border-l-4 border-l-indigo-600 text-indigo-950 font-medium' 
-                        : 'hover:bg-gray-50/80 text-gray-700 border-l-4 border-l-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-semibold ${
+              <div className="flex flex-wrap gap-2.5">
+                {filteredRoles.map((role) => {
+                  const isSelected = String(role.id) === String(selectedRoleId);
+                  const isSystem = SYSTEM_ROLES.includes(role.name);
+                  
+                  return (
+                    <div
+                      key={String(role.id)}
+                      onClick={() => handleSelectRole(role)}
+                      className={`group relative flex items-center gap-2.5 px-4 py-2.5 rounded-full cursor-pointer transition-all border ${
                         isSelected 
-                          ? 'bg-indigo-600 text-white shadow-xs' 
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {role.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold truncate text-gray-900 flex items-center gap-1.5">
-                          {role.name}
-                          {isSystem && (
-                            <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
-                              System
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
-                          <span>{permCount} Hak Akses</span>
-                          <span>•</span>
-                          {role.maxUsers ? (
-                            <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded border ${
-                              (role.userCount ?? 0) >= role.maxUsers
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : 'bg-blue-50 text-blue-700 border-blue-200'
-                            }`}>
-                              Kuota: {role.userCount ?? 0}/{role.maxUsers}
-                            </span>
-                          ) : (
-                            <span className="text-[11px] text-gray-400">Tanpa Batas</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                          ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-200' 
+                          : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700'
+                      }`}
+                    >
+                      {/* Status Dot */}
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? 'bg-white' : isSystem ? 'bg-slate-400' : 'bg-indigo-400'}`}></span>
+                      
+                      <span className="text-sm font-semibold tracking-wide whitespace-nowrap">
+                        {role.name}
+                      </span>
 
-                    <div className="flex items-center gap-1">
-                      {isSelected && (
-                        <span className="w-2 h-2 rounded-full bg-indigo-600 mr-1"></span>
+                      {/* System Badge */}
+                      {isSystem && (
+                        <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                          isSelected ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
+                        }`}>
+                          SYS
+                        </span>
                       )}
+
+                      {/* User Count Badge */}
+                      {role.maxUsers ? (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                          isSelected 
+                            ? 'bg-white/20 text-white' 
+                            : ((role.userCount ?? 0) >= role.maxUsers) ? 'bg-amber-100 text-amber-700' : 'bg-white border border-gray-200 text-gray-500'
+                        }`}>
+                          {role.userCount ?? 0}/{role.maxUsers}
+                        </span>
+                      ) : null}
+
+                      {/* Hover Actions (Edit/Delete) */}
                       {canManageRbac && (
-                        <>
+                        <div className={`absolute -top-2 -right-2 hidden group-hover:flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-sm p-1 z-10 animate-fade-in ${isSelected ? 'shadow-indigo-100' : ''}`}>
                           <button
                             type="button"
                             onClick={(e) => handleOpenEditRole(role, e)}
-                            title={isSystem ? "Atur Kuota Peran" : "Edit Nama / Kuota Peran"}
-                            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                            title={isSystem ? "Atur Kuota" : "Edit Peran"}
+                            className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
                           >
-                            <Edit2 size={14} />
+                            <Edit2 size={12} />
                           </button>
                           {!isSystem && (
                             <button
                               type="button"
                               onClick={(e) => handleDeleteRole(role, e)}
                               title="Hapus Peran"
-                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={12} />
                             </button>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
 
-        {/* PANEL KANAN: DETAIL HAK AKSES ROLE */}
-        <div className="lg:col-span-8 flex flex-col gap-4">
+        {/* PANEL BAWAH: DETAIL HAK AKSES ROLE */}
+        <div className="w-full flex flex-col gap-4">
           {selectedRole ? (
             <>
               {/* Sticky Top Header Panel Kanan */}
@@ -634,7 +626,7 @@ export const Roles: React.FC = () => {
               )}
 
               {/* Group Cards Container */}
-              <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
                 {allGroups.map((group) => {
                   // Filter permissions inside this group
                   const filteredGroupPerms = group.permissions.filter(p => {
@@ -770,7 +762,7 @@ export const Roles: React.FC = () => {
           ) : (
             <div className="p-12 text-center bg-white rounded-2xl border border-gray-200 shadow-sm">
               <Shield size={36} className="text-gray-300 mx-auto mb-3" />
-              <p className="text-sm font-medium text-gray-700">Pilih salah satu peran di panel kiri untuk mengatur hak akses.</p>
+              <p className="text-sm font-medium text-gray-700">Pilih salah satu peran di panel atas untuk mengatur hak akses.</p>
             </div>
           )}
         </div>

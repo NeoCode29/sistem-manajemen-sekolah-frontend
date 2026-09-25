@@ -59,10 +59,10 @@ export const GeolocationCheckin: React.FC = () => {
           });
           setResult({ success: true, message: res.data.message || 'Absensi berhasil dicatat' });
           await fetchTodayStatus();
-        } catch (error: any) {
-          setResult({ 
-            success: false, 
-            message: error.response?.data?.message || 'Gagal melakukan absensi' 
+        } catch (err: any) {
+          setResult({
+            success: false,
+            message: err.response?.data?.message || 'Gagal melakukan absensi.',
           });
         } finally {
           setLoading(false);
@@ -70,9 +70,17 @@ export const GeolocationCheckin: React.FC = () => {
       },
       (error) => {
         setLoading(false);
-        setResult({ success: false, message: 'Izin lokasi ditolak atau gagal mendapatkan lokasi: ' + error.message });
+        let msg = 'Gagal mengakses lokasi perangkat Anda.';
+        if (error.code === error.PERMISSION_DENIED) {
+          msg = 'Izin lokasi (GPS) ditolak. Silakan izinkan akses lokasi di browser HP/laptop Anda.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          msg = 'Informasi lokasi tidak tersedia. Pastikan GPS perangkat aktif.';
+        } else if (error.code === error.TIMEOUT) {
+          msg = 'Waktu permintaan lokasi habis. Coba beberapa saat lagi.';
+        }
+        setResult({ success: false, message: msg });
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
@@ -91,60 +99,68 @@ export const GeolocationCheckin: React.FC = () => {
 
   const isButtonDisabled = loading || fetchingStatus || isSiswaCompleted || isPegawaiCompleted;
 
-  let buttonBgColor = '#2563eb'; // blue default
+  let buttonColorClass = 'bg-blue-600 hover:bg-blue-700 text-white';
   let buttonLabel = 'Absen Masuk Sekarang';
 
   if (loading) {
     buttonLabel = 'Mendapatkan Lokasi & Memproses...';
-    buttonBgColor = '#93c5fd';
+    buttonColorClass = 'bg-blue-300 text-white cursor-wait';
   } else if (fetchingStatus) {
     buttonLabel = 'Memeriksa status kehadiran...';
-    buttonBgColor = '#94a3b8';
+    buttonColorClass = 'bg-slate-300 text-slate-600 cursor-not-allowed';
   } else if (isSiswaCompleted) {
     buttonLabel = `Sudah Absen Hari Ini (${todayStatus?.checkinTime || ''})`;
-    buttonBgColor = '#94a3b8';
+    buttonColorClass = 'bg-slate-300 text-slate-600 cursor-not-allowed';
   } else if (isPegawaiCompleted) {
     buttonLabel = 'Absensi Hari Ini Selesai';
-    buttonBgColor = '#94a3b8';
+    buttonColorClass = 'bg-slate-300 text-slate-600 cursor-not-allowed';
   } else if (isPegawaiCanCheckout) {
     buttonLabel = 'Absen Pulang Sekarang';
-    buttonBgColor = '#d97706'; // amber
+    buttonColorClass = 'bg-amber-600 hover:bg-amber-700 text-white';
   }
 
   return (
-    <div style={{ padding: '1.5rem', backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-          <MapPin size={20} color="#3b82f6" />
-          Absensi Geolocation
+    <div className="p-5 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+            <MapPin size={18} />
+          </div>
+          <span>Absensi Mandiri (GPS)</span>
         </h3>
         {fetchingStatus && <Loader2 size={16} className="animate-spin text-gray-400" />}
       </div>
 
-      <p style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '1rem' }}>
-        Pastikan Anda berada di radius area sekolah dan telah mengizinkan akses lokasi (GPS) pada browser.
+      <p className="text-gray-500 text-xs sm:text-sm mb-4 leading-relaxed">
+        Pastikan Anda berada di radius area sekolah dan telah mengizinkan akses lokasi (GPS) pada browser ponsel.
       </p>
 
       {/* Status Card Hari Ini */}
       {todayStatus && !fetchingStatus && (
-        <div style={{ 
-          padding: '0.75rem 1rem', 
-          borderRadius: '0.5rem', 
-          marginBottom: '1rem', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          backgroundColor: isSiswaCompleted || isPegawaiCompleted ? '#f0fdf4' : isPegawaiCanCheckout ? '#fffbeb' : '#f8fafc',
-          border: `1px solid ${isSiswaCompleted || isPegawaiCompleted ? '#bbf7d0' : isPegawaiCanCheckout ? '#fde68a' : '#e2e8f0'}`,
-          fontSize: '0.875rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div
+          className={`p-3.5 sm:p-4 rounded-xl mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs sm:text-sm border transition-colors ${
+            isSiswaCompleted || isPegawaiCompleted
+              ? 'bg-emerald-50/80 border-emerald-200'
+              : isPegawaiCanCheckout
+              ? 'bg-amber-50/80 border-amber-200'
+              : 'bg-slate-50 border-slate-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
             {isSiswaCompleted || isPegawaiCompleted ? (
-              <CheckCircle size={18} color="#16a34a" />
+              <CheckCircle size={18} className="text-emerald-600 flex-shrink-0" />
             ) : (
-              <Clock size={18} color={isPegawaiCanCheckout ? '#d97706' : '#64748b'} />
+              <Clock size={18} className={isPegawaiCanCheckout ? 'text-amber-600 flex-shrink-0' : 'text-slate-500 flex-shrink-0'} />
             )}
-            <span style={{ fontWeight: 600, color: isSiswaCompleted || isPegawaiCompleted ? '#15803d' : isPegawaiCanCheckout ? '#b45309' : '#475569' }}>
+            <span
+              className={`font-semibold ${
+                isSiswaCompleted || isPegawaiCompleted
+                  ? 'text-emerald-800'
+                  : isPegawaiCanCheckout
+                  ? 'text-amber-800'
+                  : 'text-slate-700'
+              }`}
+            >
               {isSiswaCompleted && `Sudah Absen (${todayStatus.status || 'Hadir'})`}
               {isPegawaiCompleted && 'Absensi Lengkap (Masuk & Pulang)'}
               {isPegawaiCanCheckout && 'Sudah Absen Masuk'}
@@ -152,42 +168,38 @@ export const GeolocationCheckin: React.FC = () => {
             </span>
           </div>
 
-          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+          <div className="text-[11px] sm:text-xs text-slate-500 font-medium pl-6 sm:pl-0">
             {isSiswaCompleted && todayStatus.checkinTime && `Masuk: ${todayStatus.checkinTime}`}
             {isPegawaiCanCheckout && todayStatus.checkinTime && `Masuk: ${todayStatus.checkinTime}`}
             {isPegawaiCompleted && `Masuk: ${todayStatus.checkinTime} | Pulang: ${todayStatus.checkoutTime}`}
           </div>
         </div>
       )}
-      
+
       {result && (
-        <div style={{ padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: result.success ? '#dcfce7' : '#fee2e2', color: result.success ? '#166534' : '#991b1b' }}>
-          {result.success ? <CheckCircle size={18} /> : <XCircle size={18} />}
-          <span style={{ fontSize: '0.875rem' }}>{result.message}</span>
+        <div
+          className={`p-3.5 rounded-xl mb-4 flex items-start gap-2.5 text-xs sm:text-sm ${
+            result.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
+          }`}
+        >
+          {result.success ? (
+            <CheckCircle size={18} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+          ) : (
+            <XCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+          )}
+          <span className="leading-snug">{result.message}</span>
         </div>
       )}
 
-      <button 
+      <button
         onClick={handleCheckin}
         disabled={isButtonDisabled}
-        style={{
-          width: '100%',
-          padding: '0.75rem',
-          backgroundColor: buttonBgColor,
-          color: 'white',
-          border: 'none',
-          borderRadius: '0.5rem',
-          fontWeight: 600,
-          cursor: isButtonDisabled ? 'not-allowed' : 'pointer',
-          transition: 'all 0.2s',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.5rem'
-        }}
+        className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm ${buttonColorClass} ${
+          isButtonDisabled ? 'opacity-80' : 'hover:shadow-md active:scale-[0.99]'
+        }`}
       >
         {loading && <Loader2 size={18} className="animate-spin" />}
-        {buttonLabel}
+        <span>{buttonLabel}</span>
       </button>
     </div>
   );
