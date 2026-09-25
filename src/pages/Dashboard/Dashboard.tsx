@@ -2,27 +2,40 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { 
   Users, 
-  Clock, 
   Calendar, 
   Megaphone, 
   Pin,
   UserCheck, 
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  FileCheck2,
-  BookOpen
+  Loader2, 
+  ChevronLeft, 
+  ChevronRight, 
+  FileText, 
+  FileCheck2, 
+  BookOpen,
+  Inbox,
+  Send
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getMyAnnouncements } from '../../api/announcementService';
 import type { Announcement } from '../../api/announcementService';
-import { getDashboardSummary, getTeacherDashboardSummary } from '../../api/dashboardService';
-import type { DashboardSummary, TeacherDashboardSummary } from '../../api/dashboardService';
+import { 
+  getDashboardSummary, 
+  getTeacherDashboardSummary,
+  getPrincipalDashboardSummary,
+  getStaffDashboardSummary
+} from '../../api/dashboardService';
+import type { 
+  DashboardSummary, 
+  TeacherDashboardSummary,
+  PrincipalDashboardSummary,
+  StaffDashboardSummary
+} from '../../api/dashboardService';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { AnnouncementDetailModal } from '../Announcements/AnnouncementDetailModal';
 import { AdminDashboardView } from './views/AdminDashboardView';
 import { TeacherDashboardView } from './views/TeacherDashboardView';
+import { PrincipalDashboardView } from './views/PrincipalDashboardView';
+import { StaffDashboardView } from './views/StaffDashboardView';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -33,15 +46,22 @@ export const Dashboard: React.FC = () => {
   const isAdminSekolah = userRoleNames.includes('Admin Sekolah');
   const isKepalaSekolah = userRoleNames.includes('Kepala Sekolah');
   const isTeacher = userRoleNames.some((r) => ['Guru / Wali Kelas', 'Guru'].includes(r));
-  const isStudentOrGuardian = (userRoleNames.includes('Siswa') || userRoleNames.includes('Orang Tua / Wali')) && !isSuperAdmin && !isAdminSekolah && !isTeacher && !isKepalaSekolah;
+  const isStaff = userRoleNames.some((r) => ['Staf', 'Pegawai', 'Tata Usaha'].includes(r));
+  const isStudentOrGuardian = (userRoleNames.includes('Siswa') || userRoleNames.includes('Orang Tua / Wali')) && 
+    !isSuperAdmin && !isAdminSekolah && !isTeacher && !isKepalaSekolah && !isStaff;
 
-  // Pure teacher if has teacher role and no executive/admin role
-  const isPureTeacher = isTeacher && !isSuperAdmin && !isAdminSekolah && !isKepalaSekolah;
-  const isEmployee = isTeacher || isKepalaSekolah || userRoleNames.includes('Staf');
+  // Strict Role Hierarchy
+  const isPrincipal = isKepalaSekolah;
+  const isAdmin = (isSuperAdmin || isAdminSekolah) && !isPrincipal;
+  const isPureTeacher = isTeacher && !isSuperAdmin && !isAdminSekolah && !isPrincipal;
+  const isStaffOnly = !isPrincipal && !isAdmin && !isPureTeacher;
+  const isEmployee = isTeacher || isKepalaSekolah || isStaff;
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [adminSummary, setAdminSummary] = useState<DashboardSummary | null>(null);
+  const [principalSummary, setPrincipalSummary] = useState<PrincipalDashboardSummary | null>(null);
   const [teacherSummary, setTeacherSummary] = useState<TeacherDashboardSummary | null>(null);
+  const [staffSummary, setStaffSummary] = useState<StaffDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Announcement Slider & Modal State
@@ -89,12 +109,18 @@ export const Dashboard: React.FC = () => {
         const announcementsData = await getMyAnnouncements();
         setAnnouncements(announcementsData);
 
-        if (isPureTeacher) {
+        if (isPrincipal) {
+          const principalData = await getPrincipalDashboardSummary();
+          setPrincipalSummary(principalData);
+        } else if (isAdmin) {
+          const summaryData = await getDashboardSummary();
+          setAdminSummary(summaryData);
+        } else if (isPureTeacher) {
           const teacherData = await getTeacherDashboardSummary();
           setTeacherSummary(teacherData);
         } else {
-          const summaryData = await getDashboardSummary();
-          setAdminSummary(summaryData);
+          const staffData = await getStaffDashboardSummary();
+          setStaffSummary(staffData);
         }
       } catch (err) {
         console.error('Failed to fetch dashboard data', err);
@@ -104,7 +130,7 @@ export const Dashboard: React.FC = () => {
     };
 
     loadData();
-  }, [isStudentOrGuardian, isPureTeacher]);
+  }, [isStudentOrGuardian, isPrincipal, isAdmin, isPureTeacher]);
 
   // Siswa dan Wali Murid dialihkan langsung ke Portal Siswa/Wali
   if (isStudentOrGuardian) {
@@ -120,18 +146,76 @@ export const Dashboard: React.FC = () => {
     );
   }
 
+  // Header Title & Subtitle Generator
+  const getHeaderInfo = () => {
+    if (isPrincipal) {
+      return {
+        title: "Dashboard Kepala Sekolah",
+        subtitle: `Selamat datang kembali, ${user?.name || 'Bapak/Ibu Kepala Sekolah'}. Berikut ringkasan eksekutif, rekap presensi, dan supervisi rapor sekolah.`
+      };
+    }
+    if (isAdmin) {
+      return {
+        title: "Dashboard Administrator",
+        subtitle: `Selamat datang kembali, ${user?.name || 'Administrator'}. Berikut ringkasan operasional dan data pokok sekolah.`
+      };
+    }
+    if (isPureTeacher) {
+      return {
+        title: "Dashboard Pendidik",
+        subtitle: `Selamat datang kembali, ${user?.name || 'Bapak/Ibu Guru'}. Berikut agenda mengajar dan aktivitas kelas Anda hari ini.`
+      };
+    }
+    return {
+      title: "Dashboard Tata Usaha",
+      subtitle: `Selamat datang kembali, ${user?.name || 'Bapak/Ibu Staf'}. Berikut ringkasan persuratan dan catatan kehadiran kerja Anda.`
+    };
+  };
+
+  const { title: headerTitle, subtitle: headerSubtitle } = getHeaderInfo();
+
   return (
     <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6 w-full min-w-0 max-w-full overflow-x-hidden">
       {/* 1. PageHeader Dinamis Berdasarkan Peran */}
       <PageHeader
-        title={isPureTeacher ? "Dashboard Pendidik" : "Dashboard Utama"}
-        subtitle={
-          isPureTeacher
-            ? `Selamat datang kembali, ${user?.name || 'Bapak/Ibu Guru'}. Berikut agenda mengajar dan aktivitas kelas Anda hari ini.`
-            : `Selamat datang kembali, ${user?.name || 'Administrator'}. Berikut ringkasan operasional dan data pokok sekolah.`
-        }
+        title={headerTitle}
+        subtitle={headerSubtitle}
         action={
-          isPureTeacher ? (
+          isPrincipal ? (
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                onClick={() => navigate('/assessment/report-cards')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold rounded-xl border border-amber-200/70 transition-all shadow-xs cursor-pointer"
+              >
+                <FileCheck2 size={14} />
+                <span>Pengesahan Rapor</span>
+              </button>
+              <button
+                onClick={() => navigate('/attendance/students')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl border border-indigo-200/70 transition-all shadow-xs cursor-pointer"
+              >
+                <Users size={14} />
+                <span>Rekap Presensi</span>
+              </button>
+            </div>
+          ) : isAdmin ? (
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                onClick={() => navigate('/attendance/students')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl border border-indigo-200/70 transition-all shadow-xs cursor-pointer"
+              >
+                <UserCheck size={14} />
+                <span>Presensi Siswa</span>
+              </button>
+              <button
+                onClick={() => navigate('/attendance/employees')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold rounded-xl border border-purple-200/70 transition-all shadow-xs cursor-pointer"
+              >
+                <Users size={14} />
+                <span>Presensi Pegawai</span>
+              </button>
+            </div>
+          ) : isPureTeacher ? (
             <div className="flex items-center gap-2.5 flex-wrap">
               <button
                 onClick={() => navigate('/assessment/exams')}
@@ -151,18 +235,18 @@ export const Dashboard: React.FC = () => {
           ) : (
             <div className="flex items-center gap-2.5 flex-wrap">
               <button
-                onClick={() => navigate('/attendance/students')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl border border-indigo-200/70 transition-all shadow-xs cursor-pointer"
+                onClick={() => navigate('/letters/incoming')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-xl border border-blue-200/70 transition-all shadow-xs cursor-pointer"
               >
-                <UserCheck size={14} />
-                <span>Presensi Siswa</span>
+                <Inbox size={14} />
+                <span>Surat Masuk</span>
               </button>
               <button
-                onClick={() => navigate('/attendance/employees')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold rounded-xl border border-purple-200/70 transition-all shadow-xs cursor-pointer"
+                onClick={() => navigate('/letters/outgoing')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl border border-indigo-200/70 transition-all shadow-xs cursor-pointer"
               >
-                <Users size={14} />
-                <span>Presensi Pegawai</span>
+                <Send size={14} />
+                <span>Surat Keluar</span>
               </button>
             </div>
           )
@@ -343,14 +427,17 @@ export const Dashboard: React.FC = () => {
       )}
 
       {/* 3. Render View Berdasarkan Role */}
-      {isPureTeacher && teacherSummary ? (
-        <TeacherDashboardView summary={teacherSummary} />
-      ) : adminSummary ? (
+      {isPrincipal && principalSummary ? (
+        <PrincipalDashboardView summary={principalSummary} />
+      ) : isAdmin && adminSummary ? (
         <AdminDashboardView 
           summary={adminSummary} 
           isEmployee={isEmployee} 
-          isPrincipal={isKepalaSekolah} 
         />
+      ) : isPureTeacher && teacherSummary ? (
+        <TeacherDashboardView summary={teacherSummary} />
+      ) : staffSummary ? (
+        <StaffDashboardView summary={staffSummary} />
       ) : null}
 
       {/* Modal Detail Pengumuman */}
@@ -365,3 +452,5 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
+export default Dashboard;
