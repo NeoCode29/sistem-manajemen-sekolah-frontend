@@ -106,3 +106,63 @@ export const getTeacherDashboardSummary = async (): Promise<TeacherDashboardSumm
   return response.data;
 };
 
+export interface PrincipalDashboardSummary {
+  schoolOverview: {
+    totalStudents: number;
+    totalEmployees: number;
+    studentAttendanceRate: number;
+    employeeAttendanceRate: number;
+  };
+  reportCardSupervision: {
+    pendingApprovalsCount: number;
+    validatedCount: number;
+    academicYearName: string;
+    semesterName: string;
+  };
+  attendance: {
+    present: number;
+    sickLeave: number;
+    absent: number;
+    unrecorded: number;
+  };
+  employeeAttendance: {
+    present: number;
+    sickLeave: number;
+    absent: number;
+    unrecorded: number;
+  };
+  highDisciplineIncidentsCount: number;
+}
+
+export interface StaffDashboardSummary {
+  myAttendance: {
+    hasCheckedIn: boolean;
+    status: string | null;
+    checkinTime: string | null;
+    checkoutTime: string | null;
+    monthlyRate: number;
+  };
+  lettersOverview: {
+    incomingLettersCount: number;
+    outgoingLettersCount: number;
+    recentIncomingLetters: Array<{
+      id: string;
+      letterNumber: string;
+      sender: string;
+      subject: string;
+      receivedDate: string;
+    }>;
+  };
+  totalActiveAnnouncements: number;
+}
+
+export const getPrincipalDashboardSummary = async (): Promise<PrincipalDashboardSummary> => {
+  const response = await api.get('/dashboard/principal-summary');
+  return response.data;
+};
+
+export const getStaffDashboardSummary = async (): Promise<StaffDashboardSummary> => {
+  const response = await api.get('/dashboard/staff-summary');
+  return response.data;
+};
+
