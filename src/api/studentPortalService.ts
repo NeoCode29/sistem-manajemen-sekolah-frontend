@@ -1,6 +1,26 @@
 import api from './axios';
 
 export interface DashboardSummary {
+  studentInfo?: {
+    id: string;
+    fullName: string;
+    nis: string;
+    classroomName: string;
+  };
+  todayAttendance?: {
+    status: 'HADIR' | 'SAKIT' | 'IZIN' | 'ALPA' | string | null;
+    checkinTime: string | null;
+    checkoutTime: string | null;
+    notes?: string | null;
+  } | null;
+  attendanceStats?: {
+    percentage: number;
+    totalDays: number;
+    present: number;
+    sick: number;
+    permit: number;
+    absent: number;
+  };
   attendancePercentage: number;
   violationPoints: number;
   todaySchedules: {
