@@ -12,7 +12,6 @@ import {
   ChevronLeft, 
   ChevronRight,
   Sparkles,
-  GraduationCap,
   CheckCircle2,
   AlertCircle,
   XCircle,
@@ -166,9 +165,9 @@ export const GuardianDashboardView: React.FC<GuardianDashboardViewProps> = ({
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full min-w-0 max-w-full overflow-x-hidden">
       
-      {/* 1. Hero Header Sambutan dengan Konteks Siswa Binaan */}
-      <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80 flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-indigo-50/70 via-blue-50/40 to-transparent rounded-full -mr-20 -mt-20 pointer-events-none" />
+      {/* 1. Hero Header Sambutan */}
+      <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-indigo-50/70 via-blue-50/40 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
         
         <div className="relative z-10 space-y-1.5 max-w-xl">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold">
@@ -183,30 +182,9 @@ export const GuardianDashboardView: React.FC<GuardianDashboardViewProps> = ({
           </p>
         </div>
 
-        {/* Child Identity Context Badge */}
-        <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="bg-indigo-50/70 border border-indigo-100/90 rounded-2xl p-3.5 flex items-center gap-3.5 shadow-2xs">
-            <div className="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <GraduationCap size={22} />
-            </div>
-            <div className="min-w-0 pr-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 block">Siswa yang Dipantau</span>
-              <h2 className="text-sm font-bold text-slate-900 truncate">
-                {data?.studentInfo?.fullName || 'Data Siswa'}
-              </h2>
-              <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-600 font-medium">
-                <span className="bg-white px-2 py-0.5 rounded-md border border-indigo-100 text-indigo-700 font-semibold text-[11px]">
-                  {data?.studentInfo?.classroomName || 'Kelas -'}
-                </span>
-                <span className="text-slate-400 font-mono text-[11px]">NIS: {data?.studentInfo?.nis || '-'}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center gap-2 bg-slate-50/80 px-4 py-3 rounded-2xl border border-slate-200/70 text-xs font-medium text-slate-600 shadow-2xs shrink-0">
-            <Calendar size={15} className="text-indigo-600 shrink-0" />
-            <span>{todayDateFormatted}</span>
-          </div>
+        <div className="relative z-10 flex items-center gap-2 self-start md:self-auto bg-slate-50/80 px-4 py-2.5 rounded-xl border border-slate-200/70 text-xs font-medium text-slate-600 shadow-2xs">
+          <Calendar size={15} className="text-indigo-600 shrink-0" />
+          <span>{todayDateFormatted}</span>
         </div>
       </div>
 
