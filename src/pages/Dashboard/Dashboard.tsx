@@ -13,7 +13,8 @@ import {
   FileCheck2, 
   BookOpen,
   Inbox,
-  Send
+  Send,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getMyAnnouncements } from '../../api/announcementService';
@@ -36,6 +37,7 @@ import { AdminDashboardView } from './views/AdminDashboardView';
 import { TeacherDashboardView } from './views/TeacherDashboardView';
 import { PrincipalDashboardView } from './views/PrincipalDashboardView';
 import { StaffDashboardView } from './views/StaffDashboardView';
+import { CustomRoleDashboardView } from './views/CustomRoleDashboardView';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -50,12 +52,13 @@ export const Dashboard: React.FC = () => {
   const isStudentOrGuardian = (userRoleNames.includes('Siswa') || userRoleNames.includes('Orang Tua / Wali')) && 
     !isSuperAdmin && !isAdminSekolah && !isTeacher && !isKepalaSekolah && !isStaff;
 
-  // Strict Role Hierarchy
+  // Strict Role Hierarchy: Predefined vs Custom
   const isPrincipal = isKepalaSekolah;
   const isAdmin = (isSuperAdmin || isAdminSekolah) && !isPrincipal;
   const isPureTeacher = isTeacher && !isSuperAdmin && !isAdminSekolah && !isPrincipal;
-  const isStaffOnly = !isPrincipal && !isAdmin && !isPureTeacher;
-  const isEmployee = isTeacher || isKepalaSekolah || isStaff;
+  const isStaffOnly = isStaff && !isPrincipal && !isAdmin && !isPureTeacher;
+  const isCustomRole = !isPrincipal && !isAdmin && !isPureTeacher && !isStaffOnly && !isStudentOrGuardian;
+  const isEmployee = isTeacher || isKepalaSekolah || isStaff || Boolean(user?.employeeId);
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [adminSummary, setAdminSummary] = useState<DashboardSummary | null>(null);
@@ -118,10 +121,11 @@ export const Dashboard: React.FC = () => {
         } else if (isPureTeacher) {
           const teacherData = await getTeacherDashboardSummary();
           setTeacherSummary(teacherData);
-        } else {
+        } else if (isStaffOnly) {
           const staffData = await getStaffDashboardSummary();
           setStaffSummary(staffData);
         }
+        // Custom roles do not require fixed summary endpoints; they derive widgets from permissions
       } catch (err) {
         console.error('Failed to fetch dashboard data', err);
       } finally {
@@ -130,7 +134,7 @@ export const Dashboard: React.FC = () => {
     };
 
     loadData();
-  }, [isStudentOrGuardian, isPrincipal, isAdmin, isPureTeacher]);
+  }, [isStudentOrGuardian, isPrincipal, isAdmin, isPureTeacher, isStaffOnly]);
 
   // Siswa dan Wali Murid dialihkan langsung ke Portal Siswa/Wali
   if (isStudentOrGuardian) {
@@ -166,9 +170,15 @@ export const Dashboard: React.FC = () => {
         subtitle: `Selamat datang kembali, ${user?.name || 'Bapak/Ibu Guru'}. Berikut agenda mengajar dan aktivitas kelas Anda hari ini.`
       };
     }
+    if (isStaffOnly) {
+      return {
+        title: "Dashboard Tata Usaha",
+        subtitle: `Selamat datang kembali, ${user?.name || 'Bapak/Ibu Staf'}. Berikut ringkasan persuratan dan catatan kehadiran kerja Anda.`
+      };
+    }
     return {
-      title: "Dashboard Tata Usaha",
-      subtitle: `Selamat datang kembali, ${user?.name || 'Bapak/Ibu Staf'}. Berikut ringkasan persuratan dan catatan kehadiran kerja Anda.`
+      title: `Dashboard ${userRoleNames[0] || 'Kustom'}`,
+      subtitle: `Selamat datang kembali, ${user?.name || 'Pengguna'}. Dashboard ini disusun otomatis mengikuti hak akses aktif peran Anda.`
     };
   };
 
@@ -232,7 +242,7 @@ export const Dashboard: React.FC = () => {
                 <span>Jadwal Saya</span>
               </button>
             </div>
-          ) : (
+          ) : isStaffOnly ? (
             <div className="flex items-center gap-2.5 flex-wrap">
               <button
                 onClick={() => navigate('/letters/incoming')}
@@ -248,6 +258,13 @@ export const Dashboard: React.FC = () => {
                 <Send size={14} />
                 <span>Surat Keluar</span>
               </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-semibold rounded-xl border border-indigo-200/60">
+                <ShieldCheck size={14} />
+                <span>Peran: {userRoleNames[0] || 'Kustom'}</span>
+              </span>
             </div>
           )
         }
@@ -436,9 +453,11 @@ export const Dashboard: React.FC = () => {
         />
       ) : isPureTeacher && teacherSummary ? (
         <TeacherDashboardView summary={teacherSummary} />
-      ) : staffSummary ? (
+      ) : isStaffOnly && staffSummary ? (
         <StaffDashboardView summary={staffSummary} />
-      ) : null}
+      ) : (
+        <CustomRoleDashboardView user={user} />
+      )}
 
       {/* Modal Detail Pengumuman */}
       <AnnouncementDetailModal
