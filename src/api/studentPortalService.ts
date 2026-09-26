@@ -86,3 +86,8 @@ export const getMyDiscipline = async (): Promise<DisciplineData> => {
   const response = await api.get('/students/my/discipline');
   return response.data;
 };
+
+export const getMySchedule = async (): Promise<any[]> => {
+  const response = await api.get('/students/my/schedule');
+  return response.data;
+};

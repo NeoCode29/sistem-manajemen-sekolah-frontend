@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, AlertTriangle, LogOut, X } from 'lucide-react';
+import { Home, User, BookOpen, AlertTriangle, LogOut, X, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { AppLogo } from '../Common/AppLogo';
 
@@ -117,6 +117,25 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({ isOpen = false, 
               <>
                 <User size={19} className={isActive ? 'text-indigo-600' : 'text-gray-400'} />
                 <span>{isGuardian ? 'Profil Anak' : 'Profil Saya'}</span>
+              </>
+            )}
+          </NavLink>
+
+          <NavLink
+            to="/student/schedule"
+            onClick={handleLinkClick}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                isActive
+                  ? 'bg-indigo-50 text-indigo-700 font-bold shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Calendar size={19} className={isActive ? 'text-indigo-600' : 'text-gray-400'} />
+                <span>Jadwal Pelajaran</span>
               </>
             )}
           </NavLink>

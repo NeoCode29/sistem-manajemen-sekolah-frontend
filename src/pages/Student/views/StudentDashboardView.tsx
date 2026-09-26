@@ -96,155 +96,6 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
         </div>
       </div>
 
-      {/* 2. Quick Overview Stats Grid (4 Kolom Rata & Seimbang) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* Presensi Kehadiran */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-emerald-300 hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kehadiran</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <UserCheck size={18} />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl lg:text-3xl font-black text-slate-900">
-              {data?.attendancePercentage ?? 0}<span className="text-lg font-bold text-emerald-600">%</span>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Semester Berjalan</p>
-          </div>
-        </div>
-
-        {/* Poin Kedisiplinan / Pelanggaran */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-amber-300 hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pelanggaran</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <AlertTriangle size={18} />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl lg:text-3xl font-black text-slate-900">
-              {data?.violationPoints ?? 0} <span className="text-sm font-bold text-amber-600">Poin</span>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Catatan Kedisiplinan</p>
-          </div>
-        </div>
-
-        {/* Jadwal Hari Ini */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-indigo-300 hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Jadwal Kelas</span>
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <BookOpen size={18} />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl lg:text-3xl font-black text-slate-900">
-              {data?.todaySchedules?.length ?? 0} <span className="text-sm font-bold text-indigo-600">Mapel</span>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Jadwal Hari Ini</p>
-          </div>
-        </div>
-
-        {/* Pengumuman Sekolah */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-blue-300 hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pengumuman</span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Megaphone size={18} />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl lg:text-3xl font-black text-slate-900">
-              {announcements.length} <span className="text-sm font-bold text-blue-600">Aktif</span>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Informasi Sekolah</p>
-          </div>
-        </div>
-
-      </div>
-
-      {/* 3. Aktivitas Hari Ini (2 Kolom Seimbang: Presensi Mandiri GPS & Jadwal) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* Kolom Kiri: Presensi Mandiri (6 Kolom) */}
-        <div className="lg:col-span-6 flex flex-col gap-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4">
-            <div className="flex items-center gap-2.5 text-indigo-600 pb-3 border-b border-slate-100">
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                <UserCheck size={18} />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 leading-tight">Presensi Kehadiran Siswa</h3>
-                <p className="text-xs text-slate-500 font-normal">Check-in mandiri berbasis lokasi GPS area sekolah</p>
-              </div>
-            </div>
-            <GeolocationCheckin />
-          </div>
-        </div>
-
-        {/* Kolom Kanan: Jadwal Pelajaran Hari Ini (6 Kolom) */}
-        <div className="lg:col-span-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 flex flex-col justify-between min-h-[340px]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5 text-purple-600">
-                <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
-                  <Calendar size={18} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 leading-tight">Jadwal Pelajaran Hari Ini</h3>
-                  <p className="text-xs text-slate-500 font-normal">Daftar kelas dan guru pengampu yang berlangsung</p>
-                </div>
-              </div>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
-                {data?.todaySchedules?.length ?? 0} Kelas
-              </span>
-            </div>
-
-            <div className="flex-1 flex flex-col justify-center">
-              {data?.todaySchedules && data.todaySchedules.length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  {data.todaySchedules.map((schedule) => (
-                    <div 
-                      key={schedule.id} 
-                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 border border-slate-100 rounded-xl bg-slate-50/60 hover:bg-indigo-50/40 hover:border-indigo-100 transition-all group"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 text-xs font-bold text-slate-700 font-mono shadow-2xs flex items-center gap-1.5 shrink-0">
-                          <Clock size={13} className="text-indigo-500" />
-                          <span>{schedule.time}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-sm text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                            {schedule.subject}
-                          </h4>
-                          <p className="text-xs text-slate-500 truncate">{schedule.teacher}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1 text-xs font-medium text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200/70 shadow-2xs shrink-0 self-end sm:self-auto">
-                        <MapPin size={13} className="text-indigo-500" />
-                        <span>{schedule.room}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-10 space-y-2 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/40">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
-                    <BookOpen size={18} />
-                  </div>
-                  <p className="text-xs font-medium text-slate-500">Tidak ada jadwal pelajaran hari ini.</p>
-                  <p className="text-[11px] text-slate-400">Selamat beristirahat atau nikmati kegiatan belajar mandiri.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-      </div>
-
       {/* 4. Papan Pengumuman Sekolah (Full-Width Horizontal Carousel yang Mewah) */}
       {announcements.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 w-full min-w-0 max-w-full overflow-hidden">
@@ -414,6 +265,155 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* 2. Quick Overview Stats Grid (4 Kolom Rata & Seimbang) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Presensi Kehadiran */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-emerald-300 hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kehadiran</span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <UserCheck size={18} />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl lg:text-3xl font-black text-slate-900">
+              {data?.attendancePercentage ?? 0}<span className="text-lg font-bold text-emerald-600">%</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">Semester Berjalan</p>
+          </div>
+        </div>
+
+        {/* Poin Kedisiplinan / Pelanggaran */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-amber-300 hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pelanggaran</span>
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <AlertTriangle size={18} />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl lg:text-3xl font-black text-slate-900">
+              {data?.violationPoints ?? 0} <span className="text-sm font-bold text-amber-600">Poin</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">Catatan Kedisiplinan</p>
+          </div>
+        </div>
+
+        {/* Jadwal Hari Ini */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-indigo-300 hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Jadwal Kelas</span>
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <BookOpen size={18} />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl lg:text-3xl font-black text-slate-900">
+              {data?.todaySchedules?.length ?? 0} <span className="text-sm font-bold text-indigo-600">Mapel</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">Jadwal Hari Ini</p>
+          </div>
+        </div>
+
+        {/* Pengumuman Sekolah */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-blue-300 hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pengumuman</span>
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Megaphone size={18} />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl lg:text-3xl font-black text-slate-900">
+              {announcements.length} <span className="text-sm font-bold text-blue-600">Aktif</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">Informasi Sekolah</p>
+          </div>
+        </div>
+
+      </div>
+
+      {/* 3. Aktivitas Hari Ini (2 Kolom Seimbang: Presensi Mandiri GPS & Jadwal) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* Kolom Kiri: Presensi Mandiri (6 Kolom) */}
+        <div className="lg:col-span-6 flex flex-col gap-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4">
+            <div className="flex items-center gap-2.5 text-indigo-600 pb-3 border-b border-slate-100">
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                <UserCheck size={18} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 leading-tight">Presensi Kehadiran Siswa</h3>
+                <p className="text-xs text-slate-500 font-normal">Check-in mandiri berbasis lokasi GPS area sekolah</p>
+              </div>
+            </div>
+            <GeolocationCheckin />
+          </div>
+        </div>
+
+        {/* Kolom Kanan: Jadwal Pelajaran Hari Ini (6 Kolom) */}
+        <div className="lg:col-span-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 flex flex-col justify-between min-h-[340px]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5 text-purple-600">
+                <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                  <Calendar size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 leading-tight">Jadwal Pelajaran Hari Ini</h3>
+                  <p className="text-xs text-slate-500 font-normal">Daftar kelas dan guru pengampu yang berlangsung</p>
+                </div>
+              </div>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                {data?.todaySchedules?.length ?? 0} Kelas
+              </span>
+            </div>
+
+            <div className="flex-1 flex flex-col justify-center">
+              {data?.todaySchedules && data.todaySchedules.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {data.todaySchedules.map((schedule) => (
+                    <div 
+                      key={schedule.id} 
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 border border-slate-100 rounded-xl bg-slate-50/60 hover:bg-indigo-50/40 hover:border-indigo-100 transition-all group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 text-xs font-bold text-slate-700 font-mono shadow-2xs flex items-center gap-1.5 shrink-0">
+                          <Clock size={13} className="text-indigo-500" />
+                          <span>{schedule.time}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-sm text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                            {schedule.subject}
+                          </h4>
+                          <p className="text-xs text-slate-500 truncate">{schedule.teacher}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 text-xs font-medium text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200/70 shadow-2xs shrink-0 self-end sm:self-auto">
+                        <MapPin size={13} className="text-indigo-500" />
+                        <span>{schedule.room}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 space-y-2 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/40">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+                    <BookOpen size={18} />
+                  </div>
+                  <p className="text-xs font-medium text-slate-500">Tidak ada jadwal pelajaran hari ini.</p>
+                  <p className="text-[11px] text-slate-400">Selamat beristirahat atau nikmati kegiatan belajar mandiri.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+      </div>
 
     </div>
   );

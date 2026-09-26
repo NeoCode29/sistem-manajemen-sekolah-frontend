@@ -53,6 +53,7 @@ import { StudentDashboard } from '../pages/Student/StudentDashboard';
 import { StudentProfile } from '../pages/Student/StudentProfile';
 import { StudentGrades } from '../pages/Student/StudentGrades';
 import { StudentDiscipline } from '../pages/Student/StudentDiscipline';
+import { StudentSchedule } from '../pages/Student/StudentSchedule';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -193,6 +194,7 @@ export const AppRoutes: React.FC = () => {
               <Route path="profile" element={<StudentProfile />} />
               <Route path="grades" element={<StudentGrades />} />
               <Route path="discipline" element={<StudentDiscipline />} />
+              <Route path="schedule" element={<StudentSchedule />} />
             </Route>
 
           </Route>
