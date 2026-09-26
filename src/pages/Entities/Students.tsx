@@ -584,7 +584,7 @@ export const Students: React.FC = () => {
           <button
             type="button"
             className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
-            onClick={() => navigate(`/students/${row.id}`)}
+            onClick={() => navigate(`/entities/students/${row.id}`)}
             title="Lihat Detail Profil Siswa"
           >
             <Eye size={16} />

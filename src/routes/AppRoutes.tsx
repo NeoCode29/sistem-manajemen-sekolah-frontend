@@ -132,6 +132,8 @@ export const AppRoutes: React.FC = () => {
               <Route element={<AuthorizedRoute requiredPermissions={['students.read']} disallowedRoles={['Siswa', 'Orang Tua / Wali']} />}>
                 <Route path="/entities/students" element={<Students />} />
                 <Route path="/entities/students/:id" element={<StudentDetail />} />
+                <Route path="/students" element={<Navigate to="/entities/students" replace />} />
+                <Route path="/students/:id" element={<StudentDetail />} />
               </Route>
               <Route element={<AuthorizedRoute requiredPermissions={['achievements.read', 'achievements.create_assigned', 'achievements.create_all', 'achievements.create', 'achievements.manage', 'students.read']} disallowedRoles={['Siswa', 'Orang Tua / Wali']} />}>
                 <Route path="/student-affairs/achievements" element={<Achievements />} />
