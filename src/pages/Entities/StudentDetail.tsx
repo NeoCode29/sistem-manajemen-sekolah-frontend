@@ -927,7 +927,11 @@ export const StudentDetail: React.FC = () => {
                     <div className="p-2.5 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
                       <span className="text-gray-400 font-medium block text-[11px] mb-1">Tgl Masuk</span>
                       <span className="font-semibold text-gray-900 break-words [overflow-wrap:anywhere] block">
-                        {student.admissionDate ? new Date(student.admissionDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                        {student.admissionDate 
+                          ? new Date(student.admissionDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) 
+                          : (student.enrollments && student.enrollments.length > 0
+                              ? new Date(Math.min(...student.enrollments.map((e: any) => new Date(e.createdAt).getTime()))).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                              : '-')}
                       </span>
                     </div>
                   </div>
@@ -1362,14 +1366,6 @@ export const StudentDetail: React.FC = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
-                      <span className="text-gray-400 block text-[11px] mb-1 font-medium">RT / RW</span>
-                      <span className="font-semibold text-gray-800 break-words [overflow-wrap:anywhere] block">{student.rt || '-'}/{student.rw || '-'}</span>
-                    </div>
-                    <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
-                      <span className="text-gray-400 block text-[11px] mb-1 font-medium">Dusun / Lingkungan</span>
-                      <span className="font-semibold text-gray-800 break-words [overflow-wrap:anywhere] block">{student.subVillage || '-'}</span>
-                    </div>
                     <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
                       <span className="text-gray-400 block text-[11px] mb-1 font-medium">Kelurahan / Desa</span>
                       <span className="font-semibold text-gray-800 break-words [overflow-wrap:anywhere] block">{student.village || '-'}</span>
@@ -1940,35 +1936,22 @@ export const StudentDetail: React.FC = () => {
 
             {/* SUBTAB 4: ALAMAT & WILAYAH (CASCADING) */}
             {profilSubTab === 'alamat' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <FormField label="Alamat Lengkap (Jalan / Gang / RT / RW)">
-                    <textarea 
-                      className="input-std" 
-                      rows={2} 
-                      placeholder="Contoh: Jl. Pahlawan No. 45 RT 02 RW 05"
-                      value={editProfilData.address || ''} 
-                      onChange={(e)=>setEditProfilData({...editProfilData, address: e.target.value})}
-                    />
-                  </FormField>
-                </div>
-                <FormField label="RT">
-                  <input type="text" className="input-std" placeholder="002" value={editProfilData.rt || ''} onChange={(e)=>setEditProfilData({...editProfilData, rt: e.target.value})}/>
-                </FormField>
-                <FormField label="RW">
-                  <input type="text" className="input-std" placeholder="005" value={editProfilData.rw || ''} onChange={(e)=>setEditProfilData({...editProfilData, rw: e.target.value})}/>
-                </FormField>
-                <FormField label="Dusun / Lingkungan">
-                  <input type="text" className="input-std" placeholder="Dusun Cibinong" value={editProfilData.subVillage || ''} onChange={(e)=>setEditProfilData({...editProfilData, subVillage: e.target.value})}/>
-                </FormField>
-                <FormField label="Kode Pos">
-                  <input type="text" className="input-std font-mono" placeholder="16911" value={editProfilData.postalCode || ''} onChange={(e)=>setEditProfilData({...editProfilData, postalCode: e.target.value})}/>
+              <div className="flex flex-col gap-4">
+                {/* Alamat Lengkap — Full Width */}
+                <FormField label="Alamat Lengkap (Jalan / Gang / No Rumah)">
+                  <textarea 
+                    className="input-std" 
+                    rows={2} 
+                    placeholder="Contoh: Jl. Pahlawan No. 45"
+                    value={editProfilData.address || ''} 
+                    onChange={(e)=>setEditProfilData({...editProfilData, address: e.target.value})}
+                  />
                 </FormField>
 
                 {/* Cascading Wilayah Master Dropdowns */}
-                <div className="md:col-span-2 pt-2 border-t border-gray-100">
+                <div className="pt-2 border-t border-gray-100">
                   <span className="text-xs font-bold text-gray-800 uppercase tracking-wider block mb-3">
-                    Master Wilayah Indonesia {loadingWilayah && <Loader2 size={12} className="inline animate-spin text-indigo-600 ml-2" />}
+                    Wilayah Indonesia {loadingWilayah && <Loader2 size={12} className="inline animate-spin text-indigo-600 ml-2" />}
                   </span>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField label="Provinsi">
@@ -2013,11 +1996,15 @@ export const StudentDetail: React.FC = () => {
                         maxVisible={6}
                       />
                     </FormField>
+
+                    <FormField label="Kode Pos">
+                      <input type="text" className="input-std font-mono" placeholder="16911" value={editProfilData.postalCode || ''} onChange={(e)=>setEditProfilData({...editProfilData, postalCode: e.target.value})}/>
+                    </FormField>
                   </div>
                 </div>
 
                 {/* Transportasi */}
-                <div className="md:col-span-2 pt-2 border-t border-gray-100">
+                <div className="pt-2 border-t border-gray-100">
                   <span className="text-xs font-bold text-gray-800 uppercase tracking-wider block mb-3">Transportasi & Jarak</span>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField label="Moda Transportasi">
