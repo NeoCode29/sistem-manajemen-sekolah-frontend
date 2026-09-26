@@ -103,21 +103,30 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
       <div className="relative p-6 flex-auto">
         {!result ? (
           <div className="space-y-6">
-            <div className="p-4 bg-blue-50 text-blue-800 rounded-lg border border-blue-200">
-              <h4 className="font-semibold flex items-center gap-2 mb-2">
-                <AlertCircle size={18} /> Petunjuk Import:
+            <div className="p-4 bg-indigo-50 text-indigo-900 rounded-xl border border-indigo-200/80 shadow-sm">
+              <h4 className="font-semibold flex items-center gap-2 mb-2 text-indigo-950">
+                <AlertCircle size={18} className="text-indigo-600" /> Petunjuk Import Data Siswa Dapodik:
               </h4>
-              <ol className="list-decimal pl-5 space-y-1 text-sm">
-                <li>Unduh template Excel terbaru (berisi dropdown validasi data Jurusan dan Kelas).</li>
-                <li>Isi data siswa pada template tersebut. Kolom wajib harus diisi.</li>
-                <li>Upload kembali file Excel yang sudah diisi.</li>
-                <li>Jika NIS sudah ada, data akan diupdate (Upsert).</li>
+              <ol className="list-decimal pl-5 space-y-1.5 text-xs text-indigo-900 leading-relaxed">
+                <li>
+                  <strong>Unduh Template Excel Terbaru:</strong> Template dilengkapi 24 kolom standar Dapodik (Data Pokok, NIK, No KK, Akta Lahir, Alamat Wilayah RT/RW/Dusun, Tempat Tinggal, Transportasi, dan Kontak).
+                </li>
+                <li>
+                  <strong>Dropdown Referensi Otomatis:</strong> Kolom Jenis Kelamin, Agama, Jurusan, Kelas, Tempat Tinggal, dan Transportasi memiliki pilihan dropdown validasi bawaan.
+                </li>
+                <li>
+                  <strong>Format Kependudukan:</strong> Pastikan NIK dan No KK terdiri dari 16 digit angka (format teks).
+                </li>
+                <li>
+                  <strong>Mekanisme Upsert Pintar:</strong> Jika baris siswa dengan NIS yang sama sudah ada di database, profil kependudukan & alamat wilayahnya akan diperbarui secara otomatis.
+                </li>
               </ol>
               <button
+                type="button"
                 onClick={handleDownloadTemplate}
-                className="mt-4 flex items-center gap-2 px-4 py-2 bg-white text-blue-700 border border-blue-300 rounded hover:bg-blue-50 transition-colors text-sm font-medium"
+                className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs font-semibold cursor-pointer"
               >
-                <Download size={16} /> Download Template Excel
+                <Download size={15} /> Unduh Template Excel (Dapodik Lengkap)
               </button>
             </div>
 
