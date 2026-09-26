@@ -75,10 +75,17 @@ export interface Student {
   guardians?: StudentGuardian[];
   enrollments?: StudentEnrollment[];
 
+  nickname?: string;
+
   // Dapodik Kependudukan & Dokumen
+  nationalId?: string;
+  familyCardNo?: string;
+  birthCertificateNo?: string;
   nik?: string;
   noKk?: string;
   birthCertNo?: string;
+  birthOrder?: number;
+  siblingCount?: number;
 
   // Periodik Fisik & Kesehatan
   heightCm?: number;
@@ -96,7 +103,12 @@ export interface Student {
   district?: string;
   city?: string;
   province?: string;
+  provinceCode?: string;
+  regencyCode?: string;
+  districtCode?: string;
+  villageCode?: string;
   postalCode?: string;
+  residenceType?: string;
 
   // Transportasi & Jarak Tempuh
   transportation?: string;

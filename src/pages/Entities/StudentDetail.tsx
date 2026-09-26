@@ -387,6 +387,9 @@ export const StudentDetail: React.FC = () => {
       nisn: student.nisn || '',
       fullName: student.fullName,
       gender: student.gender,
+      nickname: student.nickname || '',
+      phone: student.phone || '',
+      email: student.email || '',
       religion: student.religion || '',
       birthPlace: student.birthPlace || '',
       birthDate: student.birthDate ? new Date(student.birthDate).toISOString().split('T')[0] : '',
@@ -397,6 +400,9 @@ export const StudentDetail: React.FC = () => {
       nik: student.nik || '',
       noKk: student.noKk || '',
       birthCertNo: student.birthCertNo || '',
+      birthOrder: student.birthOrder ?? undefined,
+      siblingCount: student.siblingCount ?? undefined,
+      residenceType: student.residenceType || 'Bersama Orang Tua',
       heightCm: student.heightCm,
       weightKg: student.weightKg,
       headCircumferenceCm: student.headCircumferenceCm,
@@ -450,6 +456,16 @@ export const StudentDetail: React.FC = () => {
         payload.majorId = null;
       }
       // Numeric cleanup
+      if (payload.birthOrder !== undefined && payload.birthOrder !== '') {
+        payload.birthOrder = Number(payload.birthOrder);
+      } else {
+        delete payload.birthOrder;
+      }
+      if (payload.siblingCount !== undefined && payload.siblingCount !== '') {
+        payload.siblingCount = Number(payload.siblingCount);
+      } else {
+        delete payload.siblingCount;
+      }
       if (payload.heightCm !== undefined && payload.heightCm !== '') {
         payload.heightCm = Number(payload.heightCm);
       } else {
@@ -879,6 +895,14 @@ export const StudentDetail: React.FC = () => {
                 </div>
 
                 <div className="p-4 space-y-3 text-xs">
+                  {/* Nama Panggilan (jika ada) */}
+                  {student.nickname && (
+                    <div className="p-2.5 bg-indigo-50/50 rounded-xl border border-indigo-100/70 flex items-center justify-between">
+                      <span className="text-indigo-600 font-medium text-[11px]">Nama Panggilan</span>
+                      <span className="font-bold text-indigo-950 text-xs">{student.nickname}</span>
+                    </div>
+                  )}
+
                   {/* Jenis Kelamin & Agama */}
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="p-2.5 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
@@ -936,6 +960,26 @@ export const StudentDetail: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Kontak Langsung Siswa */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="p-2.5 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
+                      <span className="text-gray-400 font-medium block text-[11px] mb-1 flex items-center gap-1">
+                        <Phone size={11} className="text-indigo-500" /> No. HP / WhatsApp
+                      </span>
+                      <span className="font-semibold text-gray-900 break-all [overflow-wrap:anywhere] block">
+                        {student.phone || <span className="text-gray-400 font-normal italic">-</span>}
+                      </span>
+                    </div>
+                    <div className="p-2.5 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
+                      <span className="text-gray-400 font-medium block text-[11px] mb-1 flex items-center gap-1">
+                        <Send size={11} className="text-indigo-500" /> Email Siswa
+                      </span>
+                      <span className="font-semibold text-gray-900 break-all [overflow-wrap:anywhere] block truncate" title={student.email}>
+                        {student.email || <span className="text-gray-400 font-normal italic">-</span>}
+                      </span>
+                    </div>
+                  </div>
+
                   {/* Akun Portal Siswa */}
                   <div className="p-2.5 rounded-xl border flex items-center justify-between gap-2 min-w-0 bg-gray-50/50 border-gray-100/80">
                     <div className="flex items-center gap-2 min-w-0">
@@ -975,20 +1019,34 @@ export const StudentDetail: React.FC = () => {
                   <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80">
                     <span className="text-gray-400 font-medium block text-[11px] mb-1">NIK (KTP / KIA)</span>
                     <span className="font-mono font-bold text-gray-900 tracking-wider text-sm break-all [overflow-wrap:anywhere] select-all block">
-                      {student.nik || '-'}
+                      {student.nik || student.nationalId || '-'}
                     </span>
                   </div>
                   <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80">
                     <span className="text-gray-400 font-medium block text-[11px] mb-1">No. Kartu Keluarga (KK)</span>
                     <span className="font-mono font-bold text-gray-900 tracking-wider text-sm break-all [overflow-wrap:anywhere] select-all block">
-                      {student.noKk || '-'}
+                      {student.noKk || student.familyCardNo || '-'}
                     </span>
                   </div>
                   <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80">
                     <span className="text-gray-400 font-medium block text-[11px] mb-1">No. Registrasi Akta Lahir</span>
                     <span className="font-medium text-gray-900 break-all [overflow-wrap:anywhere] select-all block">
-                      {student.birthCertNo || '-'}
+                      {student.birthCertNo || student.birthCertificateNo || '-'}
                     </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80">
+                      <span className="text-gray-400 font-medium block text-[11px] mb-1">Anak Ke-</span>
+                      <span className="font-bold text-gray-900 text-sm block">
+                        {student.birthOrder ? `Anak ke-${student.birthOrder}` : '-'}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80">
+                      <span className="text-gray-400 font-medium block text-[11px] mb-1">Jml. Saudara Kandung</span>
+                      <span className="font-bold text-gray-900 text-sm block">
+                        {student.siblingCount != null ? `${student.siblingCount} bersaudara` : '-'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1365,6 +1423,31 @@ export const StudentDetail: React.FC = () => {
                       {student.address || 'Belum diisi'}
                     </div>
                   </div>
+
+                  {/* RT / RW, Dusun, dan Jenis Tempat Tinggal */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
+                      <span className="text-gray-400 block text-[11px] mb-1 font-medium">RT / RW</span>
+                      <span className="font-semibold text-gray-800 break-words [overflow-wrap:anywhere] block">
+                        {student.rt || student.rw ? `RT ${student.rt || '-'} / RW ${student.rw || '-'}` : '-'}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
+                      <span className="text-gray-400 block text-[11px] mb-1 font-medium">Dusun / Lingkungan</span>
+                      <span className="font-semibold text-gray-800 break-words [overflow-wrap:anywhere] block">
+                        {student.subVillage || '-'}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100/80 min-w-0 sm:col-span-2">
+                      <span className="text-indigo-600 block text-[11px] mb-1 font-semibold flex items-center gap-1">
+                        <Home size={12} /> Jenis Tempat Tinggal
+                      </span>
+                      <span className="font-bold text-indigo-950 break-words [overflow-wrap:anywhere] block">
+                        {student.residenceType || 'Bersama Orang Tua'}
+                      </span>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                     <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
                       <span className="text-gray-400 block text-[11px] mb-1 font-medium">Kelurahan / Desa</span>
@@ -1771,11 +1854,18 @@ export const StudentDetail: React.FC = () => {
                 <FormField label="NISN">
                   <input type="text" className="input-std" value={editProfilData.nisn || ''} onChange={(e)=>setEditProfilData({...editProfilData, nisn: e.target.value})}/>
                 </FormField>
-                <div className="md:col-span-2">
-                  <FormField label="Nama Lengkap" required>
-                    <input type="text" className="input-std" value={editProfilData.fullName || ''} onChange={(e)=>setEditProfilData({...editProfilData, fullName: e.target.value})} required/>
-                  </FormField>
-                </div>
+                <FormField label="Nama Lengkap" required>
+                  <input type="text" className="input-std" value={editProfilData.fullName || ''} onChange={(e)=>setEditProfilData({...editProfilData, fullName: e.target.value})} required/>
+                </FormField>
+                <FormField label="Nama Panggilan">
+                  <input type="text" className="input-std" placeholder="Contoh: Budi" value={editProfilData.nickname || ''} onChange={(e)=>setEditProfilData({...editProfilData, nickname: e.target.value})}/>
+                </FormField>
+                <FormField label="No. HP / WhatsApp Siswa">
+                  <input type="text" className="input-std font-mono" placeholder="Contoh: 08123456789" value={editProfilData.phone || ''} onChange={(e)=>setEditProfilData({...editProfilData, phone: e.target.value})}/>
+                </FormField>
+                <FormField label="Email Siswa">
+                  <input type="email" className="input-std" placeholder="Contoh: siswa@sekolah.sch.id" value={editProfilData.email || ''} onChange={(e)=>setEditProfilData({...editProfilData, email: e.target.value})}/>
+                </FormField>
                 <FormField label="Jenis Kelamin" required>
                   <select className="input-std" value={editProfilData.gender || ''} onChange={(e)=>setEditProfilData({...editProfilData, gender: e.target.value})} required>
                     <option value="Laki-laki">Laki-laki</option>
@@ -1857,6 +1947,26 @@ export const StudentDetail: React.FC = () => {
                     />
                   </FormField>
                 </div>
+                <FormField label="Anak Ke-">
+                  <input 
+                    type="number" 
+                    min={1} 
+                    className="input-std" 
+                    placeholder="Contoh: 1" 
+                    value={editProfilData.birthOrder ?? ''} 
+                    onChange={(e)=>setEditProfilData({...editProfilData, birthOrder: e.target.value ? Number(e.target.value) : undefined})}
+                  />
+                </FormField>
+                <FormField label="Jumlah Saudara Kandung">
+                  <input 
+                    type="number" 
+                    min={0} 
+                    className="input-std" 
+                    placeholder="Contoh: 2" 
+                    value={editProfilData.siblingCount ?? ''} 
+                    onChange={(e)=>setEditProfilData({...editProfilData, siblingCount: e.target.value ? Number(e.target.value) : undefined})}
+                  />
+                </FormField>
               </div>
             )}
 
@@ -1947,6 +2057,51 @@ export const StudentDetail: React.FC = () => {
                     onChange={(e)=>setEditProfilData({...editProfilData, address: e.target.value})}
                   />
                 </FormField>
+
+                {/* RT, RW, Dusun, dan Jenis Tempat Tinggal */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <FormField label="RT">
+                    <input 
+                      type="text" 
+                      className="input-std font-mono" 
+                      placeholder="Contoh: 001" 
+                      value={editProfilData.rt || ''} 
+                      onChange={(e)=>setEditProfilData({...editProfilData, rt: e.target.value})}
+                    />
+                  </FormField>
+                  <FormField label="RW">
+                    <input 
+                      type="text" 
+                      className="input-std font-mono" 
+                      placeholder="Contoh: 002" 
+                      value={editProfilData.rw || ''} 
+                      onChange={(e)=>setEditProfilData({...editProfilData, rw: e.target.value})}
+                    />
+                  </FormField>
+                  <FormField label="Dusun / Lingkungan">
+                    <input 
+                      type="text" 
+                      className="input-std" 
+                      placeholder="Contoh: Dusun Krajan" 
+                      value={editProfilData.subVillage || ''} 
+                      onChange={(e)=>setEditProfilData({...editProfilData, subVillage: e.target.value})}
+                    />
+                  </FormField>
+                  <FormField label="Jenis Tempat Tinggal">
+                    <select 
+                      className="input-std" 
+                      value={editProfilData.residenceType || 'Bersama Orang Tua'} 
+                      onChange={(e)=>setEditProfilData({...editProfilData, residenceType: e.target.value})}
+                    >
+                      <option value="Bersama Orang Tua">Bersama Orang Tua</option>
+                      <option value="Wali">Wali</option>
+                      <option value="Kost">Kost</option>
+                      <option value="Asrama">Asrama</option>
+                      <option value="Panti Asuhan">Panti Asuhan</option>
+                      <option value="Lainnya">Lainnya</option>
+                    </select>
+                  </FormField>
+                </div>
 
                 {/* Cascading Wilayah Master Dropdowns */}
                 <div className="pt-2 border-t border-gray-100">
