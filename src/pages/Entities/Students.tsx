@@ -75,7 +75,6 @@ interface WizardForm {
   religion: string;
   nationality: string;
   status: string;
-  majorId: string;
   phone: string;
   email: string;
 
@@ -115,7 +114,7 @@ interface WizardForm {
 const DEFAULT_WIZARD_FORM: WizardForm = {
   nis: '', nisn: '', fullName: '', nickname: '', gender: 'Laki-laki',
   birthPlace: '', birthDate: '', religion: 'Islam', nationality: 'Indonesia',
-  status: 'ACTIVE', majorId: '', phone: '', email: '',
+  status: 'ACTIVE', phone: '', email: '',
   nationalId: '', familyCardNo: '', birthCertificateNo: '', birthOrder: '', siblingCount: '',
   address: '', subVillage: '', provinceCode: '', regencyCode: '', districtCode: '', villageCode: '', postalCode: '',
   residenceType: 'Bersama Orang Tua', transportationMode: 'Sepeda Motor',
@@ -428,7 +427,6 @@ export const Students: React.FC = () => {
         religion: form.religion || undefined,
         nationality: form.nationality.trim() || undefined,
         status: form.status,
-        majorId: form.majorId || undefined,
         phone: form.phone.trim() || undefined,
         email: form.email.trim() || undefined,
         nationalId: form.nationalId.trim() || undefined,
@@ -534,7 +532,7 @@ export const Students: React.FC = () => {
       render: (row: any) => {
         const activeEnrollment = row.enrollments?.find((e: any) => e.academicYear?.isActive && e.semester?.isActive) || row.enrollments?.[0];
         const className = activeEnrollment?.classroom?.name;
-        const majorName = row.major?.name;
+        const majorName = row.major?.name || activeEnrollment?.classroom?.major?.name;
 
         return (
           <div className="flex flex-col gap-0.5">
@@ -885,15 +883,6 @@ export const Students: React.FC = () => {
                   onChange={setField('nationality')} 
                   placeholder="Indonesia" 
                 />
-              </FormField>
-
-              <FormField label="Jurusan" hint="(Opsional)">
-                <select className="input-std" value={form.majorId} onChange={setField('majorId')}>
-                  <option value="">-- Tidak Ada Jurusan --</option>
-                  {masterData.majors.filter(m => m.isActive).map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
               </FormField>
 
               <FormField label="Status Masuk">

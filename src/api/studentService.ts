@@ -56,7 +56,6 @@ export interface Student {
   nisn?: string;
   fingerId?: string;
   cardId?: string;
-  majorId?: string;
   fullName: string;
   gender: string;
   birthPlace?: string;
@@ -138,7 +137,6 @@ export interface CreateStudentWizardPayload {
   religion?: string;
   nationality?: string;
   status: string;
-  majorId?: string;
   nationalId?: string;
   familyCardNo?: string;
   birthCertificateNo?: string;
