@@ -317,7 +317,6 @@ export const Students: React.FC = () => {
   const copyStudentAddressToGuardian = () => {
     let fullAddress = form.address;
     const parts = [];
-    if (form.rt || form.rw) parts.push(`RT ${form.rt || '-'}/RW ${form.rw || '-'}`);
     if (form.subVillage) parts.push(form.subVillage);
     const prov = provinces.find(p => p.code === form.provinceCode)?.name;
     const reg = regencies.find(r => r.code === form.regencyCode)?.name;

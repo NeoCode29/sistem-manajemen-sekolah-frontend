@@ -409,8 +409,6 @@ export const StudentDetail: React.FC = () => {
       bloodType: student.bloodType || '',
       specialNeeds: student.specialNeeds || '',
       illnessHistory: student.illnessHistory || '',
-      rt: student.rt || '',
-      rw: student.rw || '',
       subVillage: student.subVillage || '',
       village: student.village || '',
       district: student.district || '',
@@ -1424,14 +1422,8 @@ export const StudentDetail: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* RT / RW, Dusun, dan Jenis Tempat Tinggal */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
-                      <span className="text-gray-400 block text-[11px] mb-1 font-medium">RT / RW</span>
-                      <span className="font-semibold text-gray-800 break-words [overflow-wrap:anywhere] block">
-                        {student.rt || student.rw ? `RT ${student.rt || '-'} / RW ${student.rw || '-'}` : '-'}
-                      </span>
-                    </div>
+                  {/* Dusun dan Jenis Tempat Tinggal */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                     <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
                       <span className="text-gray-400 block text-[11px] mb-1 font-medium">Dusun / Lingkungan</span>
                       <span className="font-semibold text-gray-800 break-words [overflow-wrap:anywhere] block">
@@ -2048,36 +2040,18 @@ export const StudentDetail: React.FC = () => {
             {profilSubTab === 'alamat' && (
               <div className="flex flex-col gap-4">
                 {/* Alamat Lengkap — Full Width */}
-                <FormField label="Alamat Lengkap (Jalan / Gang / No Rumah)">
+                <FormField label="Alamat Lengkap (Termasuk RT/RW)">
                   <textarea 
                     className="input-std" 
                     rows={2} 
-                    placeholder="Contoh: Jl. Pahlawan No. 45"
+                    placeholder="Contoh: Jl. Pahlawan No. 45 RT 01/RW 02"
                     value={editProfilData.address || ''} 
                     onChange={(e)=>setEditProfilData({...editProfilData, address: e.target.value})}
                   />
                 </FormField>
 
-                {/* RT, RW, Dusun, dan Jenis Tempat Tinggal */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <FormField label="RT">
-                    <input 
-                      type="text" 
-                      className="input-std font-mono" 
-                      placeholder="Contoh: 001" 
-                      value={editProfilData.rt || ''} 
-                      onChange={(e)=>setEditProfilData({...editProfilData, rt: e.target.value})}
-                    />
-                  </FormField>
-                  <FormField label="RW">
-                    <input 
-                      type="text" 
-                      className="input-std font-mono" 
-                      placeholder="Contoh: 002" 
-                      value={editProfilData.rw || ''} 
-                      onChange={(e)=>setEditProfilData({...editProfilData, rw: e.target.value})}
-                    />
-                  </FormField>
+                {/* Dusun dan Jenis Tempat Tinggal */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField label="Dusun / Lingkungan">
                     <input 
                       type="text" 
