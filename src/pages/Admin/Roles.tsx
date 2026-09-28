@@ -59,10 +59,11 @@ export const Roles: React.FC = () => {
   const [selectedPermIds, setSelectedPermIds] = useState<string[]>([]);
   const [originalPermIds, setOriginalPermIds] = useState<string[]>([]);
 
-  // Accordion: Set of group IDs yang sedang di-collapse
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const toggleGroupCollapse = (groupId: string) => {
-    setCollapsedGroups(prev => {
+  // Accordion: multi-expand; Set berisi group ID yang sedang TERBUKA
+  // Initial kosong = semua tertutup saat halaman dibuka
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const toggleGroupExpand = (groupId: string) => {
+    setOpenGroups(prev => {
       const next = new Set(prev);
       if (next.has(groupId)) next.delete(groupId); else next.add(groupId);
       return next;
@@ -387,6 +388,7 @@ export const Roles: React.FC = () => {
     }
   };
 
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
       {/* 1. Page Header */}
@@ -628,7 +630,6 @@ export const Roles: React.FC = () => {
               {/* Group Cards Container */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
                 {allGroups.map((group) => {
-                  // Filter permissions inside this group
                   const filteredGroupPerms = group.permissions.filter(p => {
                     if (!permSearch.trim()) return true;
                     const q = permSearch.toLowerCase();
@@ -642,7 +643,6 @@ export const Roles: React.FC = () => {
 
                   if (filteredGroupPerms.length === 0) return null;
 
-                  // Calculate group active count
                   const groupPermIds = group.permissions
                     .map(p => {
                       const obj = permNameToObject.get(p.name);
@@ -650,8 +650,8 @@ export const Roles: React.FC = () => {
                     })
                     .filter((id): id is string => id !== null);
 
-                  const activeInGroup = isSuperAdmin 
-                    ? group.permissions.length 
+                  const activeInGroup = isSuperAdmin
+                    ? group.permissions.length
                     : groupPermIds.filter(id => selectedPermIds.includes(id)).length;
 
                   const allGroupSelected = isSuperAdmin || (
@@ -662,9 +662,8 @@ export const Roles: React.FC = () => {
                     <div key={group.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                       {/* Group Header */}
                       <div className="bg-gray-50/70 border-b border-gray-100 flex items-center">
-                        {/* Klik area kiri untuk toggle collapse */}
                         <div
-                          onClick={() => toggleGroupCollapse(group.id)}
+                          onClick={() => toggleGroupExpand(group.id)}
                           className="flex-1 flex items-center gap-3 p-4 cursor-pointer select-none hover:bg-gray-100/70 transition-colors min-w-0"
                         >
                           <div className="w-8 h-8 rounded-xl bg-white border border-gray-200 shadow-xs flex items-center justify-center shrink-0">
@@ -674,17 +673,17 @@ export const Roles: React.FC = () => {
                             <div className="flex items-center gap-2">
                               <h3 className="text-sm font-bold text-gray-900">{group.name}</h3>
                               <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                                activeInGroup > 0 
-                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' 
-                                : 'bg-gray-100 text-gray-500'
+                                activeInGroup > 0
+                                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                  : 'bg-gray-100 text-gray-500'
                               }`}>
                                 {activeInGroup} / {group.permissions.length} Aktif
                               </span>
                             </div>
-                            <p className="text-[11px] text-gray-500 mt-0.5">{group.description}</p>
+                            <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2 min-h-[2.1rem]" title={group.description}>{group.description}</p>
                           </div>
                         </div>
-                        {/* Area tombol — lebar tetap agar chevron selalu rata */}
+                        {/* Tombol Pilih Semua / Batal Pilih */}
                         <div className="w-32 shrink-0 flex items-center justify-end pr-3 select-auto">
                           {!isSuperAdmin && canManageRbac && (
                             <button
@@ -700,28 +699,27 @@ export const Roles: React.FC = () => {
                             </button>
                           )}
                         </div>
-                        {/* Chevron — selalu di posisi sama (paling kanan, lebar tetap) */}
+                        {/* Chevron */}
                         <div
-                          onClick={() => toggleGroupCollapse(group.id)}
+                          onClick={() => toggleGroupExpand(group.id)}
                           className="w-10 shrink-0 flex items-center justify-center self-stretch cursor-pointer hover:bg-gray-100/70 transition-colors border-l border-gray-100"
                         >
                           <ChevronDown
                             size={16}
                             className={`text-gray-400 transition-transform duration-200 ${
-                              collapsedGroups.has(group.id) ? '' : 'rotate-180'
+                              openGroups.has(group.id) ? 'rotate-180' : ''
                             }`}
                           />
                         </div>
                       </div>
 
-                      {/* Group Permissions Checkbox Grid — tersembunyi jika collapsed */}
-                      {!collapsedGroups.has(group.id) && (
+                      {/* Konten permission — tampil hanya jika terbuka */}
+                      {openGroups.has(group.id) && (
                         <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
                           {filteredGroupPerms.map((perm) => {
                             const permObj = permNameToObject.get(perm.name);
                             const permId = permObj ? String(permObj.id) : null;
                             const isChecked = isSuperAdmin || (permId ? selectedPermIds.includes(permId) : false);
-
                             return (
                               <label
                                 key={perm.name}
@@ -731,15 +729,15 @@ export const Roles: React.FC = () => {
                                     : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50/50'
                                 } ${isSuperAdmin ? 'cursor-default opacity-85' : ''}`}
                               >
-                                <input 
-                                  type="checkbox" 
+                                <input
+                                  type="checkbox"
                                   checked={isChecked}
                                   disabled={isSuperAdmin || !canManageRbac || !permId}
                                   onChange={() => permId && togglePermission(permId)}
                                   className="mt-0.5 w-4 h-4 rounded text-indigo-600 border-gray-300 focus:ring-indigo-500 shrink-0"
                                 />
                                 <div className="min-w-0">
-                                  <div className="text-xs font-semibold text-gray-900 flex items-center justify-between">
+                                  <div className="text-xs font-semibold text-gray-900">
                                     <span>{perm.label}</span>
                                   </div>
                                   <div className="text-[11px] font-mono text-gray-400 mt-0.5 truncate" title={perm.name}>
