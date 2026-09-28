@@ -86,7 +86,6 @@ export const StudentSchedule: React.FC = () => {
       <PageHeader 
         title="Jadwal Pelajaran" 
         subtitle="Lihat jadwal mata pelajaran Anda selama satu minggu penuh"
-        icon={Calendar}
       />
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 md:p-8 overflow-hidden w-full max-w-full">

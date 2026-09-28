@@ -892,14 +892,6 @@ export const StudentDetail: React.FC = () => {
                 </div>
 
                 <div className="p-4 space-y-3 text-xs">
-                  {/* Nama Panggilan (jika ada) */}
-                  {student.nickname && (
-                    <div className="p-2.5 bg-indigo-50/50 rounded-xl border border-indigo-100/70 flex items-center justify-between">
-                      <span className="text-indigo-600 font-medium text-[11px]">Nama Panggilan</span>
-                      <span className="font-bold text-indigo-950 text-xs">{student.nickname}</span>
-                    </div>
-                  )}
-
                   {/* Jenis Kelamin & Agama */}
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="p-2.5 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
@@ -1421,15 +1413,9 @@ export const StudentDetail: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Dusun dan Jenis Tempat Tinggal */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div className="p-3 bg-gray-50/70 rounded-xl border border-gray-100/80 min-w-0">
-                      <span className="text-gray-400 block text-[11px] mb-1 font-medium">Dusun / Lingkungan</span>
-                      <span className="font-semibold text-gray-800 break-words [overflow-wrap:anywhere] block">
-                        {student.subVillage || '-'}
-                      </span>
-                    </div>
-                    <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100/80 min-w-0 sm:col-span-2">
+                  {/* Jenis Tempat Tinggal */}
+                  <div className="text-xs">
+                    <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100/80 min-w-0">
                       <span className="text-indigo-600 block text-[11px] mb-1 font-semibold flex items-center gap-1">
                         <Home size={12} /> Jenis Tempat Tinggal
                       </span>
@@ -1848,9 +1834,6 @@ export const StudentDetail: React.FC = () => {
                 <FormField label="Nama Lengkap" required>
                   <input type="text" className="input-std" value={editProfilData.fullName || ''} onChange={(e)=>setEditProfilData({...editProfilData, fullName: e.target.value})} required/>
                 </FormField>
-                <FormField label="Nama Panggilan">
-                  <input type="text" className="input-std" placeholder="Contoh: Budi" value={editProfilData.nickname || ''} onChange={(e)=>setEditProfilData({...editProfilData, nickname: e.target.value})}/>
-                </FormField>
                 <FormField label="No. HP / WhatsApp Siswa">
                   <input type="text" className="input-std font-mono" placeholder="Contoh: 08123456789" value={editProfilData.phone || ''} onChange={(e)=>setEditProfilData({...editProfilData, phone: e.target.value})}/>
                 </FormField>
@@ -2041,32 +2024,21 @@ export const StudentDetail: React.FC = () => {
                   />
                 </FormField>
 
-                {/* Dusun dan Jenis Tempat Tinggal */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField label="Dusun / Lingkungan">
-                    <input 
-                      type="text" 
-                      className="input-std" 
-                      placeholder="Contoh: Dusun Krajan" 
-                      value={editProfilData.subVillage || ''} 
-                      onChange={(e)=>setEditProfilData({...editProfilData, subVillage: e.target.value})}
-                    />
-                  </FormField>
-                  <FormField label="Jenis Tempat Tinggal">
-                    <select 
-                      className="input-std" 
-                      value={editProfilData.residenceType || 'Bersama Orang Tua'} 
-                      onChange={(e)=>setEditProfilData({...editProfilData, residenceType: e.target.value})}
-                    >
-                      <option value="Bersama Orang Tua">Bersama Orang Tua</option>
-                      <option value="Wali">Wali</option>
-                      <option value="Kost">Kost</option>
-                      <option value="Asrama">Asrama</option>
-                      <option value="Panti Asuhan">Panti Asuhan</option>
-                      <option value="Lainnya">Lainnya</option>
-                    </select>
-                  </FormField>
-                </div>
+                {/* Jenis Tempat Tinggal */}
+                <FormField label="Jenis Tempat Tinggal">
+                  <select 
+                    className="input-std" 
+                    value={editProfilData.residenceType || 'Bersama Orang Tua'} 
+                    onChange={(e)=>setEditProfilData({...editProfilData, residenceType: e.target.value})}
+                  >
+                    <option value="Bersama Orang Tua">Bersama Orang Tua</option>
+                    <option value="Wali">Wali</option>
+                    <option value="Kost">Kost</option>
+                    <option value="Asrama">Asrama</option>
+                    <option value="Panti Asuhan">Panti Asuhan</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </FormField>
 
                 {/* Cascading Wilayah Master Dropdowns */}
                 <div className="pt-2 border-t border-gray-100">

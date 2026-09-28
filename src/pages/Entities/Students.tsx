@@ -69,7 +69,6 @@ interface WizardForm {
   nis: string;
   nisn: string;
   fullName: string;
-  nickname: string;
   gender: string;
   birthPlace: string;
   birthDate: string;
@@ -86,7 +85,6 @@ interface WizardForm {
   birthOrder: string;
   siblingCount: string;
   address: string;
-  subVillage: string;
   provinceCode: string;
   regencyCode: string;
   districtCode: string;
@@ -113,11 +111,11 @@ interface WizardForm {
 }
 
 const DEFAULT_WIZARD_FORM: WizardForm = {
-  nis: '', nisn: '', fullName: '', nickname: '', gender: 'Laki-laki',
+  nis: '', nisn: '', fullName: '', gender: 'Laki-laki',
   birthPlace: '', birthDate: '', religion: 'Islam', nationality: 'Indonesia',
   status: 'ACTIVE', phone: '', email: '',
   nationalId: '', familyCardNo: '', birthCertificateNo: '', birthOrder: '', siblingCount: '',
-  address: '', subVillage: '', provinceCode: '', regencyCode: '', districtCode: '', villageCode: '', postalCode: '',
+  address: '', provinceCode: '', regencyCode: '', districtCode: '', villageCode: '', postalCode: '',
   residenceType: 'Bersama Orang Tua', transportationMode: 'Sepeda Motor',
   guardianRel: 'Ayah', guardianName: '', guardianNationalId: '', guardianOccupationId: '', guardianPhone: '', guardianEmail: '', guardianAddress: '',
   selectedAy: '', selectedSem: '', selectedClass: '', enrollmentDate: new Date().toISOString().split('T')[0], createUserAccount: true
@@ -317,7 +315,6 @@ export const Students: React.FC = () => {
   const copyStudentAddressToGuardian = () => {
     let fullAddress = form.address;
     const parts = [];
-    if (form.subVillage) parts.push(form.subVillage);
     const prov = provinces.find(p => p.code === form.provinceCode)?.name;
     const reg = regencies.find(r => r.code === form.regencyCode)?.name;
     const dist = districts.find(d => d.code === form.districtCode)?.name;
@@ -421,7 +418,6 @@ export const Students: React.FC = () => {
         nis: form.nis.trim(),
         nisn: form.nisn.trim() || undefined,
         fullName: form.fullName.trim(),
-        nickname: form.nickname.trim() || undefined,
         gender: form.gender,
         birthPlace: form.birthPlace.trim() || undefined,
         birthDate: form.birthDate || undefined,
@@ -436,7 +432,6 @@ export const Students: React.FC = () => {
         birthOrder: form.birthOrder ? parseInt(form.birthOrder, 10) : undefined,
         siblingCount: form.siblingCount ? parseInt(form.siblingCount, 10) : undefined,
         address: form.address.trim() || undefined,
-        subVillage: form.subVillage.trim() || undefined,
         provinceCode: form.provinceCode || undefined,
         regencyCode: form.regencyCode || undefined,
         districtCode: form.districtCode || undefined,
@@ -877,16 +872,6 @@ export const Students: React.FC = () => {
                 </FormField>
               </div>
 
-              <FormField label="Nama Panggilan" hint="(Opsional)">
-                <input 
-                  type="text" 
-                  className="input-std" 
-                  value={form.nickname} 
-                  onChange={setField('nickname')} 
-                  placeholder="Nama panggilan akrab" 
-                />
-              </FormField>
-
               <FormField label="Jenis Kelamin" required>
                 <select className="input-std" value={form.gender} onChange={setField('gender')}>
                   <option value="Laki-laki">Laki-laki</option>
@@ -1040,16 +1025,6 @@ export const Students: React.FC = () => {
                       />
                     </FormField>
                   </div>
-
-                  <FormField label="Dusun / Lingkungan">
-                    <input 
-                      type="text" 
-                      className="input-std" 
-                      value={form.subVillage} 
-                      onChange={setField('subVillage')} 
-                      placeholder="Nama dusun / kampung / banjar" 
-                    />
-                  </FormField>
 
                   {/* Cascading Wilayah */}
                   <FormField label="Provinsi">
