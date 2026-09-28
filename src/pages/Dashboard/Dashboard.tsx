@@ -271,8 +271,7 @@ export const Dashboard: React.FC = () => {
       />
 
       {/* 2. Papan Pengumuman Sekolah Universal (Horizontal Slider / Carousel) */}
-      {announcements.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 w-full min-w-0 max-w-full overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 w-full min-w-0 max-w-full overflow-hidden">
           <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-100 flex-wrap">
             <div className="flex items-center gap-2.5 text-indigo-600">
               <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
@@ -281,9 +280,15 @@ export const Dashboard: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold text-slate-900 leading-tight">Papan Pengumuman</h3>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
-                    {announcements.length} Pengumuman
-                  </span>
+                  {announcements.length > 0 ? (
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                      {announcements.length} Pengumuman
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-400 border border-slate-200">
+                      Belum ada
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-slate-500 font-normal">Informasi resmi, agenda kegiatan, dan surat edaran sekolah</p>
               </div>
@@ -336,112 +341,123 @@ export const Dashboard: React.FC = () => {
                 WebkitMaskImage: 'linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent 100%)'
               }}
             >
-              {announcements.map((ann) => {
-                const hasPoster = Boolean(ann.posterUrl);
+              {announcements.length === 0 ? (
+                <div className="flex flex-col items-center justify-center w-full py-10 gap-3 text-slate-400">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
+                    <Megaphone size={24} className="text-slate-300" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-slate-500">Belum Ada Pengumuman</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Pengumuman resmi sekolah akan tampil di sini</p>
+                  </div>
+                </div>
+              ) : (
+                announcements.map((ann) => {
+                  const hasPoster = Boolean(ann.posterUrl);
 
-                return (
-                  <div
-                    key={ann.id}
-                    onClick={() => {
-                      setSelectedAnnouncement(ann);
-                      setIsDetailOpen(true);
-                    }}
-                    className="w-[280px] sm:w-[320px] md:w-[340px] shrink-0 snap-start flex flex-col justify-between bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-indigo-300/80 transition-all duration-200 cursor-pointer group overflow-hidden h-[360px] min-w-0"
-                  >
-                    {hasPoster ? (
-                      <div className="relative h-44 w-full bg-slate-100 overflow-hidden shrink-0">
-                        <img 
-                          src={ann.posterUrl!} 
-                          alt={ann.title} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
-                        
-                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs uppercase tracking-wider backdrop-blur-xs ${
-                            ann.targetAudience === 'SISWA' 
-                              ? 'bg-blue-600/90 text-white' 
-                              : ann.targetAudience === 'GURU' 
-                              ? 'bg-emerald-600/90 text-white' 
-                              : 'bg-indigo-600/90 text-white'
-                          }`}>
-                            {ann.targetAudience}
-                          </span>
-                          {ann.isPinned && (
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-300/95 px-2 py-0.5 rounded-md shadow-xs backdrop-blur-xs">
-                              <Pin size={10} className="fill-amber-900" /> Semat
+                  return (
+                    <div
+                      key={ann.id}
+                      onClick={() => {
+                        setSelectedAnnouncement(ann);
+                        setIsDetailOpen(true);
+                      }}
+                      className="w-[280px] sm:w-[320px] md:w-[340px] shrink-0 snap-start flex flex-col justify-between bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-indigo-300/80 transition-all duration-200 cursor-pointer group overflow-hidden h-[360px] min-w-0"
+                    >
+                      {hasPoster ? (
+                        <div className="relative h-44 w-full bg-slate-100 overflow-hidden shrink-0">
+                          <img 
+                            src={ann.posterUrl!} 
+                            alt={ann.title} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+                          
+                          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs uppercase tracking-wider backdrop-blur-xs ${
+                              ann.targetAudience === 'SISWA' 
+                                ? 'bg-blue-600/90 text-white' 
+                                : ann.targetAudience === 'GURU' 
+                                ? 'bg-emerald-600/90 text-white' 
+                                : 'bg-indigo-600/90 text-white'
+                            }`}>
+                              {ann.targetAudience}
                             </span>
-                          )}
+                            {ann.isPinned && (
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-300/95 px-2 py-0.5 rounded-md shadow-xs backdrop-blur-xs">
+                                <Pin size={10} className="fill-amber-900" /> Semat
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="h-28 w-full bg-gradient-to-br from-indigo-50/70 via-purple-50/50 to-slate-50 p-3.5 flex flex-col justify-between border-b border-slate-100 shrink-0">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs uppercase tracking-wider ${
-                            ann.targetAudience === 'SISWA' 
-                              ? 'bg-blue-100 text-blue-700' 
-                              : ann.targetAudience === 'GURU' 
-                              ? 'bg-emerald-100 text-emerald-700' 
-                              : 'bg-indigo-100 text-indigo-700'
-                          }`}>
-                            {ann.targetAudience}
-                          </span>
-                          {ann.isPinned && (
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-300 px-2 py-0.5 rounded-md shadow-xs">
-                              <Pin size={10} className="fill-amber-900" /> Semat
+                      ) : (
+                        <div className="h-28 w-full bg-gradient-to-br from-indigo-50/70 via-purple-50/50 to-slate-50 p-3.5 flex flex-col justify-between border-b border-slate-100 shrink-0">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs uppercase tracking-wider ${
+                              ann.targetAudience === 'SISWA' 
+                                ? 'bg-blue-100 text-blue-700' 
+                                : ann.targetAudience === 'GURU' 
+                                ? 'bg-emerald-100 text-emerald-700' 
+                                : 'bg-indigo-100 text-indigo-700'
+                            }`}>
+                              {ann.targetAudience}
                             </span>
-                          )}
+                            {ann.isPinned && (
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-300 px-2 py-0.5 rounded-md shadow-xs">
+                                <Pin size={10} className="fill-amber-900" /> Semat
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    <div className="p-4 flex-1 flex flex-col justify-between gap-2.5 min-w-0">
-                      <div className="space-y-1 min-w-0">
-                        <h4 
-                          className="font-bold text-sm text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1 break-words [overflow-wrap:anywhere] [word-break:break-word]" 
-                          title={ann.title}
-                        >
-                          {ann.title}
-                        </h4>
-                        <p 
-                          className="text-xs text-slate-500 line-clamp-2 leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word]"
-                          title={ann.content}
-                        >
-                          {ann.content}
-                        </p>
-                      </div>
+                      <div className="p-4 flex-1 flex flex-col justify-between gap-2.5 min-w-0">
+                        <div className="space-y-1 min-w-0">
+                          <h4 
+                            className="font-bold text-sm text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1 break-words [overflow-wrap:anywhere] [word-break:break-word]" 
+                            title={ann.title}
+                          >
+                            {ann.title}
+                          </h4>
+                          <p 
+                            className="text-xs text-slate-500 line-clamp-2 leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word]"
+                            title={ann.content}
+                          >
+                            {ann.content}
+                          </p>
+                        </div>
 
-                      <div className="space-y-2 pt-2 border-t border-slate-100 shrink-0">
-                        {ann.attachmentUrl ? (
-                          <div className="flex items-center gap-1.5 text-[11px] font-medium text-indigo-700 bg-indigo-50/80 px-2.5 py-1 rounded-lg border border-indigo-100/80 min-w-0">
-                            <FileText size={13} className="text-indigo-600 shrink-0" />
-                            <span className="truncate min-w-0 flex-1" title={ann.attachmentName || 'Dokumen Resmi'}>
-                              {ann.attachmentName || 'Dokumen Resmi (SK/Surat)'}
+                        <div className="space-y-2 pt-2 border-t border-slate-100 shrink-0">
+                          {ann.attachmentUrl ? (
+                            <div className="flex items-center gap-1.5 text-[11px] font-medium text-indigo-700 bg-indigo-50/80 px-2.5 py-1 rounded-lg border border-indigo-100/80 min-w-0">
+                              <FileText size={13} className="text-indigo-600 shrink-0" />
+                              <span className="truncate min-w-0 flex-1" title={ann.attachmentName || 'Dokumen Resmi'}>
+                                {ann.attachmentName || 'Dokumen Resmi (SK/Surat)'}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="h-6" />
+                          )}
+
+                          <div className="flex items-center justify-between text-[11px] text-slate-400">
+                            <span className="flex items-center gap-1 shrink-0">
+                              <Calendar size={11} />
+                              {new Date(ann.publishDate || ann.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                            <span className="text-indigo-600 font-semibold group-hover:underline flex items-center gap-0.5 shrink-0">
+                              Baca Detail &rarr;
                             </span>
                           </div>
-                        ) : (
-                          <div className="h-6" />
-                        )}
-
-                        <div className="flex items-center justify-between text-[11px] text-slate-400">
-                          <span className="flex items-center gap-1 shrink-0">
-                            <Calendar size={11} />
-                            {new Date(ann.publishDate || ann.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </span>
-                          <span className="text-indigo-600 font-semibold group-hover:underline flex items-center gap-0.5 shrink-0">
-                            Baca Detail &rarr;
-                          </span>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })
+              )}
           </div>
         </div>
-      )}
+      </div>
 
       {/* 3. Render View Berdasarkan Role */}
       {isPrincipal && principalSummary ? (
