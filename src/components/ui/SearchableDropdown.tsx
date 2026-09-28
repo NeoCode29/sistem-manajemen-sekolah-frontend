@@ -55,28 +55,25 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   };
 
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative ${className} ${open ? 'z-30' : ''}`}>
       <button
         type="button"
         onClick={() => !disabled && setOpen(prev => !prev)}
         disabled={disabled}
-        className={`w-full px-3 py-2 rounded-lg text-sm text-left flex items-center justify-between gap-2 transition-all duration-150 outline-none ${
+        className={`w-full px-3 py-2 rounded-lg text-sm text-left flex items-center justify-between gap-2 transition-all duration-150 outline-none border ${
           disabled
-            ? 'bg-gray-50 cursor-not-allowed'
-            : 'bg-white cursor-pointer'
-        } ${
-          open && !disabled ? 'ring-2 ring-indigo-400/20' : ''
+            ? 'bg-gray-50 border-gray-200 cursor-not-allowed text-gray-400'
+            : open
+              ? 'bg-white border-indigo-400 ring-2 ring-indigo-400/20 cursor-pointer'
+              : 'bg-white border-gray-200 hover:border-gray-300 cursor-pointer'
         } ${value && !disabled ? 'text-gray-900' : 'text-gray-400'}`}
-        style={{
-          border: `1px solid ${disabled ? '#e5e7eb' : open ? '#818cf8' : '#6b7280'}`,
-        }}
       >
         <span className="truncate">{value || placeholder}</span>
         <ChevronDown size={16} className={`flex-shrink-0 transition-transform duration-200 ${disabled ? 'text-gray-300' : 'text-gray-400'} ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
             <Search size={14} className="text-gray-400 flex-shrink-0" />
             <input
