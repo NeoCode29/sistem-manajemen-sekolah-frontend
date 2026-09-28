@@ -96,8 +96,6 @@ export interface Student {
   illnessHistory?: string;
 
   // Alamat & Wilayah Terstruktur
-  rt?: string;
-  rw?: string;
   subVillage?: string;
   village?: string;
   district?: string;
@@ -147,8 +145,6 @@ export interface CreateStudentWizardPayload {
   birthOrder?: number;
   siblingCount?: number;
   address?: string;
-  rt?: string;
-  rw?: string;
   subVillage?: string;
   provinceCode?: string;
   regencyCode?: string;

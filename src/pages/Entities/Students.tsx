@@ -86,8 +86,6 @@ interface WizardForm {
   birthOrder: string;
   siblingCount: string;
   address: string;
-  rt: string;
-  rw: string;
   subVillage: string;
   provinceCode: string;
   regencyCode: string;
@@ -119,7 +117,7 @@ const DEFAULT_WIZARD_FORM: WizardForm = {
   birthPlace: '', birthDate: '', religion: 'Islam', nationality: 'Indonesia',
   status: 'ACTIVE', majorId: '', phone: '', email: '',
   nationalId: '', familyCardNo: '', birthCertificateNo: '', birthOrder: '', siblingCount: '',
-  address: '', rt: '', rw: '', subVillage: '', provinceCode: '', regencyCode: '', districtCode: '', villageCode: '', postalCode: '',
+  address: '', subVillage: '', provinceCode: '', regencyCode: '', districtCode: '', villageCode: '', postalCode: '',
   residenceType: 'Bersama Orang Tua', transportationMode: 'Sepeda Motor',
   guardianRel: 'Ayah', guardianName: '', guardianNationalId: '', guardianOccupationId: '', guardianPhone: '', guardianEmail: '', guardianAddress: '',
   selectedAy: '', selectedSem: '', selectedClass: '', enrollmentDate: new Date().toISOString().split('T')[0], createUserAccount: true
@@ -440,8 +438,6 @@ export const Students: React.FC = () => {
         birthOrder: form.birthOrder ? parseInt(form.birthOrder, 10) : undefined,
         siblingCount: form.siblingCount ? parseInt(form.siblingCount, 10) : undefined,
         address: form.address.trim() || undefined,
-        rt: form.rt.trim() || undefined,
-        rw: form.rw.trim() || undefined,
         subVillage: form.subVillage.trim() || undefined,
         provinceCode: form.provinceCode || undefined,
         regencyCode: form.regencyCode || undefined,
@@ -1000,36 +996,13 @@ export const Students: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <FormField label="Alamat Jalan / Rumah">
+                    <FormField label="Alamat Jalan / Rumah (Termasuk RT/RW)">
                       <textarea 
                         rows={2}
                         className="input-std" 
                         value={form.address} 
                         onChange={setField('address')} 
-                        placeholder="Nama jalan, nomor rumah, gang, atau patokan domisili" 
-                      />
-                    </FormField>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField label="RT">
-                      <input 
-                        type="text" 
-                        maxLength={5}
-                        className="input-std" 
-                        value={form.rt} 
-                        onChange={setField('rt')} 
-                        placeholder="001" 
-                      />
-                    </FormField>
-                    <FormField label="RW">
-                      <input 
-                        type="text" 
-                        maxLength={5}
-                        className="input-std" 
-                        value={form.rw} 
-                        onChange={setField('rw')} 
-                        placeholder="002" 
+                        placeholder="Nama jalan, nomor rumah, RT/RW, gang, atau patokan domisili" 
                       />
                     </FormField>
                   </div>
