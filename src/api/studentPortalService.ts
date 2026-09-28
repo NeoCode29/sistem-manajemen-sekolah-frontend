@@ -32,20 +32,119 @@ export interface DashboardSummary {
   }[];
 }
 
+export interface StudentGuardianData {
+  id: string;
+  relationship: string;
+  fullName: string;
+  nationalId?: string | null;
+  nik?: string | null;
+  birthYear?: number | null;
+  isAlive?: boolean;
+  educationLevel?: string | null;
+  education?: string | null;
+  occupation?: string | null;
+  occupationRef?: { id: string; name: string } | null;
+  monthlyIncome?: string | null;
+  specialNeeds?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  isPrimary?: boolean;
+}
+
+export interface StudentEnrollmentData {
+  id: string;
+  status: string;
+  academicYear?: { name: string };
+  semester?: { name: string };
+  classroom?: { 
+    id: string; 
+    name: string; 
+    major?: { id: string; name: string; code?: string } 
+  };
+}
+
 export interface StudentProfileData {
   id: string;
   nis: string;
-  nisn: string;
+  nisn?: string | null;
   fullName: string;
+  nickname?: string | null;
   gender: string;
   status: string;
-  birthPlace?: string;
-  birthDate?: string;
-  religion?: string;
-  address?: string;
-  major?: { id: string; name: string };
-  guardians?: any[];
-  enrollments?: any[];
+  birthPlace?: string | null;
+  birthDate?: string | null;
+  religion?: string | null;
+  nationality?: string | null;
+
+  // Dapodik Kependudukan
+  nationalId?: string | null;
+  nik?: string | null;
+  familyCardNo?: string | null;
+  noKk?: string | null;
+  birthCertificateNo?: string | null;
+  birthCertNo?: string | null;
+  birthOrder?: number | null;
+  siblingCount?: number | null;
+
+  // Fisik & Medis
+  height?: number | null;
+  heightCm?: number | null;
+  weight?: number | null;
+  weightKg?: number | null;
+  headCircumference?: number | null;
+  headCircumferenceCm?: number | null;
+  bloodType?: string | null;
+  medicalHistory?: string | null;
+  illnessHistory?: string | null;
+  specialNeeds?: string | null;
+  physicalDisability?: string | null;
+
+  // Alamat & Domisili
+  address?: string | null;
+  subVillage?: string | null;
+  rt?: string | null;
+  rw?: string | null;
+  village?: string | null;
+  district?: string | null;
+  city?: string | null;
+  province?: string | null;
+  postalCode?: string | null;
+  residenceType?: string | null;
+
+  // Transportasi
+  transportationMode?: string | null;
+  transportation?: string | null;
+  distanceToSchool?: number | string | null;
+  distanceToSchoolKm?: number | null;
+  travelTimeToSchool?: number | null;
+  travelTimeMinutes?: number | null;
+
+  // Kontak & Sekolah Asal
+  phone?: string | null;
+  email?: string | null;
+  previousSchoolName?: string | null;
+  previousSchoolNpsn?: string | null;
+  previousCertificateNo?: string | null;
+  diplomaNumber?: string | null;
+  skhunNumber?: string | null;
+  examParticipantNumber?: string | null;
+  admissionDate?: string | null;
+
+  // Bantuan Kesejahteraan
+  kpsReceiver?: boolean;
+  kipReceiver?: boolean;
+  pipEligible?: boolean;
+  kipNumber?: string | null;
+  kpsNumber?: string | null;
+  pipReason?: string | null;
+  scholarshipHistory?: string | null;
+
+  // Relasi
+  major?: { id: string; name: string; code?: string };
+  guardians?: StudentGuardianData[];
+  enrollments?: StudentEnrollmentData[];
+  users?: { id: string; username: string; name: string; isActive: boolean }[];
 }
 
 export interface ReportCard {
