@@ -165,11 +165,6 @@ export const StudentProfile: React.FC = () => {
           <div className="space-y-1">
             <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight">
               {student.fullName}
-              {student.nickname && (
-                <span className="text-slate-400 font-normal text-lg sm:text-xl ml-2">
-                  ({student.nickname})
-                </span>
-              )}
             </h3>
 
             <div className="flex flex-wrap items-center gap-2 pt-1 text-xs sm:text-sm">
@@ -366,18 +361,6 @@ export const StudentProfile: React.FC = () => {
                 <p className="font-semibold text-slate-800 text-sm sm:text-base leading-relaxed">
                   {student.address || 'Belum diisi'}
                 </p>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">RT / RW</span>
-                <p className="font-semibold text-slate-800 text-sm sm:text-base">
-                  {student.rt ? `RT ${student.rt}` : '-'} / {student.rw ? `RW ${student.rw}` : '-'}
-                </p>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Dusun / Lingkungan</span>
-                <p className="font-semibold text-slate-800 text-sm sm:text-base">{student.subVillage || '-'}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">

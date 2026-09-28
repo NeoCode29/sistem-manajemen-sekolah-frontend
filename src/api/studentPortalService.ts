@@ -69,7 +69,6 @@ export interface StudentProfileData {
   nis: string;
   nisn?: string | null;
   fullName: string;
-  nickname?: string | null;
   gender: string;
   status: string;
   birthPlace?: string | null;
@@ -102,9 +101,6 @@ export interface StudentProfileData {
 
   // Alamat & Domisili
   address?: string | null;
-  subVillage?: string | null;
-  rt?: string | null;
-  rw?: string | null;
   village?: string | null;
   district?: string | null;
   city?: string | null;
