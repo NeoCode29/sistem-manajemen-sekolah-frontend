@@ -9,6 +9,7 @@ import {
   FileDown, 
   RefreshCw, 
   User, 
+  UserCheck,
   Archive, 
   Eye, 
   Loader2, 
@@ -542,20 +543,7 @@ export const Students: React.FC = () => {
         );
       }
     },
-    {
-      key: 'guardian',
-      header: 'Wali Utama',
-      render: (row: any) => {
-        const guardian = row.guardians?.find((g: any) => g.isPrimary) || row.guardians?.[0];
-        if (!guardian) return <span className="text-xs text-gray-400 italic">-</span>;
-        return (
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-gray-800">{guardian.fullName}</span>
-            <span className="text-[11px] text-gray-500">{guardian.relationship} {guardian.phone ? `(${guardian.phone})` : ''}</span>
-          </div>
-        );
-      }
-    },
+
     {
       key: 'status',
       header: 'Status',
@@ -614,7 +602,7 @@ export const Students: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 page-enter">
+    <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
       {/* 1. Page Header */}
       <PageHeader
         title="Siswa & Wali Murid"
@@ -627,31 +615,31 @@ export const Students: React.FC = () => {
                   type="button"
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white text-gray-700 text-xs font-semibold rounded-xl border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-gray-700 text-xs md:text-sm font-semibold rounded-xl border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-xs cursor-pointer disabled:opacity-50"
                   title="Ekspor seluruh data siswa ke format Excel"
                 >
-                  {isExporting ? <Loader2 size={14} className="animate-spin text-indigo-600" /> : <FileDown size={14} className="text-gray-500" />}
+                  {isExporting ? <Loader2 size={14} className="animate-spin text-indigo-600" /> : <FileDown size={15} className="text-gray-500" />}
                   <span>{isExporting ? 'Mengekspor...' : 'Export Excel'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsImportModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white text-gray-700 text-xs font-semibold rounded-xl border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-2xs cursor-pointer"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-gray-700 text-xs md:text-sm font-semibold rounded-xl border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-xs cursor-pointer"
                   title="Import data siswa massal melalui file Excel"
                 >
-                  <FileUp size={14} className="text-gray-500" />
+                  <FileUp size={15} className="text-gray-500" />
                   <span>Import Excel</span>
                 </button>
               </>
             )}
 
-            {canCreateStudent && (
+            {canCreateStudent && activeTab === 'active' && (
               <button
                 type="button"
                 onClick={handleOpenWizard}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs md:text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors cursor-pointer"
               >
-                <Plus size={14} />
+                <Plus size={16} />
                 <span>Pendaftaran Siswa Baru</span>
               </button>
             )}
@@ -659,88 +647,146 @@ export const Students: React.FC = () => {
         }
       />
 
-      {/* 2. Filter & Controls Bar */}
-      <div className="bg-white rounded-2xl shadow-xs border border-gray-200/80 p-4 space-y-3">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Tab Filter: Siswa Aktif vs Archive */}
-          <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => { setActiveTab('active'); setCurrentPage(1); }}
-              className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                activeTab === 'active' 
-                  ? 'bg-white text-indigo-600 shadow-2xs' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <User size={14} />
-              <span>Siswa Aktif</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setActiveTab('deleted'); setCurrentPage(1); }}
-              className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                activeTab === 'deleted' 
-                  ? 'bg-white text-rose-600 shadow-2xs' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Archive size={14} />
-              <span>Archive</span>
-            </button>
-          </div>
+      {/* 2. Tabs Navigation (Siswa Aktif vs Archive) */}
+      <div className="flex gap-6 border-b border-gray-200">
+        <button
+          type="button"
+          className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 cursor-pointer ${
+            activeTab === 'active'
+              ? 'text-indigo-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          onClick={() => { setActiveTab('active'); setCurrentPage(1); }}
+        >
+          <UserCheck size={16} />
+          <span>Siswa Aktif</span>
+          {activeTab === 'active' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
+        </button>
+        {canDeleteStudent && (
+          <button
+            type="button"
+            className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 cursor-pointer ${
+              activeTab === 'deleted'
+                ? 'text-indigo-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => { setActiveTab('deleted'); setCurrentPage(1); }}
+          >
+            <Archive size={16} />
+            <span>Archive</span>
+            {activeTab === 'deleted' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
+          </button>
+        )}
+      </div>
 
-          {/* Quick Search & Status Filter */}
-          <div className="flex items-center gap-2.5 w-full sm:w-auto flex-1 max-w-md justify-end">
-            <div className="relative flex-1">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cari NIS, NISN, atau Nama Siswa..."
-                value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-9 pr-3.5 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+      {/* 3. Filter Bar Pola Standar (Hardware Logs Filter Pattern) */}
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-wrap gap-4 items-end">
+        <div className="flex-1 min-w-[240px]">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Pencarian Siswa
+          </label>
+          <div className="relative group">
+            <Search 
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" 
+              size={16} 
+            />
+            <input
+              type="text"
+              placeholder="Cari NIS, NISN, atau Nama Siswa..."
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        </div>
+
+        {activeTab === 'active' && (
+          <div className="w-full sm:w-56 min-w-[190px]">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+              Status Kesiswaan
+            </label>
+            <div className="relative group">
+              <Filter 
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" 
+                size={16} 
               />
+              <select
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer text-slate-900 font-medium"
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
-            <select
-              value={filterStatus}
-              onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-              className="py-1.5 px-3 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:bg-white focus:border-indigo-500 transition-all font-medium text-gray-700"
-            >
-              {STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+          </div>
+        )}
+
+        {(searchTerm || filterStatus) && (
+          <div className="flex items-center">
             <button
               type="button"
-              onClick={() => load()}
-              className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-xl border border-gray-200 transition-colors"
-              title="Muat Ulang Data"
+              onClick={() => {
+                setSearchTerm('');
+                setFilterStatus('');
+                setCurrentPage(1);
+              }}
+              className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-rose-200 shadow-sm cursor-pointer"
+              title="Reset Filter"
             >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              <RotateCcw size={14} />
+              <span>Reset</span>
             </button>
           </div>
+        )}
+
+        <div className="flex items-center ml-auto">
+          <button
+            type="button"
+            onClick={() => load()}
+            className="p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-xl border border-gray-200 transition-colors cursor-pointer"
+            title="Muat Ulang Data"
+          >
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+          </button>
         </div>
       </div>
 
-      {/* 3. Data Table */}
-      <DataTable
-        columns={columns}
-        data={items}
-        loading={loading}
-      />
-
-      {/* 4. Pagination */}
-      {meta && (
-        <Pagination
-          currentPage={meta.page}
-          totalPages={meta.totalPages}
-          onPageChange={setCurrentPage}
-          itemsPerPage={itemsPerPage}
-          onItemsPerPageChange={setItemsPerPage}
-          totalItems={meta.total}
+      {/* 4. Data Table & Pagination Card */}
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <DataTable
+          columns={columns}
+          data={items}
+          loading={loading}
+          emptyMessage={
+            activeTab === 'deleted' 
+              ? 'Tidak ada data siswa di dalam archive.' 
+              : 'Tidak ada data siswa yang ditemukan.'
+          }
         />
-      )}
+
+        {meta && (
+          <div className="border-t border-gray-100 p-4 bg-gray-50/50">
+            <Pagination
+              currentPage={meta.page}
+              totalPages={meta.totalPages}
+              onPageChange={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              onItemsPerPageChange={setItemsPerPage}
+              totalItems={meta.total}
+            />
+          </div>
+        )}
+      </div>
 
       {/* 5. 4-Step Wizard Pendaftaran Siswa Baru */}
       <Modal 

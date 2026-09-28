@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Upload, Download, AlertCircle, CheckCircle } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Upload, Download, AlertCircle, CheckCircle, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { downloadImportTemplate, importStudents } from '../../api/studentService';
 import { Modal } from '../../components/ui/Modal';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -13,9 +13,11 @@ interface ImportStudentModalProps {
 
 export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [file, setFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { canImportExportStudent } = usePermissions();
 
   if (!isOpen) return null;
@@ -31,6 +33,58 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
       console.error('Failed to download template', err);
       setError(parseApiError(err, 'Gagal mengunduh template'));
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      if (!selectedFile.name.endsWith('.xlsx')) {
+        setError('Harap pilih file dengan format Excel (.xlsx)');
+        return;
+      }
+      setFile(selectedFile);
+      setError(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      if (!droppedFile.name.endsWith('.xlsx')) {
+        setError('Harap pilih file dengan format Excel (.xlsx)');
+        return;
+      }
+      setFile(droppedFile);
+      setError(null);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   };
 
   const handleUpload = async () => {
@@ -109,13 +163,13 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
               </h4>
               <ol className="list-decimal pl-5 space-y-1.5 text-xs text-indigo-900 leading-relaxed">
                 <li>
-                  <strong>Unduh Template Excel Terbaru:</strong> Template dilengkapi 21 kolom standar Dapodik (Data Pokok, Kode Rombel/Kelas, NIK, No KK, Akta Lahir, Alamat Jalan/Rumah, Dusun, Wilayah, Tempat Tinggal, Transportasi, dan Kontak). Jurusan siswa otomatis mengikuti kelas yang dipilih.
+                  <strong>Unduh Template Excel Terbaru:</strong> Template dilengkapi 21 kolom standar Dapodik. Kolom wajib ditandai dengan warna header khusus dan label <em>(Wajib)</em>: <strong>NIS</strong>, <strong>Nama Lengkap</strong>, <strong>L/P</strong>, dan <strong>Status</strong>. Kolom kelas menggunakan <strong>Nama Kelas</strong> langsung (bukan kode), dan jurusan otomatis mengikuti kelas yang dipilih.
                 </li>
                 <li>
-                  <strong>Dropdown Referensi Otomatis:</strong> Kolom Jenis Kelamin, Status, dan Kelas memiliki pilihan dropdown validasi bawaan.
+                  <strong>Dropdown Pilihan Otomatis:</strong> Kolom <strong>L/P</strong>, <strong>Status</strong>, <strong>Nama Kelas</strong>, <strong>Agama</strong>, <strong>Tempat Tinggal</strong>, dan <strong>Moda Transportasi</strong> telah dilengkapi dropdown validasi pilihan bawaan.
                 </li>
                 <li>
-                  <strong>Format Kependudukan:</strong> Pastikan NIK dan No KK terdiri dari 16 digit angka (format teks).
+                  <strong>Format Angka Kependudukan:</strong> Kolom NIK, No KK, NISN, dan No Akta telah diformat otomatis sebagai teks agar angka 16 digit tidak berubah menjadi format eksponensial di Excel.
                 </li>
                 <li>
                   <strong>Mekanisme Upsert Pintar:</strong> Jika baris siswa dengan NIS yang sama sudah ada di database, profil kependudukan & alamat wilayahnya akan diperbarui secara otomatis.
@@ -130,26 +184,85 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
               </button>
             </div>
 
-            <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:bg-slate-50 transition-colors">
-              <Upload className="mx-auto h-12 w-12 text-slate-400 mb-4" />
-              <label className="block">
-                <span className="sr-only">Pilih file Excel</span>
-                <input
-                  type="file"
-                  accept=".xlsx"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="block w-full text-sm text-slate-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-indigo-50 file:text-indigo-700
-                    hover:file:bg-indigo-100 cursor-pointer"
-                />
-              </label>
-              {file && (
-                <p className="mt-3 text-sm text-slate-600">File terpilih: <span className="font-semibold text-slate-800">{file.name}</span></p>
-              )}
-            </div>
+            {/* Input file tersembunyi */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            {!file ? (
+              /* Dropzone saat belum ada file */
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`relative group rounded-2xl border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-200 ${
+                  isDragging
+                    ? 'border-indigo-500 bg-indigo-50/70 scale-[1.01] shadow-inner'
+                    : 'border-slate-300 hover:border-indigo-400 hover:bg-indigo-50/20 bg-white'
+                }`}
+              >
+                <div className="w-14 h-14 mx-auto mb-3.5 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-xs group-hover:scale-110 group-hover:bg-indigo-100 transition-all duration-200">
+                  <Upload size={26} className="text-indigo-600" />
+                </div>
+                <h4 className="text-sm font-semibold text-slate-800 mb-1 group-hover:text-indigo-600 transition-colors">
+                  Pilih atau Tarik File Excel ke Sini
+                </h4>
+                <p className="text-xs text-slate-500 mb-3">
+                  Klik di area ini untuk menelusuri file dari perangkat Anda
+                </p>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 group-hover:bg-indigo-100/70 text-slate-600 group-hover:text-indigo-700 rounded-full text-[11px] font-medium transition-colors">
+                  <FileSpreadsheet size={13} className="text-emerald-600" />
+                  Format yang didukung: .xlsx (Maksimal 10MB)
+                </div>
+              </div>
+            ) : (
+              /* Preview file saat sudah dipilih */
+              <div className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-5 shadow-xs transition-all duration-200">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 shadow-xs">
+                      <FileSpreadsheet size={24} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-900 truncate">
+                          {file.name}
+                        </p>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                          Siap Diupload
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Ukuran: {formatFileSize(file.size)} • Format Excel (.xlsx)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100/60 rounded-lg transition-colors cursor-pointer"
+                    >
+                      Ganti File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      title="Hapus file terpilih"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="p-3 bg-red-50 text-red-600 rounded border border-red-200 text-sm">

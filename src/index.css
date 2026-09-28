@@ -30,6 +30,21 @@
     @apply w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-900 transition-all duration-150 outline-none placeholder:text-gray-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20;
   }
 
+  button.input-std {
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
+  }
+
+  button.input-std:hover:not(:disabled) {
+    border-color: #d1d5db;
+  }
+
+  button.input-std:focus-visible,
+  button.input-std:focus {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.2);
+  }
+
   /* Primary button */
   .btn-std-primary {
     @apply inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium text-sm border-none cursor-pointer transition-colors duration-150 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed;

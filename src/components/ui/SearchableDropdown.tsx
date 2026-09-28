@@ -120,11 +120,17 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         type="button"
         onClick={() => !disabled && setOpen(prev => !prev)}
         disabled={disabled}
-        className={`input-std flex items-center justify-between gap-2 text-left transition-all duration-150 ${
+        aria-expanded={open}
+        style={{
+          border: `1px solid ${disabled ? '#e5e7eb' : open ? '#818cf8' : '#e5e7eb'}`,
+          backgroundColor: disabled ? '#f9fafb' : '#ffffff',
+          boxShadow: open ? '0 0 0 2px rgba(129, 140, 248, 0.2)' : 'none',
+        }}
+        className={`input-std flex items-center justify-between gap-2 text-left min-h-[38px] transition-all duration-150 ${
           disabled
-            ? 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-60'
-            : 'cursor-pointer hover:border-gray-300'
-        } ${open ? 'border-indigo-400 ring-2 ring-indigo-400/20' : ''}`}
+            ? 'cursor-not-allowed opacity-60'
+            : 'cursor-pointer hover:!border-gray-300'
+        }`}
       >
         <span className={`truncate ${value ? 'text-gray-900 font-normal' : 'text-gray-400'}`}>
           {value || placeholder}
