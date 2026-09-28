@@ -109,10 +109,10 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
               </h4>
               <ol className="list-decimal pl-5 space-y-1.5 text-xs text-indigo-900 leading-relaxed">
                 <li>
-                  <strong>Unduh Template Excel Terbaru:</strong> Template dilengkapi 22 kolom standar Dapodik (Data Pokok, NIK, No KK, Akta Lahir, Alamat Jalan/Rumah, Dusun, Wilayah, Tempat Tinggal, Transportasi, dan Kontak).
+                  <strong>Unduh Template Excel Terbaru:</strong> Template dilengkapi 21 kolom standar Dapodik (Data Pokok, Kode Rombel/Kelas, NIK, No KK, Akta Lahir, Alamat Jalan/Rumah, Dusun, Wilayah, Tempat Tinggal, Transportasi, dan Kontak). Jurusan siswa otomatis mengikuti kelas yang dipilih.
                 </li>
                 <li>
-                  <strong>Dropdown Referensi Otomatis:</strong> Kolom Jenis Kelamin, Agama, Jurusan, Kelas, Tempat Tinggal, dan Transportasi memiliki pilihan dropdown validasi bawaan.
+                  <strong>Dropdown Referensi Otomatis:</strong> Kolom Jenis Kelamin, Status, dan Kelas memiliki pilihan dropdown validasi bawaan.
                 </li>
                 <li>
                   <strong>Format Kependudukan:</strong> Pastikan NIK dan No KK terdiri dari 16 digit angka (format teks).

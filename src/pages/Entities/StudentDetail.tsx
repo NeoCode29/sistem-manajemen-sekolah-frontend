@@ -200,14 +200,16 @@ export const StudentDetail: React.FC = () => {
     ? student.enrollments[0]?.classroom?.name 
     : null;
 
+  const studentMajorId = student?.major?.id || student?.enrollments?.[0]?.classroom?.majorId;
+
   const filteredClassrooms = React.useMemo(() => {
     if (!filterRelevantClasses) return classrooms;
-    if (student?.majorId) {
-      const matching = classrooms.filter(cr => !cr.majorId || cr.majorId === student.majorId);
+    if (studentMajorId) {
+      const matching = classrooms.filter(cr => !cr.majorId || cr.majorId === studentMajorId);
       if (matching.length > 0) return matching;
     }
     return classrooms;
-  }, [classrooms, filterRelevantClasses, student?.majorId]);
+  }, [classrooms, filterRelevantClasses, studentMajorId]);
 
   const filteredOccupations = React.useMemo(() => {
     if (!occupationSearch.trim()) return occupations;
@@ -395,7 +397,6 @@ export const StudentDetail: React.FC = () => {
       birthDate: student.birthDate ? new Date(student.birthDate).toISOString().split('T')[0] : '',
       address: student.address || '',
       status: student.status,
-      majorId: student.majorId || '',
       // Dapodik fields
       nik: student.nik || '',
       noKk: student.noKk || '',
@@ -450,9 +451,7 @@ export const StudentDetail: React.FC = () => {
       if (!payload.birthPlace) delete payload.birthPlace;
       if (!payload.birthDate) delete payload.birthDate;
       if (!payload.address) delete payload.address;
-      if (!payload.majorId) {
-        payload.majorId = null;
-      }
+      delete payload.majorId;
       // Numeric cleanup
       if (payload.birthOrder !== undefined && payload.birthOrder !== '') {
         payload.birthOrder = Number(payload.birthOrder);
@@ -834,9 +833,9 @@ export const StudentDetail: React.FC = () => {
                 <GraduationCap size={13} /> Kelas {currentClassroom}
               </span>
             )}
-            {student.major?.name && (
-              <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold border border-indigo-100 max-w-xs truncate" title={student.major.name}>
-                {student.major.name}
+            {(student.major?.name || student.enrollments?.[0]?.classroom?.major?.name) && (
+              <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold border border-indigo-100 max-w-xs truncate" title={student.major?.name || student.enrollments?.[0]?.classroom?.major?.name}>
+                {student.major?.name || student.enrollments?.[0]?.classroom?.major?.name}
               </span>
             )}
             <Badge variant={student.status === 'ACTIVE' ? 'success' : student.status === 'TRANSFER' ? 'info' : student.status === 'GRADUATED' ? 'purple' : 'danger'}>
@@ -1872,14 +1871,6 @@ export const StudentDetail: React.FC = () => {
                     <option value="DROPOUT">Keluar</option>
                   </select>
                 </FormField>
-                <FormField label="Jurusan" hint="(Opsional)">
-                  <select className="input-std" value={editProfilData.majorId || ''} onChange={(e)=>setEditProfilData({...editProfilData, majorId: e.target.value})}>
-                    <option value="">-- Tidak Ada Jurusan --</option>
-                    {majors.filter(m => m.isActive).map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
-                </FormField>
                 <FormField label="Agama">
                   <select className="input-std" value={editProfilData.religion || ''} onChange={(e)=>setEditProfilData({...editProfilData, religion: e.target.value})}>
                     <option value="">-- Pilih Agama --</option>
@@ -2586,7 +2577,7 @@ export const StudentDetail: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-semibold text-gray-700">Rombongan Belajar (Kelas) <span className="text-rose-500">*</span></label>
-                {student?.majorId && (
+                {studentMajorId && (
                   <button
                     type="button"
                     onClick={() => setFilterRelevantClasses(!filterRelevantClasses)}
@@ -2604,7 +2595,7 @@ export const StudentDetail: React.FC = () => {
                   </option>
                 ))}
               </select>
-              {filterRelevantClasses && student?.majorId && (
+              {filterRelevantClasses && studentMajorId && (
                 <p className="text-[11px] text-gray-400 mt-1">
                   Menampilkan kelas yang sesuai dengan jurusan siswa.
                 </p>
