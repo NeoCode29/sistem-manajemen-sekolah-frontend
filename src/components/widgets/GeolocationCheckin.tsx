@@ -12,7 +12,11 @@ interface TodayAttendanceStatus {
   status: string | null;
 }
 
-export const GeolocationCheckin: React.FC = () => {
+export interface GeolocationCheckinProps {
+  embedded?: boolean;
+}
+
+export const GeolocationCheckin: React.FC<GeolocationCheckinProps> = ({ embedded = false }) => {
   const [loading, setLoading] = useState(false);
   const [fetchingStatus, setFetchingStatus] = useState(true);
   const [todayStatus, setTodayStatus] = useState<TodayAttendanceStatus | null>(null);
@@ -99,108 +103,128 @@ export const GeolocationCheckin: React.FC = () => {
 
   const isButtonDisabled = loading || fetchingStatus || isSiswaCompleted || isPegawaiCompleted;
 
-  let buttonColorClass = 'bg-blue-600 hover:bg-blue-700 text-white';
+  let buttonColorClass = 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-xs';
   let buttonLabel = 'Absen Masuk Sekarang';
 
   if (loading) {
     buttonLabel = 'Mendapatkan Lokasi & Memproses...';
-    buttonColorClass = 'bg-blue-300 text-white cursor-wait';
+    buttonColorClass = 'bg-indigo-300 text-white cursor-wait';
   } else if (fetchingStatus) {
     buttonLabel = 'Memeriksa status kehadiran...';
-    buttonColorClass = 'bg-slate-300 text-slate-600 cursor-not-allowed';
+    buttonColorClass = 'bg-slate-200 text-slate-500 cursor-not-allowed';
   } else if (isSiswaCompleted) {
     buttonLabel = `Sudah Absen Hari Ini (${todayStatus?.checkinTime || ''})`;
-    buttonColorClass = 'bg-slate-300 text-slate-600 cursor-not-allowed';
+    buttonColorClass = 'bg-emerald-50 text-emerald-800 border border-emerald-200 cursor-default shadow-none';
   } else if (isPegawaiCompleted) {
     buttonLabel = 'Absensi Hari Ini Selesai';
-    buttonColorClass = 'bg-slate-300 text-slate-600 cursor-not-allowed';
+    buttonColorClass = 'bg-emerald-50 text-emerald-800 border border-emerald-200 cursor-default shadow-none';
   } else if (isPegawaiCanCheckout) {
     buttonLabel = 'Absen Pulang Sekarang';
-    buttonColorClass = 'bg-amber-600 hover:bg-amber-700 text-white';
+    buttonColorClass = 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-xs';
+  }
+
+  const content = (
+    <div className="flex flex-col justify-between h-full space-y-4">
+      <div className="space-y-3">
+        <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
+          Pastikan Anda berada di radius area sekolah dan telah mengizinkan akses lokasi (GPS) pada browser ponsel.
+        </p>
+
+        {/* Status Card Hari Ini */}
+        {todayStatus && !fetchingStatus && (
+          <div
+            className={`p-3.5 sm:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs sm:text-sm border transition-colors ${
+              isSiswaCompleted || isPegawaiCompleted
+                ? 'bg-emerald-50/80 border-emerald-200'
+                : isPegawaiCanCheckout
+                ? 'bg-amber-50/80 border-amber-200'
+                : 'bg-slate-50 border-slate-200/90'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              {isSiswaCompleted || isPegawaiCompleted ? (
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                  <CheckCircle size={16} className="text-emerald-600" />
+                </div>
+              ) : (
+                <div className="w-7 h-7 rounded-lg bg-slate-200/70 flex items-center justify-center shrink-0">
+                  <Clock size={16} className={isPegawaiCanCheckout ? 'text-amber-600' : 'text-slate-500'} />
+                </div>
+              )}
+              <div>
+                <span
+                  className={`font-bold block text-xs ${
+                    isSiswaCompleted || isPegawaiCompleted
+                      ? 'text-emerald-800'
+                      : isPegawaiCanCheckout
+                      ? 'text-amber-800'
+                      : 'text-slate-700'
+                  }`}
+                >
+                  {isSiswaCompleted && `Sudah Absen (${todayStatus.status || 'Hadir'})`}
+                  {isPegawaiCompleted && 'Absensi Lengkap (Masuk & Pulang)'}
+                  {isPegawaiCanCheckout && 'Sudah Absen Masuk'}
+                  {!todayStatus.hasCheckedIn && 'Status: Belum Absen'}
+                </span>
+                <span className="text-[11px] text-slate-400 font-normal">
+                  {isSiswaCompleted && todayStatus.checkinTime ? `Waktu check-in: ${todayStatus.checkinTime}` : 'Presensi hari ini belum tercatat'}
+                </span>
+              </div>
+            </div>
+
+            <div className="text-[11px] sm:text-xs text-slate-500 font-semibold pl-9 sm:pl-0">
+              {isPegawaiCompleted && `Masuk: ${todayStatus.checkinTime} | Pulang: ${todayStatus.checkoutTime}`}
+            </div>
+          </div>
+        )}
+
+        {result && (
+          <div
+            className={`p-3.5 rounded-xl flex items-start gap-2.5 text-xs sm:text-sm ${
+              result.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
+            }`}
+          >
+            {result.success ? (
+              <CheckCircle size={18} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+            ) : (
+              <XCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+            )}
+            <span className="leading-snug">{result.message}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="pt-2">
+        <button
+          onClick={handleCheckin}
+          disabled={isButtonDisabled}
+          className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${buttonColorClass} ${
+            isButtonDisabled ? 'opacity-85 cursor-not-allowed' : 'hover:shadow-md active:scale-[0.99]'
+          }`}
+        >
+          {loading && <Loader2 size={18} className="animate-spin" />}
+          <span>{buttonLabel}</span>
+        </button>
+      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return content;
   }
 
   return (
     <div className="p-5 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex justify-between items-center mb-3">
         <h3 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+          <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
             <MapPin size={18} />
           </div>
           <span>Absensi Mandiri (GPS)</span>
         </h3>
         {fetchingStatus && <Loader2 size={16} className="animate-spin text-gray-400" />}
       </div>
-
-      <p className="text-gray-500 text-xs sm:text-sm mb-4 leading-relaxed">
-        Pastikan Anda berada di radius area sekolah dan telah mengizinkan akses lokasi (GPS) pada browser ponsel.
-      </p>
-
-      {/* Status Card Hari Ini */}
-      {todayStatus && !fetchingStatus && (
-        <div
-          className={`p-3.5 sm:p-4 rounded-xl mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs sm:text-sm border transition-colors ${
-            isSiswaCompleted || isPegawaiCompleted
-              ? 'bg-emerald-50/80 border-emerald-200'
-              : isPegawaiCanCheckout
-              ? 'bg-amber-50/80 border-amber-200'
-              : 'bg-slate-50 border-slate-200'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {isSiswaCompleted || isPegawaiCompleted ? (
-              <CheckCircle size={18} className="text-emerald-600 flex-shrink-0" />
-            ) : (
-              <Clock size={18} className={isPegawaiCanCheckout ? 'text-amber-600 flex-shrink-0' : 'text-slate-500 flex-shrink-0'} />
-            )}
-            <span
-              className={`font-semibold ${
-                isSiswaCompleted || isPegawaiCompleted
-                  ? 'text-emerald-800'
-                  : isPegawaiCanCheckout
-                  ? 'text-amber-800'
-                  : 'text-slate-700'
-              }`}
-            >
-              {isSiswaCompleted && `Sudah Absen (${todayStatus.status || 'Hadir'})`}
-              {isPegawaiCompleted && 'Absensi Lengkap (Masuk & Pulang)'}
-              {isPegawaiCanCheckout && 'Sudah Absen Masuk'}
-              {!todayStatus.hasCheckedIn && 'Status: Belum Absen'}
-            </span>
-          </div>
-
-          <div className="text-[11px] sm:text-xs text-slate-500 font-medium pl-6 sm:pl-0">
-            {isSiswaCompleted && todayStatus.checkinTime && `Masuk: ${todayStatus.checkinTime}`}
-            {isPegawaiCanCheckout && todayStatus.checkinTime && `Masuk: ${todayStatus.checkinTime}`}
-            {isPegawaiCompleted && `Masuk: ${todayStatus.checkinTime} | Pulang: ${todayStatus.checkoutTime}`}
-          </div>
-        </div>
-      )}
-
-      {result && (
-        <div
-          className={`p-3.5 rounded-xl mb-4 flex items-start gap-2.5 text-xs sm:text-sm ${
-            result.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
-          }`}
-        >
-          {result.success ? (
-            <CheckCircle size={18} className="text-emerald-600 flex-shrink-0 mt-0.5" />
-          ) : (
-            <XCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
-          )}
-          <span className="leading-snug">{result.message}</span>
-        </div>
-      )}
-
-      <button
-        onClick={handleCheckin}
-        disabled={isButtonDisabled}
-        className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm ${buttonColorClass} ${
-          isButtonDisabled ? 'opacity-80' : 'hover:shadow-md active:scale-[0.99]'
-        }`}
-      >
-        {loading && <Loader2 size={18} className="animate-spin" />}
-        <span>{buttonLabel}</span>
-      </button>
+      {content}
     </div>
   );
 };

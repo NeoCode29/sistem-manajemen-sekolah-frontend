@@ -1,4 +1,5 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
   MapPin, 
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { DashboardSummary } from '../../../api/studentPortalService';
 import type { Announcement } from '../../../api/announcementService';
+import { useHorizontalSlider } from '../../../hooks/useHorizontalSlider';
 
 export interface GuardianDashboardViewProps {
   data: DashboardSummary | null;
@@ -33,38 +35,21 @@ export const GuardianDashboardView: React.FC<GuardianDashboardViewProps> = ({
   guardianName,
   onSelectAnnouncement,
 }) => {
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateScrollState = useCallback(() => {
-    if (sliderRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
-      setCanScrollLeft(scrollLeft > 10);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  }, []);
-
-  const scrollSlider = (direction: 'left' | 'right') => {
-    if (sliderRef.current) {
-      const scrollAmount = direction === 'left' ? -320 : 320;
-      sliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-      setTimeout(updateScrollState, 350);
-    }
-  };
-
-  useEffect(() => {
-    updateScrollState();
-    const el = sliderRef.current;
-    if (el) {
-      el.addEventListener('scroll', updateScrollState, { passive: true });
-      window.addEventListener('resize', updateScrollState);
-      return () => {
-        el.removeEventListener('scroll', updateScrollState);
-        window.removeEventListener('resize', updateScrollState);
-      };
-    }
-  }, [announcements, updateScrollState]);
+  const navigate = useNavigate();
+  const {
+    sliderRef,
+    canScrollLeft,
+    canScrollRight,
+    scrollSlider,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleMouseLeave,
+    handleCardClick
+  } = useHorizontalSlider({
+    gap: 18,
+    dependencies: [announcements]
+  });
 
   const todayDateFormatted = new Date().toLocaleDateString('id-ID', {
     weekday: 'long',
@@ -256,7 +241,11 @@ export const GuardianDashboardView: React.FC<GuardianDashboardViewProps> = ({
 
             <div 
               ref={sliderRef}
-              className="flex gap-4.5 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 pt-1 px-1 scroll-pl-1 w-full min-w-0 max-w-full"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+              className="flex gap-4.5 overflow-x-auto snap-x snap-proximity scroll-smooth pb-2 pt-1 px-1 scroll-pl-1 w-full min-w-0 max-w-full select-none cursor-grab active:cursor-grabbing"
               style={{ scrollbarWidth: 'thin' }}
             >
               {announcements.length === 0 ? (
@@ -277,7 +266,7 @@ export const GuardianDashboardView: React.FC<GuardianDashboardViewProps> = ({
                   return (
                     <div 
                       key={ann.id}
-                      onClick={() => onSelectAnnouncement(ann)}
+                      onClick={() => handleCardClick(() => onSelectAnnouncement(ann))}
                       className={`w-[280px] sm:w-[310px] h-[350px] shrink-0 snap-start rounded-2xl border transition-all cursor-pointer hover:shadow-md flex flex-col justify-between overflow-hidden group select-none ${
                         ann.isPinned 
                           ? 'bg-amber-50/20 border-amber-200 hover:border-amber-300' 
@@ -507,60 +496,82 @@ export const GuardianDashboardView: React.FC<GuardianDashboardViewProps> = ({
         </div>
 
         {/* Kolom Kanan: Jadwal Pelajaran Hari Ini (6 Kolom) */}
-        <div className="lg:col-span-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 flex flex-col justify-between min-h-[340px]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5 text-purple-600">
-                <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
-                  <Calendar size={18} />
+        <div className="lg:col-span-6 flex flex-col">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 flex flex-col justify-between h-full">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5 text-purple-600">
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                    <Calendar size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 leading-tight">Jadwal Pelajaran Ananda</h3>
+                    <p className="text-xs text-slate-500 font-normal">Daftar kelas dan guru pengampu yang berlangsung hari ini</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 leading-tight">Jadwal Pelajaran Ananda</h3>
-                  <p className="text-xs text-slate-500 font-normal">Daftar kelas dan guru pengampu yang berlangsung hari ini</p>
-                </div>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                  {data?.todaySchedules?.length ?? 0} Kelas
+                </span>
               </div>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
-                {data?.todaySchedules?.length ?? 0} Kelas
-              </span>
+
+              <div className="space-y-2.5">
+                {data?.todaySchedules && data.todaySchedules.length > 0 ? (
+                  data.todaySchedules.map((schedule, idx) => {
+                    const hasValidRoom = schedule.room && schedule.room.trim() !== '' && schedule.room.trim() !== '-';
+
+                    return (
+                      <div 
+                        key={schedule.id || idx} 
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 border border-slate-100 rounded-xl bg-slate-50/70 hover:bg-purple-50/40 hover:border-purple-100 transition-all group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 text-xs font-bold text-slate-700 font-mono shadow-2xs flex items-center gap-1.5 shrink-0">
+                            <Clock size={13} className="text-purple-600" />
+                            <span>{schedule.time}</span>
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-sm text-slate-900 group-hover:text-purple-700 transition-colors truncate">
+                              {schedule.subject}
+                            </h4>
+                            <p className="text-xs text-slate-500 truncate">{schedule.teacher || 'Guru Pengampu'}</p>
+                          </div>
+                        </div>
+
+                        {hasValidRoom ? (
+                          <div className="flex items-center gap-1 text-xs font-medium text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200/70 shadow-2xs shrink-0 self-end sm:self-auto">
+                            <MapPin size={13} className="text-purple-600" />
+                            <span>{schedule.room}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] font-medium text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200/70 shadow-2xs shrink-0 self-end sm:self-auto">
+                            Ruang Kelas
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-8 space-y-2 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/40">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+                      <BookOpen size={18} />
+                    </div>
+                    <p className="text-xs font-medium text-slate-500">Tidak ada jadwal pelajaran ananda hari ini.</p>
+                    <p className="text-[11px] text-slate-400">Selamat mendampingi kegiatan belajar mandiri ananda di rumah.</p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="flex-1 flex flex-col justify-center">
-              {data?.todaySchedules && data.todaySchedules.length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  {data.todaySchedules.map((schedule) => (
-                    <div 
-                      key={schedule.id} 
-                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 border border-slate-100 rounded-xl bg-slate-50/60 hover:bg-indigo-50/40 hover:border-indigo-100 transition-all group"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 text-xs font-bold text-slate-700 font-mono shadow-2xs flex items-center gap-1.5 shrink-0">
-                          <Clock size={13} className="text-indigo-500" />
-                          <span>{schedule.time}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-sm text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                            {schedule.subject}
-                          </h4>
-                          <p className="text-xs text-slate-500 truncate">{schedule.teacher}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1 text-xs font-medium text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200/70 shadow-2xs shrink-0 self-end sm:self-auto">
-                        <MapPin size={13} className="text-indigo-500" />
-                        <span>{schedule.room}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-10 space-y-2 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/40">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
-                    <BookOpen size={18} />
-                  </div>
-                  <p className="text-xs font-medium text-slate-500">Tidak ada jadwal pelajaran ananda hari ini.</p>
-                  <p className="text-[11px] text-slate-400">Selamat mendampingi kegiatan belajar mandiri ananda di rumah.</p>
-                </div>
-              )}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-xs text-slate-400 font-medium">Kalender Mingguan</span>
+              <button
+                type="button"
+                onClick={() => navigate('/student/schedule')}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Lihat Jadwal Lengkap</span>
+                <span>&rarr;</span>
+              </button>
             </div>
           </div>
         </div>

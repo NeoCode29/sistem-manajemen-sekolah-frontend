@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar, Clock, MapPin, BookOpen, User, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { getMySchedule } from '../../api/studentPortalService';
+import { useHorizontalSlider } from '../../hooks/useHorizontalSlider';
 
 interface ScheduleItem {
   id: string;
@@ -20,26 +21,19 @@ export const StudentSchedule: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [weeklySchedule, setWeeklySchedule] = useState<DailySchedule[]>([]);
 
-  // Slider State
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateScrollState = useCallback(() => {
-    if (sliderRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
-      setCanScrollLeft(scrollLeft > 10);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  }, []);
-
-  const scrollSlider = (direction: 'left' | 'right') => {
-    if (sliderRef.current) {
-      const scrollAmount = direction === 'left' ? -340 : 340;
-      sliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-      setTimeout(updateScrollState, 350);
-    }
-  };
+  const {
+    sliderRef,
+    canScrollLeft,
+    canScrollRight,
+    scrollSlider,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleMouseLeave
+  } = useHorizontalSlider({
+    gap: 16,
+    dependencies: [weeklySchedule, loading]
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,21 +50,6 @@ export const StudentSchedule: React.FC = () => {
 
     fetchData();
   }, []);
-
-  useEffect(() => {
-    if (!loading) {
-      updateScrollState();
-      const el = sliderRef.current;
-      if (el) {
-        el.addEventListener('scroll', updateScrollState, { passive: true });
-        window.addEventListener('resize', updateScrollState);
-        return () => {
-          el.removeEventListener('scroll', updateScrollState);
-          window.removeEventListener('resize', updateScrollState);
-        };
-      }
-    }
-  }, [loading, weeklySchedule, updateScrollState]);
 
   if (loading) {
     return (
@@ -133,7 +112,11 @@ export const StudentSchedule: React.FC = () => {
 
           <div 
             ref={sliderRef}
-            className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4 pt-1 px-1 scroll-pl-1 w-full min-w-0 max-w-full"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            className="flex gap-4 overflow-x-auto snap-x snap-proximity scroll-smooth pb-4 pt-1 px-1 scroll-pl-1 w-full min-w-0 max-w-full select-none cursor-grab active:cursor-grabbing"
             style={{ scrollbarWidth: 'thin' }}
           >
             {weeklySchedule?.map((daySchedule, idx) => (

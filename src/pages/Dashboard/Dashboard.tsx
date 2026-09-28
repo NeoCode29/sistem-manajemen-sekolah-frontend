@@ -33,6 +33,7 @@ import type {
 } from '../../api/dashboardService';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { AnnouncementDetailModal } from '../Announcements/AnnouncementDetailModal';
+import { useHorizontalSlider } from '../../hooks/useHorizontalSlider';
 import { AdminDashboardView } from './views/AdminDashboardView';
 import { TeacherDashboardView } from './views/TeacherDashboardView';
 import { PrincipalDashboardView } from './views/PrincipalDashboardView';
@@ -70,38 +71,21 @@ export const Dashboard: React.FC = () => {
   // Announcement Slider & Modal State
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const updateScrollState = useCallback(() => {
-    if (sliderRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
-      setCanScrollLeft(scrollLeft > 10);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  }, []);
-
-  const scrollSlider = (direction: 'left' | 'right') => {
-    if (sliderRef.current) {
-      const scrollAmount = direction === 'left' ? -340 : 340;
-      sliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-      setTimeout(updateScrollState, 350);
-    }
-  };
-
-  useEffect(() => {
-    updateScrollState();
-    const el = sliderRef.current;
-    if (el) {
-      el.addEventListener('scroll', updateScrollState, { passive: true });
-      window.addEventListener('resize', updateScrollState);
-      return () => {
-        el.removeEventListener('scroll', updateScrollState);
-        window.removeEventListener('resize', updateScrollState);
-      };
-    }
-  }, [announcements, updateScrollState]);
+  const {
+    sliderRef,
+    canScrollLeft,
+    canScrollRight,
+    scrollSlider,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleMouseLeave,
+    handleCardClick
+  } = useHorizontalSlider({
+    gap: 16,
+    dependencies: [announcements]
+  });
 
   useEffect(() => {
     if (isStudentOrGuardian) return;
@@ -332,7 +316,11 @@ export const Dashboard: React.FC = () => {
           <div className="relative w-full min-w-0 max-w-full">
             <div 
               ref={sliderRef}
-              className="flex gap-4 overflow-x-auto pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none w-full min-w-0 max-w-full"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+              className="flex gap-4 overflow-x-auto pb-3 pt-1 scroll-smooth snap-x snap-proximity scrollbar-none w-full min-w-0 max-w-full select-none cursor-grab active:cursor-grabbing"
               style={{
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
@@ -359,10 +347,12 @@ export const Dashboard: React.FC = () => {
                     <div
                       key={ann.id}
                       onClick={() => {
-                        setSelectedAnnouncement(ann);
-                        setIsDetailOpen(true);
+                        handleCardClick(() => {
+                          setSelectedAnnouncement(ann);
+                          setIsDetailOpen(true);
+                        });
                       }}
-                      className="w-[280px] sm:w-[320px] md:w-[340px] shrink-0 snap-start flex flex-col justify-between bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-indigo-300/80 transition-all duration-200 cursor-pointer group overflow-hidden h-[360px] min-w-0"
+                      className="w-[280px] sm:w-[320px] md:w-[340px] shrink-0 snap-start flex flex-col justify-between bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-indigo-300/80 transition-all duration-200 cursor-pointer group overflow-hidden h-[360px] min-w-0 select-none"
                     >
                       {hasPoster ? (
                         <div className="relative h-44 w-full bg-slate-100 overflow-hidden shrink-0">
