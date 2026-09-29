@@ -59,30 +59,30 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
     <div className="space-y-6 max-w-7xl mx-auto w-full min-w-0 max-w-full overflow-x-hidden">
       
       {/* 1. Hero Header Sambutan */}
-      <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-indigo-50/70 via-blue-50/40 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
         
-        <div className="relative z-10 space-y-1.5">
+        <div className="relative z-10 space-y-1.5 min-w-0 flex-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold">
             <Sparkles size={13} className="text-indigo-600" />
             <span>Portal Siswa & Akademik</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Selamat Datang, <span className="text-indigo-600">{studentName || data?.studentInfo?.fullName || 'Siswa'}</span>! 👋
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight break-words">
+            Selamat Datang, <span className="text-indigo-600 truncate max-w-[200px] sm:max-w-none inline-block align-bottom">{studentName || data?.studentInfo?.fullName || 'Siswa'}</span>! 👋
           </h1>
           <p className="text-xs md:text-sm text-slate-500 font-normal max-w-2xl leading-relaxed">
             Pantau kehadiran, jadwal mata pelajaran harian, dan pengumuman resmi sekolah Anda secara langsung.
           </p>
         </div>
 
-        <div className="relative z-10 flex items-center gap-2 self-start md:self-auto bg-slate-50/80 px-4 py-2.5 rounded-xl border border-slate-200/70 text-xs font-medium text-slate-600 shadow-2xs">
+        <div className="relative z-10 flex items-center gap-2 w-full sm:w-auto self-start md:self-auto bg-slate-50/80 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-200/70 text-xs font-medium text-slate-600 shadow-2xs justify-center sm:justify-start">
           <Calendar size={15} className="text-indigo-600 shrink-0" />
           <span>{todayDateFormatted}</span>
         </div>
       </div>
 
       {/* 4. Papan Pengumuman Sekolah (Full-Width Horizontal Carousel yang Mewah) */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 w-full min-w-0 max-w-full overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 sm:p-6 space-y-4 w-full min-w-0 max-w-full overflow-hidden">
           <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-100 flex-wrap">
             <div className="flex items-center gap-2.5 text-blue-600">
               <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
@@ -105,8 +105,8 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
               </div>
             </div>
 
-            {/* Tombol Geser Horizontal */}
-            <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200/60">
+            {/* Tombol Geser Horizontal (Sembunyikan di Mobile Layar Sentuh) */}
+            <div className="hidden sm:flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200/60">
               <button
                 type="button"
                 onClick={() => scrollSlider('left')}
@@ -153,7 +153,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseLeave}
-              className="flex gap-4.5 overflow-x-auto snap-x snap-proximity scroll-smooth pb-2 pt-1 px-1 scroll-pl-1 w-full min-w-0 max-w-full select-none cursor-grab active:cursor-grabbing"
+              className="flex gap-4 overflow-x-auto snap-x snap-proximity scroll-smooth pb-2 pt-1 px-1 scroll-pl-1 w-full min-w-0 max-w-full select-none cursor-grab active:cursor-grabbing"
               style={{ scrollbarWidth: 'thin' }}
             >
               {announcements.length === 0 ? (
@@ -175,7 +175,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                     <div 
                       key={ann.id}
                       onClick={() => handleCardClick(() => onSelectAnnouncement(ann))}
-                      className={`w-[280px] sm:w-[310px] h-[350px] shrink-0 snap-start rounded-2xl border transition-all cursor-pointer hover:shadow-md flex flex-col justify-between overflow-hidden group select-none ${
+                      className={`w-[82vw] max-w-[310px] sm:w-[310px] h-[350px] shrink-0 snap-center sm:snap-start rounded-2xl border transition-all cursor-pointer hover:shadow-md flex flex-col justify-between overflow-hidden group select-none ${
                         ann.isPinned 
                           ? 'bg-amber-50/20 border-amber-200 hover:border-amber-300' 
                           : 'bg-white border-slate-200/90 hover:border-indigo-300'
@@ -272,67 +272,67 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
         </div>
 
       {/* 2. Quick Overview Stats Grid (4 Kolom Rata & Seimbang) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         
         {/* Presensi Kehadiran */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-emerald-300 hover:shadow-md transition-all">
+        <div className="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-emerald-300 hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kehadiran</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <span className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Kehadiran</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <UserCheck size={18} />
             </div>
           </div>
           <div>
-            <div className="text-2xl lg:text-3xl font-black text-slate-900">
-              {data?.attendancePercentage ?? 0}<span className="text-lg font-bold text-emerald-600">%</span>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">
+              {data?.attendancePercentage ?? 0}<span className="text-base sm:text-lg font-bold text-emerald-600">%</span>
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5">Semester Berjalan</p>
           </div>
         </div>
 
         {/* Poin Kedisiplinan / Pelanggaran */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-amber-300 hover:shadow-md transition-all">
+        <div className="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-amber-300 hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pelanggaran</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <span className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Pelanggaran</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
               <AlertTriangle size={18} />
             </div>
           </div>
           <div>
-            <div className="text-2xl lg:text-3xl font-black text-slate-900">
-              {data?.violationPoints ?? 0} <span className="text-sm font-bold text-amber-600">Poin</span>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">
+              {data?.violationPoints ?? 0} <span className="text-xs sm:text-sm font-bold text-amber-600">Poin</span>
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5">Catatan Kedisiplinan</p>
           </div>
         </div>
 
         {/* Jadwal Hari Ini */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-indigo-300 hover:shadow-md transition-all">
+        <div className="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-indigo-300 hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Jadwal Kelas</span>
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <span className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Jadwal Kelas</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
               <BookOpen size={18} />
             </div>
           </div>
           <div>
-            <div className="text-2xl lg:text-3xl font-black text-slate-900">
-              {data?.todaySchedules?.length ?? 0} <span className="text-sm font-bold text-indigo-600">Mapel</span>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">
+              {data?.todaySchedules?.length ?? 0} <span className="text-xs sm:text-sm font-bold text-indigo-600">Mapel</span>
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5">Jadwal Hari Ini</p>
           </div>
         </div>
 
         {/* Pengumuman Sekolah */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-blue-300 hover:shadow-md transition-all">
+        <div className="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-blue-300 hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pengumuman</span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <span className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Pengumuman</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <Megaphone size={18} />
             </div>
           </div>
           <div>
-            <div className="text-2xl lg:text-3xl font-black text-slate-900">
-              {announcements.length} <span className="text-sm font-bold text-blue-600">Aktif</span>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">
+              {announcements.length} <span className="text-xs sm:text-sm font-bold text-blue-600">Aktif</span>
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5">Informasi Sekolah</p>
           </div>
@@ -341,11 +341,11 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
       </div>
 
       {/* 3. Aktivitas Hari Ini (2 Kolom Seimbang: Presensi Mandiri GPS & Jadwal) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-stretch">
         
         {/* Kolom Kiri: Presensi Mandiri (6 Kolom) */}
         <div className="lg:col-span-6 flex flex-col">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 flex flex-col justify-between h-full">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 sm:p-6 space-y-4 flex flex-col justify-between h-full">
             <div className="flex items-center gap-2.5 text-indigo-600 pb-3 border-b border-slate-100">
               <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
                 <UserCheck size={18} />
@@ -364,7 +364,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
 
         {/* Kolom Kanan: Jadwal Pelajaran Hari Ini (6 Kolom) */}
         <div className="lg:col-span-6 flex flex-col">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 flex flex-col justify-between h-full">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 sm:p-6 space-y-4 flex flex-col justify-between h-full">
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5 text-purple-600">
@@ -390,7 +390,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                     return (
                       <div 
                         key={schedule.id || idx} 
-                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 border border-slate-100 rounded-xl bg-slate-50/70 hover:bg-purple-50/40 hover:border-purple-100 transition-all group"
+                        className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2.5 p-3 sm:p-3.5 border border-slate-100 rounded-xl bg-slate-50/70 hover:bg-purple-50/40 hover:border-purple-100 transition-all group"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 text-xs font-bold text-slate-700 font-mono shadow-2xs flex items-center gap-1.5 shrink-0">
@@ -406,12 +406,12 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                         </div>
 
                         {hasValidRoom ? (
-                          <div className="flex items-center gap-1 text-xs font-medium text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200/70 shadow-2xs shrink-0 self-end sm:self-auto">
+                          <div className="flex items-center gap-1 text-xs font-medium text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200/70 shadow-2xs shrink-0 self-end xs:self-auto">
                             <MapPin size={13} className="text-purple-600" />
                             <span>{schedule.room}</span>
                           </div>
                         ) : (
-                          <span className="text-[11px] font-medium text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200/70 shadow-2xs shrink-0 self-end sm:self-auto">
+                          <span className="text-[11px] font-medium text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200/70 shadow-2xs shrink-0 self-end xs:self-auto">
                             Ruang Kelas
                           </span>
                         )}
