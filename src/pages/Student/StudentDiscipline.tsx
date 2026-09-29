@@ -80,10 +80,10 @@ export const StudentDiscipline: React.FC = () => {
       </div>
 
       {/* Responsive Tab Buttons */}
-      <div className="flex w-full sm:w-max gap-1.5 sm:gap-2 mb-5 sm:mb-6 bg-gray-100 p-1.5 rounded-xl">
+      <div className="flex w-full sm:w-max gap-1 sm:gap-2 mb-5 sm:mb-6 bg-gray-100 p-1 rounded-xl">
         <button
           onClick={() => setActiveTab('achievements')}
-          className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all ${
+          className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all cursor-pointer ${
             activeTab === 'achievements'
               ? 'bg-white text-emerald-600 shadow-xs border border-gray-200'
               : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
@@ -95,7 +95,7 @@ export const StudentDiscipline: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('violations')}
-          className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all ${
+          className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all cursor-pointer ${
             activeTab === 'violations'
               ? 'bg-white text-red-600 shadow-xs border border-gray-200'
               : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
@@ -113,14 +113,14 @@ export const StudentDiscipline: React.FC = () => {
             {data?.achievements && data.achievements.length > 0 ? (
               <div className="divide-y divide-gray-100">
                 {data.achievements.map((item) => (
-                  <div key={item.id} className="p-4 sm:p-6 hover:bg-emerald-50/30 transition-colors">
+                  <div key={item.id} className="p-3.5 sm:p-6 hover:bg-emerald-50/30 transition-colors">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 sm:gap-4">
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1.5 leading-snug">
+                        <h3 className="text-sm sm:text-lg font-bold text-gray-900 mb-1.5 leading-snug break-words [overflow-wrap:anywhere] min-w-0">
                           {item.title}
                         </h3>
                         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-gray-500 font-medium mb-3">
-                          <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 font-semibold">
+                          <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 font-semibold text-[11px]">
                             {item.category}
                           </span>
                           <span className="text-gray-300">|</span>
@@ -136,14 +136,14 @@ export const StudentDiscipline: React.FC = () => {
                           )}
                         </div>
                         {item.description && (
-                          <p className="text-gray-600 text-xs sm:text-sm bg-gray-50/80 p-3 rounded-xl border border-gray-100 flex items-start gap-2 leading-relaxed">
-                            <Info size={15} className="text-indigo-400 flex-shrink-0 mt-0.5" />
-                            <span>{item.description}</span>
+                          <p className="text-gray-600 text-xs sm:text-sm bg-gray-50/80 p-3 rounded-xl border border-gray-100 flex items-start gap-2 leading-relaxed break-words [overflow-wrap:anywhere] min-w-0">
+                            <Info size={15} className="text-indigo-400 shrink-0 mt-0.5" />
+                            <span className="min-w-0 flex-1">{item.description}</span>
                           </p>
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0 flex-shrink-0">
+                      <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 border-t sm:border-t-0 border-gray-100 pt-2.5 sm:pt-0 shrink-0">
                         <div className="flex items-center gap-1.5 text-gray-500 text-xs font-medium">
                           <Calendar size={14} className="text-gray-400" />
                           <span>
@@ -179,10 +179,10 @@ export const StudentDiscipline: React.FC = () => {
             {data?.violations && data.violations.length > 0 ? (
               <div className="divide-y divide-gray-100">
                 {data.violations.map((item) => (
-                  <div key={item.id} className="p-4 sm:p-6 hover:bg-red-50/30 transition-colors">
+                  <div key={item.id} className="p-3.5 sm:p-6 hover:bg-red-50/30 transition-colors">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 sm:gap-4">
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1.5 leading-snug">
+                        <h3 className="text-sm sm:text-lg font-bold text-gray-900 mb-1.5 leading-snug break-words [overflow-wrap:anywhere] min-w-0">
                           {item.title || 'Pelanggaran Tata Tertib'}
                         </h3>
                         <div className="flex items-center gap-2 text-xs text-gray-500 font-medium mb-3">
@@ -199,14 +199,14 @@ export const StudentDiscipline: React.FC = () => {
                           </span>
                         </div>
                         {item.actionTaken && (
-                          <div className="text-gray-600 text-xs sm:text-sm bg-gray-50/80 p-3 rounded-xl border border-gray-100 leading-relaxed">
+                          <div className="text-gray-600 text-xs sm:text-sm bg-gray-50/80 p-3 rounded-xl border border-gray-100 leading-relaxed break-words [overflow-wrap:anywhere] min-w-0">
                             <span className="text-gray-900 font-bold block mb-1">Tindakan / Sanksi:</span>
-                            {item.actionTaken}
+                            <span>{item.actionTaken}</span>
                           </div>
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0 flex-shrink-0">
+                      <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 border-t sm:border-t-0 border-gray-100 pt-2.5 sm:pt-0 shrink-0">
                         <div className="flex items-center gap-1.5 text-gray-500 text-xs font-medium">
                           <Calendar size={14} className="text-gray-400" />
                           <span>

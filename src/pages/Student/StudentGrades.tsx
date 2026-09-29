@@ -77,26 +77,26 @@ export const StudentGrades: React.FC = () => {
             >
               {/* Accordion Trigger */}
               <div
-                className={`p-4 sm:p-6 flex items-center justify-between cursor-pointer transition-colors gap-3 ${
+                className={`p-3.5 sm:p-5 flex items-center justify-between cursor-pointer transition-colors gap-3 select-none ${
                   expandedId === rc.id ? 'bg-indigo-50/40' : 'hover:bg-gray-50/60'
                 }`}
                 onClick={() => setExpandedId(expandedId === rc.id ? null : rc.id)}
               >
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 leading-snug truncate">
+                  <h3 className="text-sm sm:text-lg font-bold text-gray-900 mb-1 leading-snug break-words">
                     Rapor Semester {rc.semester.name}
                   </h3>
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-gray-500 font-medium">
-                    <span className="px-2.5 py-0.5 rounded-md bg-gray-100 border border-gray-200 text-[11px] font-semibold">
+                    <span className="px-2 py-0.5 rounded-md bg-gray-100 border border-gray-200 text-[11px] font-semibold">
                       TA {rc.academicYear.name}
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100 text-[11px] font-bold">
+                    <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100 text-[11px] font-bold">
                       Kelas {rc.classroom.name}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 sm:gap-2 text-indigo-600 font-bold text-xs sm:text-sm bg-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-indigo-100 shadow-2xs flex-shrink-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-indigo-600 font-bold text-xs sm:text-sm bg-white px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-indigo-100 shadow-2xs shrink-0">
                   <span className="hidden sm:inline">
                     {expandedId === rc.id ? 'Tutup Detail' : 'Lihat Rapor'}
                   </span>
@@ -106,7 +106,7 @@ export const StudentGrades: React.FC = () => {
 
               {/* Accordion Content */}
               {expandedId === rc.id && (
-                <div className="p-4 sm:p-6 pt-0 border-t border-gray-100 animate-in slide-in-from-top-2 duration-200">
+                <div className="p-3.5 sm:p-6 pt-0 border-t border-gray-100 animate-in slide-in-from-top-2 duration-200">
                   {/* Tampilan Desktop / Tablet: Tabel */}
                   <div className="hidden sm:block mt-5 overflow-x-auto rounded-xl border border-gray-200">
                     <table className="w-full text-left text-sm">
@@ -122,7 +122,7 @@ export const StudentGrades: React.FC = () => {
                         {rc.details && rc.details.length > 0 ? (
                           rc.details.map((detail) => (
                             <tr key={detail.id} className="hover:bg-gray-50/50 transition-colors">
-                              <td className="p-4 font-bold text-gray-900">{detail.subject.name}</td>
+                              <td className="p-4 font-bold text-gray-900 break-words">{detail.subject.name}</td>
                               <td className="p-4 text-gray-500 font-medium text-center">{detail.kkm}</td>
                               <td className="p-4 text-gray-900 font-black text-center text-base">
                                 {detail.finalScore}
@@ -150,30 +150,30 @@ export const StudentGrades: React.FC = () => {
                   </div>
 
                   {/* Tampilan Mobile: Kartu Nilai Ringkas */}
-                  <div className="sm:hidden mt-4 flex flex-col gap-2.5">
+                  <div className="sm:hidden mt-3 flex flex-col gap-2.5">
                     {rc.details && rc.details.length > 0 ? (
                       rc.details.map((detail) => (
                         <div
                           key={detail.id}
-                          className="p-3.5 bg-gray-50/70 border border-gray-100 rounded-xl flex items-center justify-between gap-3"
+                          className="p-3 bg-gray-50/80 border border-gray-100 rounded-xl flex items-center justify-between gap-3"
                         >
                           <div className="min-w-0 flex-1">
-                            <div className="font-bold text-sm text-gray-900 leading-tight mb-1 truncate">
+                            <div className="font-bold text-xs sm:text-sm text-gray-900 leading-snug break-words [overflow-wrap:anywhere] min-w-0">
                               {detail.subject.name}
                             </div>
-                            <div className="text-[11px] text-gray-500">
+                            <div className="text-[11px] text-gray-500 mt-0.5">
                               KKM: <span className="font-semibold text-gray-700">{detail.kkm}</span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-2 shrink-0">
                             <div className="text-right">
-                              <div className="text-base font-black text-gray-900 leading-tight">
+                              <div className="text-sm sm:text-base font-black text-gray-900 leading-tight">
                                 {detail.finalScore}
                               </div>
                             </div>
                             <span
-                              className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black border ${getPredicateBadgeClass(
+                              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-xs font-black border ${getPredicateBadgeClass(
                                 detail.predicate
                               )}`}
                             >
