@@ -20,6 +20,7 @@ interface DailySchedule {
 export const StudentSchedule: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [weeklySchedule, setWeeklySchedule] = useState<DailySchedule[]>([]);
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
 
   const {
     sliderRef,
@@ -40,7 +41,21 @@ export const StudentSchedule: React.FC = () => {
       try {
         setLoading(true);
         const data = await getMySchedule();
-        setWeeklySchedule(Array.isArray(data) ? data : []);
+        const scheduleList = Array.isArray(data) ? data : [];
+        setWeeklySchedule(scheduleList);
+
+        if (scheduleList.length > 0) {
+          const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+          const todayName = dayNames[new Date().getDay()];
+          const foundIdx = scheduleList.findIndex(
+            (s) => s.dayName.toLowerCase() === todayName.toLowerCase()
+          );
+          if (foundIdx !== -1) {
+            setSelectedDayIndex(foundIdx);
+          } else {
+            setSelectedDayIndex(0);
+          }
+        }
       } catch (error) {
         console.error('Error fetching schedule:', error);
       } finally {
@@ -67,14 +82,16 @@ export const StudentSchedule: React.FC = () => {
         subtitle="Lihat jadwal mata pelajaran Anda selama satu minggu penuh"
       />
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 md:p-8 overflow-hidden w-full max-w-full">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 sm:p-6 md:p-8 overflow-hidden w-full max-w-full">
         <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-100 flex-wrap">
           <div>
             <h3 className="text-base font-bold text-slate-900 leading-tight">Jadwal Mingguan</h3>
-            <p className="text-xs text-slate-500 font-normal">Geser untuk melihat jadwal pada hari lainnya</p>
+            <p className="text-xs text-slate-500 font-normal">
+              {weeklySchedule.length > 0 ? 'Pilih hari atau geser untuk melihat jadwal kelas' : 'Belum ada jadwal'}
+            </p>
           </div>
           
-          <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200/60">
+          <div className="hidden md:flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200/60">
             <button
               type="button"
               onClick={() => scrollSlider('left')}
@@ -84,6 +101,8 @@ export const StudentSchedule: React.FC = () => {
                   ? 'bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer' 
                   : 'bg-slate-100 text-slate-300 cursor-not-allowed border-transparent'
               }`}
+              title="Geser ke kiri"
+              aria-label="Geser ke kiri"
             >
               <ChevronLeft size={15} />
             </button>
@@ -96,13 +115,85 @@ export const StudentSchedule: React.FC = () => {
                   ? 'bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer' 
                   : 'bg-slate-100 text-slate-300 cursor-not-allowed border-transparent'
               }`}
+              title="Geser ke kanan"
+              aria-label="Geser ke kanan"
             >
               <ChevronRight size={15} />
             </button>
           </div>
         </div>
 
-        <div className="relative mt-4 w-full min-w-0 max-w-full">
+        {/* Mobile View: Day Selector Pills */}
+        <div className="block md:hidden mt-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-3 scrollbar-none">
+            {weeklySchedule.map((day, idx) => (
+              <button
+                key={day.dayName}
+                type="button"
+                onClick={() => setSelectedDayIndex(idx)}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                  selectedDayIndex === idx
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-slate-50 text-slate-600 border border-slate-200/80 hover:bg-slate-100'
+                }`}
+              >
+                <span>{day.dayName}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  selectedDayIndex === idx ? 'bg-indigo-700 text-white' : 'bg-slate-200/80 text-slate-600'
+                }`}>
+                  {day.schedules.length}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Active Single Day Timeline */}
+          {weeklySchedule[selectedDayIndex] && (
+            <div className="mt-2 space-y-3">
+              {weeklySchedule[selectedDayIndex].schedules.length > 0 ? (
+                weeklySchedule[selectedDayIndex].schedules.map((schedule) => (
+                  <div
+                    key={schedule.id}
+                    className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl space-y-2.5 shadow-2xs hover:border-indigo-200 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 text-xs font-bold text-slate-700 font-mono shadow-2xs">
+                        <Clock size={12} className="text-indigo-600" />
+                        <span>{schedule.time}</span>
+                      </div>
+                      <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200/70 shadow-2xs">
+                        <MapPin size={11} className="text-purple-600" />
+                        <span>{schedule.room || 'Kelas'}</span>
+                      </div>
+                    </div>
+
+                    <h4 className="font-bold text-sm sm:text-base text-slate-900 leading-snug break-words">
+                      {schedule.subject}
+                    </h4>
+
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 pt-1 border-t border-slate-200/60">
+                      <User size={13} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{schedule.teacher || 'Guru Pengampu'}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 space-y-2">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-300">
+                    <BookOpen size={20} />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-600">Tidak ada jadwal pelajaran</p>
+                  <p className="text-xs text-slate-400">
+                    Tidak ada agenda pembelajaran di hari {weeklySchedule[selectedDayIndex]?.dayName}.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Tablet & Desktop View: Horizontal Weekly Cards Slider */}
+        <div className="hidden md:block relative mt-4 w-full min-w-0 max-w-full">
           {canScrollLeft && (
             <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10" />
           )}
