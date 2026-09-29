@@ -124,37 +124,37 @@ export const StudentProfile: React.FC = () => {
       {/* 2. Hero Overview Card */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200/90 overflow-hidden">
         {/* Cover Background */}
-        <div className="h-32 sm:h-40 bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-800 relative overflow-hidden">
+        <div className="h-28 sm:h-36 md:h-40 bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-800 relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent pointer-events-none" />
           <div className="absolute -right-8 -bottom-8 w-48 h-48 bg-white/5 rounded-full blur-xl pointer-events-none" />
         </div>
 
         {/* Hero Identity Content */}
-        <div className="px-5 sm:px-8 pb-6 relative">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-4">
+        <div className="px-4 sm:px-8 pb-6 relative">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 -mt-10 sm:-mt-14 md:-mt-16 mb-4">
             {/* Avatar Inisial */}
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white p-1.5 shadow-md flex-shrink-0">
-              <div className="w-full h-full rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white text-3xl sm:text-4xl font-black shadow-inner">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl bg-white p-1.5 shadow-md shrink-0">
+              <div className="w-full h-full rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white text-2xl sm:text-3xl md:text-4xl font-black shadow-inner">
                 {student.fullName ? student.fullName.charAt(0).toUpperCase() : 'S'}
               </div>
             </div>
 
             {/* Status Badges */}
-            <div className="flex flex-wrap items-center gap-2 sm:self-center">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70 shadow-2xs">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 sm:self-center">
+              <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70 shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 Status: {student.status || 'Aktif'}
               </span>
 
               {isPipEligible && (
-                <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/70">
+                <span className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/70">
                   <Award size={13} className="text-amber-600" />
                   Penerima KIP/PIP
                 </span>
               )}
 
               {student.bloodType && (
-                <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/70">
+                <span className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/70">
                   Gol. Darah: {student.bloodType}
                 </span>
               )}
@@ -163,16 +163,16 @@ export const StudentProfile: React.FC = () => {
 
           {/* Nama & Identitas Pokok */}
           <div className="space-y-1">
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight">
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight break-words [overflow-wrap:anywhere] min-w-0">
               {student.fullName}
             </h3>
 
-            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs sm:text-sm">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-1 text-xs sm:text-sm">
               <span className="bg-indigo-50 text-indigo-700 border border-indigo-100/80 px-2.5 py-1 rounded-lg font-bold">
                 NIS: {student.nis}
               </span>
               {student.nisn && (
-                <span className="bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-lg font-semibold">
+                <span className="bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-lg font-mono font-semibold select-all">
                   NISN: {student.nisn}
                 </span>
               )}
@@ -190,12 +190,12 @@ export const StudentProfile: React.FC = () => {
         </div>
 
         {/* 3. Navigation Tabs */}
-        <div className="border-t border-slate-100 bg-slate-50/60 px-4 sm:px-8">
-          <div className="flex items-center gap-2 overflow-x-auto py-2.5 scrollbar-none">
+        <div className="border-t border-slate-100 bg-slate-50/60 px-3 sm:px-8">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-2.5 scrollbar-none">
             <button
               type="button"
               onClick={() => setActiveTab('dapodik')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                 activeTab === 'dapodik'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/60'
@@ -208,7 +208,7 @@ export const StudentProfile: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('address')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                 activeTab === 'address'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/60'
@@ -221,7 +221,7 @@ export const StudentProfile: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('physical')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                 activeTab === 'physical'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/60'
@@ -234,7 +234,7 @@ export const StudentProfile: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('guardians')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                 activeTab === 'guardians'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/60'
@@ -254,7 +254,7 @@ export const StudentProfile: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('academic')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                 activeTab === 'academic'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/60'
@@ -268,7 +268,7 @@ export const StudentProfile: React.FC = () => {
       </div>
 
       {/* 4. Tab Panels Content */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200/90 p-6 sm:p-8">
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-200/90 p-4 sm:p-8">
         {/* PANEL 1: BIODATA & DAPODIK */}
         {activeTab === 'dapodik' && (
           <div className="space-y-6">
@@ -282,25 +282,25 @@ export const StudentProfile: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4">
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">NIK (No. KTP)</span>
-                <p className="font-bold text-slate-800 text-sm sm:text-base">{nik}</p>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">NIK (No. KTP)</span>
+                <p className="font-mono font-bold text-slate-800 text-sm sm:text-base break-all select-all">{nik}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Nomor Kartu Keluarga (KK)</span>
-                <p className="font-bold text-slate-800 text-sm sm:text-base">{noKk}</p>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Nomor Kartu Keluarga (KK)</span>
+                <p className="font-mono font-bold text-slate-800 text-sm sm:text-base break-all select-all">{noKk}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">No. Akta Kelahiran</span>
-                <p className="font-bold text-slate-800 text-sm sm:text-base">{birthCertNo}</p>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">No. Akta Kelahiran</span>
+                <p className="font-mono font-bold text-slate-800 text-sm sm:text-base break-all select-all">{birthCertNo}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tempat, Tanggal Lahir</span>
-                <p className="font-semibold text-slate-800 text-sm sm:text-base">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Tempat, Tanggal Lahir</span>
+                <p className="font-semibold text-slate-800 text-sm sm:text-base break-words [overflow-wrap:anywhere] min-w-0">
                   {student.birthPlace || '-'},{' '}
                   {student.birthDate ? new Date(student.birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                   {ageString && <span className="text-xs font-normal text-indigo-600 ml-1.5">({ageString})</span>}
@@ -308,24 +308,24 @@ export const StudentProfile: React.FC = () => {
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Jenis Kelamin</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Jenis Kelamin</span>
                 <p className="font-semibold text-slate-800 text-sm sm:text-base">
                   {student.gender === 'Laki-laki' || student.gender === 'L' ? 'Laki-laki' : 'Perempuan'}
                 </p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Agama</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Agama</span>
                 <p className="font-semibold text-slate-800 text-sm sm:text-base">{student.religion || '-'}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kewarganegaraan</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kewarganegaraan</span>
                 <p className="font-semibold text-slate-800 text-sm sm:text-base">{student.nationality || 'Indonesia (WNI)'}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Urutan Kelahiran</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Urutan Kelahiran</span>
                 <p className="font-semibold text-slate-800 text-sm sm:text-base">
                   {student.birthOrder ? `Anak ke-${student.birthOrder}` : '-'}
                   {student.siblingCount ? ` dari ${student.siblingCount} bersaudara` : ''}
@@ -333,8 +333,8 @@ export const StudentProfile: React.FC = () => {
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kebutuhan Khusus</span>
-                <p className="font-semibold text-slate-800 text-sm sm:text-base">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kebutuhan Khusus</span>
+                <p className="font-semibold text-slate-800 text-sm sm:text-base break-words [overflow-wrap:anywhere] min-w-0">
                   {student.specialNeeds || student.physicalDisability || 'Tidak Ada'}
                 </p>
               </div>
@@ -355,42 +355,42 @@ export const StudentProfile: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4">
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1 sm:col-span-2 md:col-span-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Alamat Jalan / Rumah</span>
-                <p className="font-semibold text-slate-800 text-sm sm:text-base leading-relaxed">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Alamat Jalan / Rumah</span>
+                <p className="font-semibold text-slate-800 text-sm sm:text-base leading-relaxed break-words [overflow-wrap:anywhere] min-w-0">
                   {student.address || 'Belum diisi'}
                 </p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Desa / Kelurahan</span>
-                <p className="font-semibold text-slate-800 text-sm sm:text-base">{student.village || '-'}</p>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Desa / Kelurahan</span>
+                <p className="font-semibold text-slate-800 text-sm sm:text-base break-words [overflow-wrap:anywhere] min-w-0">{student.village || '-'}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kecamatan</span>
-                <p className="font-semibold text-slate-800 text-sm sm:text-base">{student.district || '-'}</p>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kecamatan</span>
+                <p className="font-semibold text-slate-800 text-sm sm:text-base break-words [overflow-wrap:anywhere] min-w-0">{student.district || '-'}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kabupaten / Kota</span>
-                <p className="font-semibold text-slate-800 text-sm sm:text-base">{student.city || '-'}</p>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kabupaten / Kota</span>
+                <p className="font-semibold text-slate-800 text-sm sm:text-base break-words [overflow-wrap:anywhere] min-w-0">{student.city || '-'}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Provinsi</span>
-                <p className="font-semibold text-slate-800 text-sm sm:text-base">{student.province || '-'}</p>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Provinsi</span>
+                <p className="font-semibold text-slate-800 text-sm sm:text-base break-words [overflow-wrap:anywhere] min-w-0">{student.province || '-'}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kode Pos</span>
-                <p className="font-semibold text-slate-800 text-sm sm:text-base">{student.postalCode || '-'}</p>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kode Pos</span>
+                <p className="font-mono font-bold text-slate-800 text-sm sm:text-base select-all">{student.postalCode || '-'}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Jenis Tempat Tinggal</span>
-                <p className="font-semibold text-slate-800 text-sm sm:text-base">{student.residenceType || 'Bersama Orang Tua'}</p>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Jenis Tempat Tinggal</span>
+                <p className="font-semibold text-slate-800 text-sm sm:text-base break-words [overflow-wrap:anywhere] min-w-0">{student.residenceType || 'Bersama Orang Tua'}</p>
               </div>
             </div>
           </div>
@@ -412,39 +412,39 @@ export const StudentProfile: React.FC = () => {
             {/* Sub-section: Antropometri */}
             <div>
               <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Antropometri & Medis</h5>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tinggi Badan</span>
-                  <p className="font-extrabold text-slate-800 text-lg">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Tinggi Badan</span>
+                  <p className="font-extrabold text-slate-800 text-base sm:text-lg">
                     {heightCm !== '-' ? `${heightCm} cm` : '-'}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Berat Badan</span>
-                  <p className="font-extrabold text-slate-800 text-lg">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Berat Badan</span>
+                  <p className="font-extrabold text-slate-800 text-base sm:text-lg">
                     {weightKg !== '-' ? `${weightKg} kg` : '-'}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Lingkar Kepala</span>
-                  <p className="font-extrabold text-slate-800 text-lg">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Lingkar Kepala</span>
+                  <p className="font-extrabold text-slate-800 text-base sm:text-lg">
                     {headCircumferenceCm !== '-' ? `${headCircumferenceCm} cm` : '-'}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Golongan Darah</span>
-                  <p className="font-extrabold text-rose-600 text-lg">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Golongan Darah</span>
+                  <p className="font-extrabold text-rose-600 text-base sm:text-lg">
                     {student.bloodType || '-'}
                   </p>
                 </div>
               </div>
 
               <div className="mt-4 p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Riwayat Penyakit / Kelainan Medis</span>
-                <p className="font-semibold text-slate-800 text-sm">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Riwayat Penyakit / Kelainan Medis</span>
+                <p className="font-semibold text-slate-800 text-sm break-words [overflow-wrap:anywhere] min-w-0">
                   {illnessHistory !== '-' ? illnessHistory : 'Tidak ada catatan riwayat penyakit khusus'}
                 </p>
               </div>
@@ -453,13 +453,13 @@ export const StudentProfile: React.FC = () => {
             {/* Sub-section: Transportasi */}
             <div className="pt-2">
               <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Transportasi ke Sekolah</h5>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
                   <div className="flex items-center gap-1.5 text-indigo-600 mb-1">
                     <Navigation size={15} />
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Alat Transportasi</span>
                   </div>
-                  <p className="font-bold text-slate-800 text-sm sm:text-base">{transportation}</p>
+                  <p className="font-bold text-slate-800 text-sm sm:text-base break-words [overflow-wrap:anywhere] min-w-0">{transportation}</p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
@@ -522,13 +522,13 @@ export const StudentProfile: React.FC = () => {
                     >
                       {/* Card Header */}
                       <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-extrabold text-slate-900 text-base">
+                            <span className="font-extrabold text-slate-900 text-sm sm:text-base break-words [overflow-wrap:anywhere] min-w-0">
                               {guardian.fullName}
                             </span>
                             {guardian.isPrimary && (
-                              <span className="px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-extrabold rounded-md shadow-2xs">
+                              <span className="px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-extrabold rounded-md shadow-2xs shrink-0">
                                 Wali Utama
                               </span>
                             )}
@@ -538,7 +538,7 @@ export const StudentProfile: React.FC = () => {
                           </span>
                         </div>
 
-                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
                           isAlive 
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/70' 
                             : 'bg-slate-200 text-slate-600'
@@ -550,43 +550,43 @@ export const StudentProfile: React.FC = () => {
                       {/* Detail Body */}
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400">NIK Wali</span>
-                          <p className="font-semibold text-slate-800">{guardian.nik || guardian.nationalId || '-'}</p>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">NIK Wali</span>
+                          <p className="font-mono font-bold text-slate-800 break-all select-all">{guardian.nik || guardian.nationalId || '-'}</p>
                         </div>
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400">Tahun Lahir</span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Tahun Lahir</span>
                           <p className="font-semibold text-slate-800">{guardian.birthYear || '-'}</p>
                         </div>
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400">Pendidikan Terakhir</span>
-                          <p className="font-semibold text-slate-800">{guardian.educationLevel || guardian.education || '-'}</p>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Pendidikan Terakhir</span>
+                          <p className="font-semibold text-slate-800 break-words [overflow-wrap:anywhere] min-w-0">{guardian.educationLevel || guardian.education || '-'}</p>
                         </div>
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400">Pekerjaan</span>
-                          <p className="font-semibold text-slate-800">{occupationName}</p>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Pekerjaan</span>
+                          <p className="font-semibold text-slate-800 break-words [overflow-wrap:anywhere] min-w-0">{occupationName}</p>
                         </div>
                         <div className="col-span-2">
-                          <span className="text-[10px] uppercase font-bold text-slate-400">Penghasilan Bulanan</span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Penghasilan Bulanan</span>
                           <p className="font-semibold text-slate-800">{guardian.monthlyIncome || '-'}</p>
                         </div>
                         {guardian.address && (
                           <div className="col-span-2">
-                            <span className="text-[10px] uppercase font-bold text-slate-400">Alamat Tempat Tinggal</span>
-                            <p className="font-medium text-slate-700">{guardian.address}</p>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Alamat Tempat Tinggal</span>
+                            <p className="font-medium text-slate-700 break-words [overflow-wrap:anywhere] min-w-0">{guardian.address}</p>
                           </div>
                         )}
                       </div>
 
                       {/* Card Footer: Kontak */}
                       <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-600">
-                        <div className="flex items-center gap-1.5 font-medium">
-                          <Phone size={13} className="text-slate-400" />
-                          <span>{guardian.phone || 'No. HP belum ada'}</span>
+                        <div className="flex items-center gap-1.5 font-medium min-w-0">
+                          <Phone size={13} className="text-slate-400 shrink-0" />
+                          <span className="font-mono break-all select-all">{guardian.phone || 'No. HP belum ada'}</span>
                         </div>
                         {guardian.email && (
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <Mail size={13} className="text-slate-400" />
-                            <span>{guardian.email}</span>
+                          <div className="flex items-center gap-1.5 font-medium min-w-0">
+                            <Mail size={13} className="text-slate-400 shrink-0" />
+                            <span className="break-all select-all">{guardian.email}</span>
                           </div>
                         )}
                       </div>
@@ -614,23 +614,23 @@ export const StudentProfile: React.FC = () => {
             {/* Riwayat Sekolah Asal */}
             <div>
               <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Pendidikan Sebelumnya</h5>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4">
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Sekolah Asal</span>
-                  <p className="font-bold text-slate-800 text-sm sm:text-base">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Sekolah Asal</span>
+                  <p className="font-bold text-slate-800 text-sm sm:text-base break-words [overflow-wrap:anywhere] min-w-0">
                     {student.previousSchoolName || '-'}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">NPSN Sekolah Asal</span>
-                  <p className="font-semibold text-slate-800 text-sm sm:text-base">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">NPSN Sekolah Asal</span>
+                  <p className="font-mono font-semibold text-slate-800 text-sm sm:text-base select-all">
                     {student.previousSchoolNpsn || '-'}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tanggal Masuk Sekolah Ini</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Tanggal Masuk Sekolah Ini</span>
                   <p className="font-semibold text-slate-800 text-sm sm:text-base">
                     {student.admissionDate 
                       ? new Date(student.admissionDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) 
@@ -639,22 +639,22 @@ export const StudentProfile: React.FC = () => {
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">No. Ijazah Sebelumnya</span>
-                  <p className="font-semibold text-slate-800 text-sm sm:text-base">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">No. Ijazah Sebelumnya</span>
+                  <p className="font-mono font-semibold text-slate-800 text-sm sm:text-base break-all select-all">
                     {student.diplomaNumber || student.previousCertificateNo || '-'}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">No. SKHUN</span>
-                  <p className="font-semibold text-slate-800 text-sm sm:text-base">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">No. SKHUN</span>
+                  <p className="font-mono font-semibold text-slate-800 text-sm sm:text-base break-all select-all">
                     {student.skhunNumber || '-'}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">No. Peserta Ujian Nasional</span>
-                  <p className="font-semibold text-slate-800 text-sm sm:text-base">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">No. Peserta Ujian Nasional</span>
+                  <p className="font-mono font-semibold text-slate-800 text-sm sm:text-base break-all select-all">
                     {student.examParticipantNumber || '-'}
                   </p>
                 </div>
@@ -664,9 +664,9 @@ export const StudentProfile: React.FC = () => {
             {/* Bantuan & Kesejahteraan Siswa */}
             <div className="pt-2">
               <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Program Bantuan & Beasiswa</h5>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4">
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Status KIP / Layak PIP</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Status KIP / Layak PIP</span>
                   <p className="font-bold text-slate-800 text-sm sm:text-base">
                     {isPipEligible ? (
                       <span className="text-emerald-600 font-bold flex items-center gap-1">
@@ -679,26 +679,26 @@ export const StudentProfile: React.FC = () => {
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Nomor KIP</span>
-                  <p className="font-semibold text-slate-800 text-sm sm:text-base">{student.kipNumber || '-'}</p>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Nomor KIP</span>
+                  <p className="font-mono font-semibold text-slate-800 text-sm sm:text-base break-all select-all">{student.kipNumber || '-'}</p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Nomor KPS / KKS</span>
-                  <p className="font-semibold text-slate-800 text-sm sm:text-base">{student.kpsNumber || '-'}</p>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Nomor KPS / KKS</span>
+                  <p className="font-mono font-semibold text-slate-800 text-sm sm:text-base break-all select-all">{student.kpsNumber || '-'}</p>
                 </div>
 
                 {student.pipReason && (
                   <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1 sm:col-span-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Alasan Layak PIP</span>
-                    <p className="font-semibold text-slate-800 text-sm">{student.pipReason}</p>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Alasan Layak PIP</span>
+                    <p className="font-semibold text-slate-800 text-sm break-words [overflow-wrap:anywhere] min-w-0">{student.pipReason}</p>
                   </div>
                 )}
 
                 {student.scholarshipHistory && (
                   <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 space-y-1 sm:col-span-3">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Riwayat Beasiswa</span>
-                    <p className="font-semibold text-slate-800 text-sm">{student.scholarshipHistory}</p>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Riwayat Beasiswa</span>
+                    <p className="font-semibold text-slate-800 text-sm break-words [overflow-wrap:anywhere] min-w-0">{student.scholarshipHistory}</p>
                   </div>
                 )}
               </div>
