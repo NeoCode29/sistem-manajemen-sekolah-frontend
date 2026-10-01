@@ -3,16 +3,18 @@ import {
   getUsers, 
   createUser, 
   updateUser, 
+  deleteUser,
   assignRolesToUser, 
   getRoles, 
   type User, 
   type Role 
 } from '../../api/rbacService';
-import { Plus, UserCheck, Edit, Shield, Loader2, Search, Filter, RotateCcw } from 'lucide-react';
-import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
+import { Plus, UserCheck, Edit, Shield, Loader2, Search, Filter, RotateCcw, Trash2 } from 'lucide-react';
+import { PageHeader, Modal, FormField, Badge, ConfirmDialog } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { Pagination } from '../../components/Common/Pagination';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../context/AuthContext';
 import { notify } from '../../utils/feedback';
 
 export const Users: React.FC = () => {
@@ -20,10 +22,16 @@ export const Users: React.FC = () => {
   const [allRoles, setAllRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const { user: currentUser } = useAuth();
   const { hasPermission, canManageUsers } = usePermissions();
   const canCreateUser = hasPermission('users.create') || canManageUsers;
   const canUpdateUser = hasPermission('users.update') || canManageUsers;
   const canAssignRoles = hasPermission('users.assign_roles') || hasPermission('roles.assign') || canManageUsers;
+  const canDeleteUser = hasPermission('users.delete') || canManageUsers;
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,6 +154,27 @@ export const Users: React.FC = () => {
     }
   };
 
+  const handleDeleteClick = (targetUser: User) => {
+    setUserToDelete(targetUser);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+    try {
+      setDeleting(true);
+      await deleteUser(userToDelete.id);
+      notify.success(`Akun "${userToDelete.name}" (@${userToDelete.username}) berhasil dinonaktifkan/dihapus.`);
+      setShowDeleteConfirm(false);
+      setUserToDelete(null);
+      fetchData();
+    } catch (error: any) {
+      notify.error(error, 'Gagal menghapus pengguna');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Filtered Users computation
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
@@ -222,33 +251,55 @@ export const Users: React.FC = () => {
     }
   ];
 
-  if (canAssignRoles || canUpdateUser) {
+  if (canAssignRoles || canUpdateUser || canDeleteUser) {
     columns.push({ 
       key: 'actions', 
       header: 'Aksi', 
-      render: (user) => (
-        <div className="flex items-center gap-2 justify-end">
-          {canAssignRoles && (
-            <button
-              type="button"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
-              onClick={() => openAssignModal(user)}
-            >
-              <Shield size={14} /> Atur Peran
-            </button>
-          )}
-          {canUpdateUser && (
-            <button 
-              type="button"
-              className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
-              onClick={() => handleEdit(user)}
-              title="Edit Akun"
-            >
-              <Edit size={16} />
-            </button>
-          )}
-        </div>
-      ) 
+      render: (user) => {
+        const isSelf = String(user.id) === String(currentUser?.id);
+        return (
+          <div className="flex items-center gap-2 justify-end">
+            {canAssignRoles && (
+              <button
+                type="button"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                onClick={() => openAssignModal(user)}
+              >
+                <Shield size={14} /> Atur Peran
+              </button>
+            )}
+            {canUpdateUser && (
+              <button 
+                type="button"
+                className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                onClick={() => handleEdit(user)}
+                title="Edit Akun"
+              >
+                <Edit size={16} />
+              </button>
+            )}
+            {canDeleteUser && (
+              <button
+                type="button"
+                disabled={isSelf}
+                className={`p-1.5 rounded-xl transition-colors ${
+                  isSelf
+                    ? 'text-gray-300 cursor-not-allowed opacity-50'
+                    : 'text-gray-400 hover:text-rose-600 hover:bg-rose-50'
+                }`}
+                onClick={() => handleDeleteClick(user)}
+                title={
+                  isSelf
+                    ? 'Anda tidak dapat menghapus akun Anda sendiri'
+                    : 'Hapus Akun Pengguna'
+                }
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+        );
+      } 
     });
   }
 
@@ -537,6 +588,22 @@ export const Users: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* 5. Modal Konfirmasi Hapus Akun */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Hapus Akun Pengguna"
+        message={`Apakah Anda yakin ingin menghapus akun "${userToDelete?.name}" (@${userToDelete?.username})? Akun ini akan dinonaktifkan dari sistem dan pengguna tidak dapat login kembali.`}
+        confirmText="Hapus Akun"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleting}
+        onConfirm={handleConfirmDelete}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setUserToDelete(null);
+        }}
+      />
     </div>
   );
 };

@@ -92,3 +92,9 @@ export const assignRolesToUser = async (userId: string, roleIds: (string | numbe
   const response = await api.put(`/users/${userId}/roles`, { roleIds: roleIds.map(String) });
   return response.data;
 };
+
+export const deleteUser = async (id: string | number): Promise<{ message: string }> => {
+  const response = await api.delete(`/users/${id}`);
+  return response.data;
+};
+
