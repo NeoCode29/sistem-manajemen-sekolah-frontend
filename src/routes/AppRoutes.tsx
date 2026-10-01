@@ -45,6 +45,7 @@ import { IdentityRegistration } from '../pages/Hardware/IdentityRegistration';
 import { AccountSettings } from '../pages/Settings/AccountSettings';
 import { HomeroomDashboard } from '../pages/Homeroom/HomeroomDashboard';
 import { Forbidden } from '../pages/Error/Forbidden';
+import { NotFound } from '../pages/Error/NotFound';
 import { ComponentShowcase } from '../pages/DesignSystem/ComponentShowcase';
 import { KioskAttendancePage } from '../pages/Kiosk/KioskAttendance';
 
@@ -188,7 +189,7 @@ export const AppRoutes: React.FC = () => {
               </Route>
 
               <Route path="/settings" element={<AccountSettings />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
 
             <Route path="/student" element={<StudentLayout />}>
