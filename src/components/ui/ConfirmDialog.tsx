@@ -66,6 +66,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     try {
       setInternalLoading(true);
       await onConfirm();
+      onClose();
     } finally {
       setInternalLoading(false);
     }
