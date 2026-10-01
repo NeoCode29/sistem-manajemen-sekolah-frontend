@@ -28,3 +28,7 @@ dist-ssr
 # Worktrees
 .worktrees/
 worktrees/
+
+# Test outputs
+playwright-report/
+test-results/
