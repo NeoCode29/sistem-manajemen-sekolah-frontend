@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
-import { Lock, User, ChevronRight, AlertCircle, Loader2, ScanLine, ArrowUpRight } from 'lucide-react';
+import { Lock, User, ChevronRight, AlertCircle, Loader2, ScanLine, ArrowUpRight, Eye, EyeOff } from 'lucide-react';
 import { AppLogo } from '../../components/Common/AppLogo';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -122,13 +123,21 @@ export const Login: React.FC = () => {
               <div className="relative flex items-center">
                 <Lock className="absolute left-4 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
                 <input
-                  type="password"
-                  className="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-xl outline-none transition-all pl-12 pr-4 py-3.5 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 shadow-sm"
+                  type={showPassword ? 'text' : 'password'}
+                  className="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-xl outline-none transition-all pl-12 pr-12 py-3.5 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 shadow-sm"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none cursor-pointer"
+                  title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+                >
+                  {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
+                </button>
               </div>
             </div>
 

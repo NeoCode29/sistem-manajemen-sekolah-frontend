@@ -3,7 +3,7 @@ import { type Employee, getPositions, type Position } from '../../api/employeeSe
 import { getRoles, type Role } from '../../api/rbacService';
 import { useEmployees } from '../../hooks/useEmployees';
 import { usePermissions } from '../../hooks/usePermissions';
-import { Plus, CheckCircle, XCircle, RefreshCw, Archive, UserCheck, Loader2, Search, Filter, RotateCcw, Briefcase } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, RefreshCw, Archive, UserCheck, Loader2, Search, Filter, RotateCcw, Briefcase, Eye, EyeOff } from 'lucide-react';
 import { Pagination } from '../../components/Common/Pagination';
 import { PageHeader, Modal, FormField, Badge, Select, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
@@ -57,6 +57,7 @@ export const Employees: React.FC = () => {
 
   const [modal, setModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
   const [form, setForm] = useState<EmployeeForm>(DEFAULT_FORM);
+  const [showPassword, setShowPassword] = useState(false);
 
   // ConfirmDialog State
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -664,14 +665,24 @@ export const Employees: React.FC = () => {
                       />
                     </FormField>
                     <FormField label="Password" required>
-                      <input 
-                        type="password" 
-                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
-                        value={form.password} 
-                        onChange={setField('password')} 
-                        required={form.createAccount} 
-                        placeholder="Minimal 6 karakter" 
-                      />
+                      <div className="relative flex items-center">
+                        <input 
+                          type={showPassword ? 'text' : 'password'} 
+                          className="w-full pl-4 pr-11 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-800" 
+                          value={form.password} 
+                          onChange={setField('password')} 
+                          required={form.createAccount} 
+                          placeholder="Minimal 6 karakter" 
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3.5 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none cursor-pointer"
+                          title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </FormField>
                     {(() => {
                       const selectedPos = positions.find(p => String(p.id) === String(form.positionId));
