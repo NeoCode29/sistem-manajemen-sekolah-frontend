@@ -10,6 +10,7 @@ import {
   createGuardianAccount,
   resetGuardianPassword,
   updateEnrollment, 
+  createEnrollment,
   type Student, 
   type StudentGuardian, 
   type StudentEnrollment 
@@ -124,7 +125,7 @@ export const StudentDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profil');
   const { user } = useAuth();
-  const { canUpdateStudent, canManageGuardians, canManageEnrollment } = usePermissions();
+  const { canUpdateStudent, canManageGuardians, canManageEnrollment, canManageStudentClassroom } = usePermissions();
 
   // Master Data
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -705,7 +706,7 @@ export const StudentDetail: React.FC = () => {
 
   // --- ENROLLMENT HANDLERS ---
   const handleOpenEditEnrollment = (enr: StudentEnrollment) => {
-    if (!canManageEnrollment) {
+    if (!canManageEnrollment && !canManageStudentClassroom) {
       notify.error('Anda tidak memiliki izin untuk mengelola penempatan kelas siswa.');
       return;
     }
@@ -720,13 +721,35 @@ export const StudentDetail: React.FC = () => {
     setShowEnrollmentModal(true);
   };
 
-  const handleEnrollmentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canManageEnrollment) {
+  const handleQuickEditClassroom = () => {
+    if (!canManageEnrollment && !canManageStudentClassroom) {
       notify.error('Anda tidak memiliki izin untuk mengelola penempatan kelas siswa.');
       return;
     }
-    if (!student || !editingEnrollment?.id) return;
+    if (student?.enrollments && student.enrollments.length > 0) {
+      handleOpenEditEnrollment(student.enrollments[0]);
+    } else {
+      setEditingEnrollment(null);
+      const activeAy = academicYears.find(a => a.isActive) || academicYears[0];
+      const activeSem = semesters.find(s => s.isActive) || semesters[0];
+      setEnrollmentData({
+        academicYearId: activeAy?.id?.toString() || '',
+        semesterId: activeSem?.id?.toString() || '',
+        classroomId: '',
+        enrollmentDate: new Date().toISOString().split('T')[0],
+        status: 'ACTIVE'
+      });
+      setShowEnrollmentModal(true);
+    }
+  };
+
+  const handleEnrollmentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canManageEnrollment && !canManageStudentClassroom) {
+      notify.error('Anda tidak memiliki izin untuk mengelola penempatan kelas siswa.');
+      return;
+    }
+    if (!student) return;
     try {
       setEnrollmentSaving(true);
       const payload: any = {
@@ -737,7 +760,11 @@ export const StudentDetail: React.FC = () => {
       if (enrollmentData.enrollmentDate) payload.enrollmentDate = enrollmentData.enrollmentDate;
       if (enrollmentData.status) payload.status = enrollmentData.status;
 
-      await updateEnrollment(student.id, editingEnrollment.id, payload);
+      if (editingEnrollment?.id) {
+        await updateEnrollment(student.id, editingEnrollment.id, payload);
+      } else {
+        await createEnrollment(student.id, payload);
+      }
       notify.success('Data penempatan kelas berhasil diperbarui!');
       setShowEnrollmentModal(false);
       fetchStudent();
@@ -828,10 +855,24 @@ export const StudentDetail: React.FC = () => {
             )}
           </div>
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-            {currentClassroom && (
+            {currentClassroom ? (
               <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold border border-blue-200/70 flex items-center gap-1">
                 <GraduationCap size={13} /> Kelas {currentClassroom}
               </span>
+            ) : (
+              <span className="px-2.5 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold border border-gray-200 flex items-center gap-1">
+                <GraduationCap size={13} /> Belum Ada Kelas
+              </span>
+            )}
+            {(canManageEnrollment || canManageStudentClassroom) && (
+              <button
+                type="button"
+                onClick={handleQuickEditClassroom}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold border border-indigo-200 transition-colors cursor-pointer shadow-2xs"
+                title="Ubah Penempatan Kelas Siswa"
+              >
+                <Pencil size={11} /> Ubah Kelas
+              </button>
             )}
             {(student.major?.name || student.enrollments?.[0]?.classroom?.major?.name) && (
               <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold border border-indigo-100 max-w-xs truncate" title={student.major?.name || student.enrollments?.[0]?.classroom?.major?.name}>
@@ -1538,7 +1579,7 @@ export const StudentDetail: React.FC = () => {
                       <th className="px-6 py-4 whitespace-nowrap">Semester</th>
                       <th className="px-6 py-4 whitespace-nowrap">Kelas</th>
                       <th className="px-6 py-4 whitespace-nowrap">Tanggal Masuk</th>
-                      {canManageEnrollment && <th className="px-6 py-4 text-right whitespace-nowrap">Aksi</th>}
+                      {(canManageEnrollment || canManageStudentClassroom) && <th className="px-6 py-4 text-right whitespace-nowrap">Aksi</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -1552,7 +1593,7 @@ export const StudentDetail: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-gray-500 whitespace-nowrap">{new Date(enr.createdAt).toLocaleDateString('id-ID')}</td>
-                        {canManageEnrollment && (
+                        {(canManageEnrollment || canManageStudentClassroom) && (
                           <td className="px-6 py-4 text-right whitespace-nowrap">
                             <button 
                               type="button"

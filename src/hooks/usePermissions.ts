@@ -95,7 +95,8 @@ export const usePermissions = () => {
     canDeleteStudent: hasPermission('students.delete') || hasPermission('students.manage'),
     canImportExportStudent: hasPermission('students.export_import') || hasPermission('students.manage'),
     canManageGuardians: hasPermission('students.manage_guardians') || hasPermission('students.manage'),
-    canManageEnrollment: hasPermission('classrooms.manage_students') || hasPermission('students.manage'),
+    canManageStudentClassroom: hasPermission('students.manage_classroom') || hasPermission('classrooms.manage_students') || hasPermission('students.manage'),
+    canManageEnrollment: hasPermission('students.manage_classroom') || hasPermission('classrooms.manage_students') || hasPermission('students.manage'),
 
     canManageSubjects: hasPermission('subjects.create') || hasPermission('subjects.update') || hasPermission('subjects.delete') || hasPermission('subjects.manage'),
     canCreateSubject: hasPermission('subjects.create') || hasPermission('subjects.manage'),

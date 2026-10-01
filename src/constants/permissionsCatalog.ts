@@ -114,6 +114,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { name: 'students.update',               label: 'Edit Data Siswa',            domain: 'Kesiswaan', resource: 'Siswa',        description: 'Mengubah data siswa' },
       { name: 'students.delete',               label: 'Hapus Siswa',                domain: 'Kesiswaan', resource: 'Siswa',        description: 'Menghapus data siswa' },
       { name: 'students.manage_guardians',     label: 'Kelola Wali Murid',          domain: 'Kesiswaan', resource: 'Siswa',        description: 'Mengelola data wali murid' },
+      { name: 'students.manage_classroom',     label: 'Kelola Kelas Siswa',         domain: 'Kesiswaan', resource: 'Siswa',        description: 'Mengubah dan mengelola penempatan kelas siswa di detail siswa' },
       { name: 'students.export_import',        label: 'Import / Export Siswa',      domain: 'Kesiswaan', resource: 'Siswa',        description: 'Import dan export data siswa' },
 
       { name: 'achievements.read',             label: 'Lihat Prestasi',             domain: 'Kesiswaan', resource: 'Prestasi',     description: 'Melihat catatan prestasi siswa' },
