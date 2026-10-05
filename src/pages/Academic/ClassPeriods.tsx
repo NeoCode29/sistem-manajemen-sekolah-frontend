@@ -116,8 +116,8 @@ export const ClassPeriods: React.FC = () => {
           Apakah Anda yakin ingin menghapus alokasi{' '}
           <strong className="text-gray-900 font-semibold">Jam Ke-{period.periodNumber}</strong>{' '}
           (Kode: <code className="text-red-600 bg-red-50 px-1.5 py-0.5 rounded font-mono text-xs">{period.code}</code>, Waktu: {period.startTime} - {period.endTime})?
-          <p className="mt-2 text-xs text-gray-500">
-            Perhatian: Menghapus jam pelajaran dapat mengosongkan slot pada jadwal pelajaran aktif.
+          <p className="mt-2 text-xs text-amber-600 font-medium">
+            Perhatian: Sesi jam pelajaran yang masih digunakan dalam jadwal pelajaran aktif tidak dapat dihapus dan harus dikosongkan atau dialihkan terlebih dahulu.
           </p>
         </div>
       ),
