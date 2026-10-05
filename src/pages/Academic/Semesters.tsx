@@ -19,6 +19,8 @@ export const Semesters: React.FC = () => {
     semesters,
     academicYears,
     loading,
+    error,
+    refresh,
     toggleSemesterActive,
   } = useSemesters();
   const { canToggleSemester } = usePermissions();
@@ -245,6 +247,23 @@ export const Semesters: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Error state banner */}
+      {error && !loading && (
+        <div className="p-4 bg-rose-50/90 border border-rose-200 rounded-2xl flex items-center justify-between gap-3 text-sm text-rose-800 shadow-xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Info className="w-5 h-5 text-rose-600 shrink-0" />
+            <span className="font-medium break-words">{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => refresh()}
+            className="shrink-0 px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      )}
 
       {/* Loading state */}
       {loading ? (

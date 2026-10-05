@@ -331,6 +331,13 @@ export const Classrooms: React.FC = () => {
           </div>
         </div>
 
+        <div className="flex items-center gap-2 self-end mb-0.5">
+          <span className="text-xs font-semibold text-gray-500 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200 flex items-center gap-1.5">
+            <Users size={14} className="text-gray-400" />
+            Total: {filteredClassrooms.length} {filteredClassrooms.length !== classrooms.length ? `(dari ${classrooms.length})` : ''} Rombel
+          </span>
+        </div>
+
         {(searchTerm || filterGradeId) && (
           <div className="flex items-center">
             <button
@@ -350,8 +357,8 @@ export const Classrooms: React.FC = () => {
         )}
       </div>
 
-      {/* 4. Data Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+      {/* 3. Data Table & Pagination Section */}
+      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
         <DataTable 
           columns={classroomColumns} 
           data={paginatedClassrooms} 
@@ -361,23 +368,21 @@ export const Classrooms: React.FC = () => {
               ? 'Tidak ada rombel yang cocok dengan kriteria filter.'
               : 'Belum ada data Rombel. Klik tombol Tambah Rombel untuk membuat baru.'
           }
-          containerClassName="w-full overflow-x-auto"
+          hasPagination={filteredClassrooms.length > 0}
         />
         
-        {!loading && filteredClassrooms.length > itemsPerPage && (
-          <div className="p-4 border-t border-gray-100">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={filteredClassrooms.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={(limit) => {
-                setItemsPerPage(limit);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
+        {!loading && filteredClassrooms.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredClassrooms.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(limit) => {
+              setItemsPerPage(limit);
+              setCurrentPage(1);
+            }}
+          />
         )}
       </div>
 

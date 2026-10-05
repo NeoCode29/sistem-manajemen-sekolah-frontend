@@ -100,7 +100,10 @@ export interface Classroom {
   isActive?: boolean;
 }
 export const getClassrooms = async (gradeId?: string): Promise<Classroom[]> => {
-  const url = gradeId ? `/classrooms?gradeId=${gradeId}` : '/classrooms';
+  const params = new URLSearchParams();
+  if (gradeId) params.append('gradeId', gradeId);
+  params.append('limit', '1000');
+  const url = `/classrooms?${params.toString()}`;
   const response = await api.get(url);
   return response.data.data ? response.data.data : response.data;
 };

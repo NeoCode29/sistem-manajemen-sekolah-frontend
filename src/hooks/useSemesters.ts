@@ -29,7 +29,7 @@ export function useSemesters() {
       setAcademicYears(yearsData);
     } catch (err: any) {
       console.error('Failed to fetch semesters:', err);
-      setError(parseApiError(err, 'Gagal memuat data semester'));
+      setError(parseApiError(err, 'Gagal memuat data semester. Silakan periksa koneksi atau coba beberapa saat lagi.'));
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ export function useSemesters() {
       await apiCreateSemester(payload);
       await fetchData();
     } catch (err: any) {
-      throw new Error(parseApiError(err, 'Gagal menyimpan semester'));
+      throw new Error(parseApiError(err, 'Gagal menambahkan semester.'));
     }
   };
 
@@ -53,7 +53,7 @@ export function useSemesters() {
       await apiUpdateSemester(id, payload);
       await fetchData();
     } catch (err: any) {
-      throw new Error(parseApiError(err, 'Gagal memperbarui semester'));
+      throw new Error(parseApiError(err, 'Gagal memperbarui informasi semester.'));
     }
   };
 
@@ -62,7 +62,7 @@ export function useSemesters() {
       await apiToggleSemesterActive(id);
       await fetchData();
     } catch (err: any) {
-      throw new Error(parseApiError(err, 'Gagal mengubah status semester'));
+      throw new Error(parseApiError(err, 'Gagal mengubah status aktif semester.'));
     }
   };
 
@@ -71,7 +71,7 @@ export function useSemesters() {
       await apiDeleteSemester(id);
       await fetchData();
     } catch (err: any) {
-      throw new Error(parseApiError(err, 'Gagal menghapus semester'));
+      throw new Error(parseApiError(err, 'Gagal menghapus data semester.'));
     }
   };
 

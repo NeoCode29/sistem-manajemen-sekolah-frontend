@@ -1,18 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '../api/employeeService';
 import type { Position } from '../api/employeeService';
+import { parseApiError } from '../utils/feedback';
 
 export function usePositions(isActive?: boolean) {
   const [items, setItems] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await api.getPositions(isActive);
       setItems(data);
     } catch (err) {
       console.error('Failed to load positions', err);
+      setError(parseApiError(err, 'Gagal memuat data jabatan. Silakan periksa koneksi atau coba beberapa saat lagi.'));
     } finally {
       setLoading(false);
     }
@@ -23,8 +27,31 @@ export function usePositions(isActive?: boolean) {
   return {
     items,
     loading,
-    create: async (dto: Partial<Position>) => { await api.createPosition(dto); await load(); },
-    update: async (id: string, dto: Partial<Position>) => { await api.updatePosition(id, dto); await load(); },
-    remove: async (id: string) => { await api.deletePosition(id); await load(); },
+    error,
+    create: async (dto: Partial<Position>) => {
+      try {
+        await api.createPosition(dto);
+        await load();
+      } catch (err: any) {
+        throw new Error(parseApiError(err, 'Gagal menambahkan jabatan baru.'));
+      }
+    },
+    update: async (id: string, dto: Partial<Position>) => {
+      try {
+        await api.updatePosition(id, dto);
+        await load();
+      } catch (err: any) {
+        throw new Error(parseApiError(err, 'Gagal memperbarui data jabatan.'));
+      }
+    },
+    remove: async (id: string) => {
+      try {
+        await api.deletePosition(id);
+        await load();
+      } catch (err: any) {
+        throw new Error(parseApiError(err, 'Gagal menghapus data jabatan.'));
+      }
+    },
+    refresh: load,
   };
 }

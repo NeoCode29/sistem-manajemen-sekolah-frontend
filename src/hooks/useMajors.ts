@@ -15,7 +15,7 @@ export const useMajors = () => {
       setMajors(data);
     } catch (err: any) {
       console.error('Failed to fetch majors:', err);
-      setError(parseApiError(err, 'Gagal memuat data jurusan'));
+      setError(parseApiError(err, 'Gagal memuat data jurusan. Silakan periksa koneksi atau coba beberapa saat lagi.'));
     } finally {
       setLoading(false);
     }
@@ -30,7 +30,7 @@ export const useMajors = () => {
       await academicService.createMajor(data);
       await fetchMajors();
     } catch (err: any) {
-      throw new Error(parseApiError(err, 'Gagal menyimpan jurusan'));
+      throw new Error(parseApiError(err, 'Gagal menambahkan jurusan baru.'));
     }
   };
 
@@ -39,7 +39,7 @@ export const useMajors = () => {
       await academicService.updateMajor(id, data);
       await fetchMajors();
     } catch (err: any) {
-      throw new Error(parseApiError(err, 'Gagal memperbarui jurusan'));
+      throw new Error(parseApiError(err, 'Gagal memperbarui data jurusan.'));
     }
   };
 
@@ -48,7 +48,7 @@ export const useMajors = () => {
       await academicService.toggleMajorActive(id);
       await fetchMajors();
     } catch (err: any) {
-      throw new Error(parseApiError(err, 'Gagal mengubah status jurusan'));
+      throw new Error(parseApiError(err, 'Gagal mengubah status keaktifan jurusan.'));
     }
   };
 
@@ -57,7 +57,7 @@ export const useMajors = () => {
       await academicService.deleteMajor(id);
       await fetchMajors();
     } catch (err: any) {
-      throw new Error(parseApiError(err, 'Gagal menghapus jurusan'));
+      throw new Error(parseApiError(err, 'Gagal menghapus data jurusan.'));
     }
   };
 

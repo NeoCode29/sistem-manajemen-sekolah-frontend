@@ -22,7 +22,7 @@ export function useClassPeriods() {
       setPeriods(sorted);
     } catch (err: any) {
       console.error('Failed to fetch class periods:', err);
-      setError(parseApiError(err, 'Gagal memuat data jam pelajaran'));
+      setError(parseApiError(err, 'Gagal memuat data jam pelajaran. Silakan periksa koneksi atau coba beberapa saat lagi.'));
     } finally {
       setLoading(false);
     }
@@ -37,7 +37,7 @@ export function useClassPeriods() {
       await apiCreateClassPeriod(payload);
       await fetchPeriods();
     } catch (err: any) {
-      throw new Error(parseApiError(err, 'Gagal menyimpan jam pelajaran'));
+      throw new Error(parseApiError(err, 'Gagal menambahkan jam pelajaran baru.'));
     }
   };
 
@@ -46,7 +46,7 @@ export function useClassPeriods() {
       await apiUpdateClassPeriod(id, payload);
       await fetchPeriods();
     } catch (err: any) {
-      throw new Error(parseApiError(err, 'Gagal memperbarui jam pelajaran'));
+      throw new Error(parseApiError(err, 'Gagal memperbarui data jam pelajaran.'));
     }
   };
 
@@ -55,7 +55,7 @@ export function useClassPeriods() {
       await apiDeleteClassPeriod(id);
       await fetchPeriods();
     } catch (err: any) {
-      throw new Error(parseApiError(err, 'Gagal menghapus jam pelajaran'));
+      throw new Error(parseApiError(err, 'Gagal menghapus data jam pelajaran.'));
     }
   };
 
