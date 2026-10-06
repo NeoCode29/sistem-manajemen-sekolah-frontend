@@ -25,7 +25,7 @@ import {
 import { ImportStudentModal } from './ImportStudentModal';
 import { useStudents } from '../../hooks/useStudents';
 import { usePermissions } from '../../hooks/usePermissions';
-import { DataTable, type Column } from '../../components/Common/DataTable';
+import { DataTable, type Column, type SortConfig } from '../../components/Common/DataTable';
 import { PageHeader, Modal, FormField, Badge, Select, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { notify } from '../../utils/feedback';
 import { getAcademicYears, getSemesters, getClassrooms, getMajors, type AcademicYear, type Semester, type Classroom, type Major } from '../../api/academicService';
@@ -136,10 +136,13 @@ export const Students: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   const { items, meta, loading, createWizard, restore, remove, load } = useStudents({
     page: currentPage, limit: itemsPerPage, search: searchTerm, 
-    status: filterStatus || undefined, isDeleted: activeTab === 'deleted'
+    status: filterStatus || undefined, isDeleted: activeTab === 'deleted',
+    sortBy: sortConfig?.key,
+    sortOrder: sortConfig?.direction
   });
   const { 
     canCreateStudent, 
@@ -524,6 +527,7 @@ export const Students: React.FC = () => {
     {
       key: 'classroom',
       header: 'Jurusan / Kelas',
+      sortable: false,
       render: (row: any) => {
         const activeEnrollment = row.enrollments?.find((e: any) => e.academicYear?.isActive && e.semester?.isActive) || row.enrollments?.[0];
         const className = activeEnrollment?.classroom?.name;
@@ -553,6 +557,7 @@ export const Students: React.FC = () => {
     {
       key: 'actions',
       header: 'Aksi',
+      sortable: false,
       className: 'text-right',
       render: (row) => (
         <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -760,6 +765,11 @@ export const Students: React.FC = () => {
         columns={columns}
         data={items}
         loading={loading}
+        sortConfig={sortConfig}
+        onSortChange={(newSort) => {
+          setSortConfig(newSort);
+          setCurrentPage(1);
+        }}
         pagination={meta && meta.totalPages > 0 ? {
           currentPage: meta.page,
           totalPages: meta.totalPages,

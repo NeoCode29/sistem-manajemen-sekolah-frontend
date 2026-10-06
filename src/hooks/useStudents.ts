@@ -3,7 +3,7 @@ import * as api from '../api/studentService';
 import type { Student, CreateStudentWizardPayload } from '../api/studentService';
 import { notify, parseApiError } from '../utils/feedback';
 
-export function useStudents(filter?: { page?: number; limit?: number; search?: string; status?: string; isDeleted?: boolean }) {
+export function useStudents(filter?: { page?: number; limit?: number; search?: string; status?: string; isDeleted?: boolean; sortBy?: string; sortOrder?: string }) {
   const [items, setItems] = useState<Student[]>([]);
   const [meta, setMeta] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -14,7 +14,9 @@ export function useStudents(filter?: { page?: number; limit?: number; search?: s
     limit: filter?.limit,
     search: typeof filter?.search === 'string' ? filter.search : undefined,
     status: typeof filter?.status === 'string' ? filter.status : undefined,
-    isDeleted: Boolean(filter?.isDeleted)
+    isDeleted: Boolean(filter?.isDeleted),
+    sortBy: filter?.sortBy,
+    sortOrder: filter?.sortOrder
   };
 
   const filterKey = JSON.stringify(sanitizedFilter);

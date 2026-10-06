@@ -3,7 +3,7 @@ import * as api from '../api/employeeService';
 import type { Employee, CreateEmployeePayload } from '../api/employeeService';
 import { notify, parseApiError } from '../utils/feedback';
 
-export function useEmployees(filter?: { page?: number; limit?: number; search?: string; positionId?: string; isDeleted?: boolean }) {
+export function useEmployees(filter?: { page?: number; limit?: number; search?: string; positionId?: string; isDeleted?: boolean; sortBy?: string; sortOrder?: string }) {
   const [items, setItems] = useState<Employee[]>([]);
   const [meta, setMeta] = useState<any>(null);
   const [loading, setLoading] = useState(true);

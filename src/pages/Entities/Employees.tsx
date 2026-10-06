@@ -5,7 +5,7 @@ import { useEmployees } from '../../hooks/useEmployees';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Plus, CheckCircle, XCircle, RefreshCw, Archive, UserCheck, Loader2, Search, Filter, RotateCcw, Briefcase, Eye, EyeOff } from 'lucide-react';
 import { PageHeader, Modal, FormField, Badge, Select, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
-import { DataTable, type Column } from '../../components/Common/DataTable';
+import { DataTable, type Column, type SortConfig } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { notify } from '../../utils/feedback';
 import { trimPayload } from '../../utils/formSanitizer';
@@ -39,13 +39,16 @@ export const Employees: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPosition, setFilterPosition] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   const { items, meta, loading, create, update, remove, restore } = useEmployees({
     page: currentPage,
     limit: itemsPerPage,
     search: searchTerm,
     positionId: filterPosition || undefined,
-    isDeleted: activeTab === 'deleted'
+    isDeleted: activeTab === 'deleted',
+    sortBy: sortConfig?.key,
+    sortOrder: sortConfig?.direction
   });
 
   const { canCreateEmployee, canUpdateEmployee, canDeleteEmployee } = usePermissions();
@@ -347,6 +350,7 @@ export const Employees: React.FC = () => {
     { 
       key: 'contact', 
       header: 'Kontak', 
+      sortable: false,
       render: (emp) => (
         <div className="flex flex-col text-xs">
           <span 
@@ -383,6 +387,7 @@ export const Employees: React.FC = () => {
     columns.push({ 
       key: 'actions', 
       header: 'Aksi', 
+      sortable: false,
       render: (emp) => (
         <div className="flex items-center gap-1.5 justify-end">
           {activeTab === 'active' ? (
@@ -548,6 +553,11 @@ export const Employees: React.FC = () => {
         columns={columns}
         data={items}
         loading={loading}
+        sortConfig={sortConfig}
+        onSortChange={(newSort) => {
+          setSortConfig(newSort);
+          setCurrentPage(1);
+        }}
         pagination={meta?.totalPages > 0 ? {
           currentPage,
           totalPages: meta.totalPages,
