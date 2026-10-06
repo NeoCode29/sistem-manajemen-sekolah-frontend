@@ -22,7 +22,6 @@ import {
   Home,
   Check
 } from 'lucide-react';
-import { Pagination } from '../../components/Common/Pagination';
 import { ImportStudentModal } from './ImportStudentModal';
 import { useStudents } from '../../hooks/useStudents';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -756,32 +755,25 @@ export const Students: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Data Table & Pagination Card */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <DataTable
-          columns={columns}
-          data={items}
-          loading={loading}
-          emptyMessage={
-            activeTab === 'deleted' 
-              ? 'Tidak ada data siswa di dalam archive.' 
-              : 'Tidak ada data siswa yang ditemukan.'
-          }
-        />
-
-        {meta && (
-          <div className="border-t border-gray-100 p-4 bg-gray-50/50">
-            <Pagination
-              currentPage={meta.page}
-              totalPages={meta.totalPages}
-              onPageChange={setCurrentPage}
-              itemsPerPage={itemsPerPage}
-              onItemsPerPageChange={setItemsPerPage}
-              totalItems={meta.total}
-            />
-          </div>
-        )}
-      </div>
+      {/* 4. Data Table */}
+      <DataTable
+        columns={columns}
+        data={items}
+        loading={loading}
+        pagination={meta && meta.totalPages > 0 ? {
+          currentPage: meta.page,
+          totalPages: meta.totalPages,
+          totalItems: meta.total,
+          itemsPerPage,
+          onPageChange: setCurrentPage,
+          onItemsPerPageChange: setItemsPerPage
+        } : undefined}
+        emptyMessage={
+          activeTab === 'deleted' 
+            ? 'Tidak ada data siswa di dalam archive.' 
+            : 'Tidak ada data siswa yang ditemukan.'
+        }
+      />
 
       {/* 5. 4-Step Wizard Pendaftaran Siswa Baru */}
       <Modal 

@@ -7,6 +7,7 @@ import { PageHeader, Modal, FormField, ConfirmDialog, type ConfirmVariant } from
 import { useSubjects } from '../../hooks/useSubjects';
 import { usePermissions } from '../../hooks/usePermissions';
 import type { Subject } from '../../api/academicService';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { notify } from '../../utils/feedback';
 
 export const Subjects: React.FC = () => {
@@ -175,6 +176,8 @@ export const Subjects: React.FC = () => {
     );
   }, [subjects, searchTerm]);
 
+  const { paginatedItems, pagination } = useClientPagination(filteredSubjects, 10, [searchTerm]);
+
   const columns: Column<Subject>[] = [
     { 
       key: 'code', 
@@ -282,18 +285,17 @@ export const Subjects: React.FC = () => {
       </div>
 
       {/* 3. Data Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <DataTable 
-          columns={columns} 
-          data={filteredSubjects} 
-          loading={loading}
-          emptyMessage={
-            searchTerm 
-              ? 'Tidak ada mata pelajaran yang sesuai dengan kata kunci pencarian.' 
-              : 'Belum ada data mata pelajaran.'
-          }
-        />
-      </div>
+      <DataTable 
+        columns={columns} 
+        data={paginatedItems} 
+        loading={loading}
+        pagination={pagination}
+        emptyMessage={
+          searchTerm 
+            ? 'Tidak ada mata pelajaran yang sesuai dengan kata kunci pencarian.' 
+            : 'Belum ada data mata pelajaran.'
+        }
+      />
 
       {/* 4. Modal Tambah / Edit Mata Pelajaran */}
       <Modal 

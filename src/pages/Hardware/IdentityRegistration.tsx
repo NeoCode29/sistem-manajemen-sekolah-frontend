@@ -528,7 +528,11 @@ export const IdentityRegistration: React.FC = () => {
                 type="button" 
                 onClick={(e) => {
                   (e.currentTarget as HTMLElement)?.blur();
-                  isListening ? stopListening() : startListening();
+                  if (isListening) {
+                    stopListening();
+                  } else {
+                    startListening();
+                  }
                 }}
                 className={`text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all font-semibold shadow-sm border ${
                   isListening 

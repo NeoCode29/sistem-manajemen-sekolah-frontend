@@ -8,6 +8,8 @@ import { usePermissions } from '../../hooks/usePermissions';
 import type { Grade } from '../../api/academicService';
 import { PageHeader, Modal, FormField, Select, Badge, ConfirmDialog } from '../../components/ui';
 import { notify } from '../../utils/feedback';
+import { trimPayload } from '../../utils/formSanitizer';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 export const Grades: React.FC = () => {
   const {
@@ -116,18 +118,23 @@ export const Grades: React.FC = () => {
       notify.error('Anda tidak memiliki izin untuk membuat tingkat kelas baru.');
       return;
     }
-    if (!name.trim() || !code.trim()) {
-      notify.error('Nama dan Kode Tingkat Kelas wajib diisi.');
+    if (!code.trim()) {
+      notify.warning('Kode tingkat kelas wajib diisi dan tidak boleh hanya spasi.');
       return;
     }
+    if (!name.trim()) {
+      notify.warning('Nama tingkat kelas wajib diisi dan tidak boleh hanya spasi.');
+      return;
+    }
+
     try {
       setSubmitting(true);
-      const payload = {
-        code,
-        name,
+      const payload = trimPayload({
+        code: code.trim().toUpperCase(),
+        name: name.trim(),
         level: Number(level),
         educationLevel
-      };
+      });
       
       if (isEditing) {
         await updateGrade(editId, payload);
@@ -159,6 +166,8 @@ export const Grades: React.FC = () => {
       return true;
     });
   }, [grades, searchTerm, educationFilter]);
+
+  const { paginatedItems, pagination } = useClientPagination(filteredGrades, 10, [searchTerm, educationFilter]);
 
   const columns: Column<Grade>[] = [
     { 
@@ -294,18 +303,17 @@ export const Grades: React.FC = () => {
       </div>
 
       {/* 4. Data Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <DataTable 
-          columns={columns} 
-          data={filteredGrades} 
-          loading={loading}
-          emptyMessage={
-            searchTerm || educationFilter !== 'ALL'
-              ? 'Tidak ada tingkat kelas yang sesuai dengan kriteria filter.'
-              : 'Belum ada data Tingkat Kelas. Klik tombol Tambah Tingkat Baru untuk membuat.'
-          }
-        />
-      </div>
+      <DataTable 
+        columns={columns} 
+        data={paginatedItems} 
+        loading={loading}
+        pagination={pagination}
+        emptyMessage={
+          searchTerm || educationFilter !== 'ALL'
+            ? 'Tidak ada tingkat kelas yang sesuai dengan kriteria filter.'
+            : 'Belum ada data Tingkat Kelas. Klik tombol Tambah Tingkat Baru untuk membuat.'
+        }
+      />
 
       {/* 4. Form Modal */}
       <Modal 

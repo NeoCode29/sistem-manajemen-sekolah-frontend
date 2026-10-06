@@ -7,6 +7,7 @@ import { useMajors } from '../../hooks/useMajors';
 import { usePermissions } from '../../hooks/usePermissions';
 import type { Major } from '../../api/academicService';
 import { PageHeader, Modal, FormField, Badge, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { notify } from '../../utils/feedback';
 
 export const Majors: React.FC = () => {
@@ -189,6 +190,8 @@ export const Majors: React.FC = () => {
     });
   }, [majors, searchTerm, statusFilter]);
 
+  const { paginatedItems, pagination } = useClientPagination(filteredMajors, 10, [searchTerm, statusFilter]);
+
   const columns: Column<Major>[] = [
     { 
       key: 'code', 
@@ -335,18 +338,17 @@ export const Majors: React.FC = () => {
       </div>
 
       {/* 4. Data Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <DataTable 
-          columns={columns} 
-          data={filteredMajors} 
-          loading={loading}
-          emptyMessage={
-            searchTerm || statusFilter !== 'ALL'
-              ? 'Tidak ada jurusan yang sesuai dengan kriteria filter.'
-              : 'Belum ada data Jurusan. Klik tombol Tambah Jurusan untuk membuat baru.'
-          }
-        />
-      </div>
+      <DataTable 
+        columns={columns} 
+        data={paginatedItems} 
+        loading={loading}
+        pagination={pagination}
+        emptyMessage={
+          searchTerm || statusFilter !== 'ALL'
+            ? 'Tidak ada jurusan yang sesuai dengan kriteria filter.'
+            : 'Belum ada data Jurusan. Klik tombol Tambah Jurusan untuk membuat baru.'
+        }
+      />
 
       {/* 4. Form Modal */}
       <Modal 

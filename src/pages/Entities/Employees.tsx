@@ -4,7 +4,6 @@ import { getRoles, type Role } from '../../api/rbacService';
 import { useEmployees } from '../../hooks/useEmployees';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Plus, CheckCircle, XCircle, RefreshCw, Archive, UserCheck, Loader2, Search, Filter, RotateCcw, Briefcase, Eye, EyeOff } from 'lucide-react';
-import { Pagination } from '../../components/Common/Pagination';
 import { PageHeader, Modal, FormField, Badge, Select, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
@@ -545,31 +544,24 @@ export const Employees: React.FC = () => {
       </div>
 
       {/* 5. Data Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <DataTable
-          columns={columns}
-          data={items}
-          loading={loading}
-          emptyMessage={
-            activeTab === 'active' 
-              ? (searchTerm || filterPosition ? 'Tidak ada pegawai yang cocok dengan kriteria filter.' : 'Belum ada data pegawai.')
-              : 'Tidak ada data pegawai dalam archive.'
-          }
-        />
-
-        {!loading && meta?.totalPages > 0 && (
-          <div className="p-4 border-t border-gray-100">
-            <Pagination 
-              currentPage={currentPage} 
-              totalPages={meta.totalPages} 
-              totalItems={meta.total} 
-              itemsPerPage={itemsPerPage} 
-              onPageChange={setCurrentPage} 
-              onItemsPerPageChange={(limit) => { setItemsPerPage(limit); setCurrentPage(1); }} 
-            />
-          </div>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={items}
+        loading={loading}
+        pagination={meta?.totalPages > 0 ? {
+          currentPage,
+          totalPages: meta.totalPages,
+          totalItems: meta.total,
+          itemsPerPage,
+          onPageChange: setCurrentPage,
+          onItemsPerPageChange: (limit) => { setItemsPerPage(limit); setCurrentPage(1); }
+        } : undefined}
+        emptyMessage={
+          activeTab === 'active' 
+            ? (searchTerm || filterPosition ? 'Tidak ada pegawai yang cocok dengan kriteria filter.' : 'Belum ada data pegawai.')
+            : 'Tidak ada data pegawai dalam archive.'
+        }
+      />
 
       {/* 5. Modal Tambah / Edit Pegawai */}
       <Modal 

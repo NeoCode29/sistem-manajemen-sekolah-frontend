@@ -30,6 +30,15 @@ function translateEnglishMessage(msg: string): string {
 export function parseApiError(error: unknown, fallbackMessage = 'Terjadi kesalahan pada sistem'): string {
   if (!error) return fallbackMessage;
 
+  // Direct string error passed (e.g. notify.error('Pesan khusus'))
+  if (typeof error === 'string') {
+    const trimmed = error.trim();
+    if (trimmed.length > 0) {
+      return translateEnglishMessage(trimmed);
+    }
+    return fallbackMessage;
+  }
+
   // Axios or API Response error object
   const err = error as any;
   const status = err.response?.status || err.response?.data?.statusCode;

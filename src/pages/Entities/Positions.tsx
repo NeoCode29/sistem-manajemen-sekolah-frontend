@@ -17,6 +17,8 @@ import { ActionButtons } from '../../components/Common/ActionButtons';
 import type { Position } from '../../api/employeeService';
 import { getRoles, type Role } from '../../api/rbacService';
 import { notify } from '../../utils/feedback';
+import { trimPayload } from '../../utils/formSanitizer';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface PositionForm {
   code: string;
@@ -148,20 +150,24 @@ export const Positions: React.FC = () => {
       notify.error('Anda tidak memiliki izin untuk membuat jabatan baru.');
       return;
     }
-    if (!form.name.trim() || !form.code.trim()) {
-      notify.error('Nama dan Kode Jabatan wajib diisi');
+    if (!form.code.trim()) {
+      notify.warning('Kode jabatan wajib diisi dan tidak boleh hanya spasi.');
+      return;
+    }
+    if (!form.name.trim()) {
+      notify.warning('Nama jabatan wajib diisi dan tidak boleh hanya spasi.');
       return;
     }
     setSubmitting(true);
     try {
-      const payload: any = {
-        code: form.code,
-        name: form.name,
-        description: form.description,
+      const payload: any = trimPayload({
+        code: form.code.trim().toUpperCase(),
+        name: form.name.trim(),
+        description: form.description?.trim(),
         isActive: form.isActive,
-        maxUsers: form.maxUsers.trim() ? parseInt(form.maxUsers, 10) : null,
+        maxUsers: form.maxUsers?.trim() ? parseInt(form.maxUsers, 10) : null,
         mappedRoleId: form.mappedRoleId ? form.mappedRoleId : null,
-      };
+      });
 
       if (modal.editId) {
         await update(modal.editId, payload);
@@ -208,6 +214,8 @@ export const Positions: React.FC = () => {
       return matchesSearch && matchesStatus;
     });
   }, [items, searchTerm, statusFilter]);
+
+  const { paginatedItems, pagination } = useClientPagination(filteredItems, 10, [searchTerm, statusFilter]);
 
   const columns: Column<Position>[] = [
     { 
@@ -397,19 +405,18 @@ export const Positions: React.FC = () => {
         )}
       </div>
 
-      {/* 4. Data Table Card */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <DataTable 
-          columns={columns} 
-          data={filteredItems} 
-          loading={loading}
-          emptyMessage={
-            searchTerm || statusFilter !== 'ALL'
-              ? 'Tidak ada data jabatan yang sesuai dengan filter pencarian.'
-              : 'Belum ada master data jabatan terdaftar.'
-          }
-        />
-      </div>
+      {/* 4. Data Table */}
+      <DataTable 
+        columns={columns} 
+        data={paginatedItems} 
+        loading={loading}
+        pagination={pagination}
+        emptyMessage={
+          searchTerm || statusFilter !== 'ALL'
+            ? 'Tidak ada data jabatan yang sesuai dengan filter pencarian.'
+            : 'Belum ada master data jabatan terdaftar.'
+        }
+      />
 
       {/* 5. Form Modal */}
       <Modal 

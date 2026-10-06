@@ -6,6 +6,7 @@ import { useAcademicYears } from '../../hooks/useAcademicYears';
 import { usePermissions } from '../../hooks/usePermissions';
 import type { AcademicYear } from '../../api/academicService';
 import { PageHeader, Modal, FormField, Badge, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { notify } from '../../utils/feedback';
 
 export const AcademicYears: React.FC = () => {
@@ -185,6 +186,8 @@ export const AcademicYears: React.FC = () => {
     });
   }, [years, searchTerm, statusFilter]);
 
+  const { paginatedItems, pagination } = useClientPagination(filteredYears, 10, [searchTerm, statusFilter]);
+
   const columns: Column<AcademicYear>[] = [
     { 
       key: 'name', 
@@ -352,18 +355,17 @@ export const AcademicYears: React.FC = () => {
       </div>
 
       {/* 4. Data Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <DataTable 
-          columns={columns} 
-          data={filteredYears} 
-          loading={loading}
-          emptyMessage={
-            searchTerm || statusFilter !== 'ALL'
-              ? 'Tidak ada tahun ajaran yang sesuai dengan kriteria filter.'
-              : 'Belum ada data Tahun Ajaran. Klik tombol Tambah Tahun Ajaran untuk membuat baru.'
-          }
-        />
-      </div>
+      <DataTable 
+        columns={columns} 
+        data={paginatedItems} 
+        loading={loading}
+        pagination={pagination}
+        emptyMessage={
+          searchTerm || statusFilter !== 'ALL'
+            ? 'Tidak ada tahun ajaran yang sesuai dengan kriteria filter.'
+            : 'Belum ada data Tahun Ajaran. Klik tombol Tambah Tahun Ajaran untuk membuat baru.'
+        }
+      />
 
       {/* Modal Tambah / Edit */}
       <Modal 

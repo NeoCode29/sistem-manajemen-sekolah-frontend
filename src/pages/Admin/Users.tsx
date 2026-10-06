@@ -12,7 +12,7 @@ import {
 import { Plus, UserCheck, Edit, Shield, Loader2, Search, Filter, RotateCcw, Trash2, Eye, EyeOff } from 'lucide-react';
 import { PageHeader, Modal, FormField, Badge, ConfirmDialog } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
-import { Pagination } from '../../components/Common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../context/AuthContext';
 import { notify } from '../../utils/feedback';
@@ -37,10 +37,6 @@ export const Users: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
-
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
   
   const [showModal, setShowModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -196,10 +192,7 @@ export const Users: React.FC = () => {
     });
   }, [users, searchQuery, statusFilter, roleFilter]);
 
-  const currentUsers = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredUsers, currentPage, itemsPerPage]);
+  const { paginatedItems, pagination } = useClientPagination(filteredUsers, 10, [searchQuery, statusFilter, roleFilter]);
 
   const columns: Column<User>[] = [
     { 
@@ -307,7 +300,6 @@ export const Users: React.FC = () => {
   }
 
   const hasActiveFilter = Boolean(searchQuery || statusFilter || roleFilter);
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 page-enter">
@@ -340,10 +332,7 @@ export const Users: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium" 
                 placeholder="Cari nama atau username..." 
                 value={searchQuery} 
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }} 
+                onChange={(e) => setSearchQuery(e.target.value)} 
               />
             </div>
           </div>
@@ -355,10 +344,7 @@ export const Users: React.FC = () => {
               <select
                 className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
                 value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="">Semua Status</option>
                 <option value="active">Aktif</option>
@@ -374,10 +360,7 @@ export const Users: React.FC = () => {
               <select
                 className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
                 value={roleFilter}
-                onChange={(e) => {
-                  setRoleFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => setRoleFilter(e.target.value)}
               >
                 <option value="">Semua Peran</option>
                 {allRoles.map(r => (
@@ -394,7 +377,6 @@ export const Users: React.FC = () => {
                 setSearchQuery('');
                 setStatusFilter('');
                 setRoleFilter('');
-                setCurrentPage(1);
               }}
               className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-rose-200 shadow-sm self-stretch md:self-end cursor-pointer shrink-0"
               title="Reset seluruh filter"
@@ -406,45 +388,18 @@ export const Users: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Table Card Section */}
-      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 md:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white/40">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 m-0">Daftar Akun Pengguna</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Kelola akun pengguna, kredensial login, dan penetapan peran (RBAC)</p>
-          </div>
-          <div className="text-xs text-slate-500 font-medium">
-            Total <span className="font-bold text-slate-800">{filteredUsers.length}</span> Pengguna Terdaftar
-          </div>
-        </div>
-
-        <DataTable 
-          columns={columns}
-          data={currentUsers}
-          loading={loading}
-          emptyMessage={
-            searchQuery || statusFilter || roleFilter
-              ? 'Tidak ada pengguna yang cocok dengan kriteria pencarian.'
-              : 'Belum ada data pengguna.'
-          }
-          hasPagination={filteredUsers.length > 0}
-        />
-
-        {/* 4. Pagination */}
-        {!loading && filteredUsers.length > 0 && (
-          <div className="p-4 border-t border-gray-100">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={filteredUsers.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-              hasNextPage={currentPage < totalPages}
-              onItemsPerPageChange={() => {}}
-            />
-          </div>
-        )}
-      </div>
+      {/* 3. Data Table */}
+      <DataTable 
+        columns={columns}
+        data={paginatedItems}
+        loading={loading}
+        pagination={pagination}
+        emptyMessage={
+          searchQuery || statusFilter || roleFilter
+            ? 'Tidak ada pengguna yang cocok dengan kriteria pencarian.'
+            : 'Belum ada data pengguna.'
+        }
+      />
 
       {/* CREATE/EDIT MODAL */}
       <Modal

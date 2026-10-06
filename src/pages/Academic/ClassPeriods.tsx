@@ -7,6 +7,7 @@ import { PageHeader, Modal, FormField, Badge, ConfirmDialog, type ConfirmVariant
 import { useClassPeriods } from '../../hooks/useClassPeriods';
 import { usePermissions } from '../../hooks/usePermissions';
 import type { ClassPeriod } from '../../api/academicService';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { notify } from '../../utils/feedback';
 
 export const ClassPeriods: React.FC = () => {
@@ -197,6 +198,8 @@ export const ClassPeriods: React.FC = () => {
     });
   }, [periods, searchTerm, filterType]);
 
+  const { paginatedItems, pagination } = useClientPagination(filteredPeriods, 10, [searchTerm, filterType]);
+
   const columns: Column<ClassPeriod>[] = [
     { 
       key: 'periodNumber', 
@@ -332,18 +335,17 @@ export const ClassPeriods: React.FC = () => {
       </div>
 
       {/* 3. Data Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <DataTable 
-          columns={columns} 
-          data={filteredPeriods} 
-          loading={loading}
-          emptyMessage={
-            searchTerm || filterType !== 'all' 
-              ? 'Tidak ada jam pelajaran yang sesuai dengan kriteria filter.' 
-              : 'Belum ada data jam pelajaran.'
-          }
-        />
-      </div>
+      <DataTable 
+        columns={columns} 
+        data={paginatedItems} 
+        loading={loading}
+        pagination={pagination}
+        emptyMessage={
+          searchTerm || filterType !== 'all' 
+            ? 'Tidak ada jam pelajaran yang sesuai dengan kriteria filter.' 
+            : 'Belum ada data jam pelajaran.'
+        }
+      />
 
       {/* 4. Modal Tambah / Edit Jam Pelajaran */}
       <Modal

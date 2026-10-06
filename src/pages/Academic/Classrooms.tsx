@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, RefreshCw, Loader2, Search, Filter, RotateCcw, Users, GraduationCap } from 'lucide-react';
-import { Pagination } from '../../components/Common/Pagination';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { useClassrooms } from '../../hooks/useClassrooms';
 import { usePermissions } from '../../hooks/usePermissions';
 import type { Classroom } from '../../api/academicService';
@@ -59,10 +59,6 @@ export const Classrooms: React.FC = () => {
     message: '',
     onConfirm: () => {},
   });
-
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -188,12 +184,7 @@ export const Classrooms: React.FC = () => {
     );
   }, [classrooms, searchTerm]);
   
-  const paginatedClassrooms = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredClassrooms.slice(start, start + itemsPerPage);
-  }, [filteredClassrooms, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredClassrooms.length / itemsPerPage);
+  const { paginatedItems, pagination } = useClientPagination(filteredClassrooms, 10, [searchTerm, filterGradeId]);
 
   const gradeOptions = useMemo(() => {
     return [
@@ -307,10 +298,7 @@ export const Classrooms: React.FC = () => {
               placeholder="Cari kode, nama rombel, atau jurusan..."
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
@@ -327,10 +315,7 @@ export const Classrooms: React.FC = () => {
             <select
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
               value={filterGradeId}
-              onChange={(e) => {
-                setFilterGradeId(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => setFilterGradeId(e.target.value)}
             >
               {gradeOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -355,7 +340,6 @@ export const Classrooms: React.FC = () => {
               onClick={() => {
                 setSearchTerm('');
                 setFilterGradeId('');
-                setCurrentPage(1);
               }}
               className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-rose-200 shadow-sm"
               title="Reset Filter"
@@ -367,34 +351,18 @@ export const Classrooms: React.FC = () => {
         )}
       </div>
 
-      {/* 3. Data Table & Pagination Section */}
-      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-        <DataTable 
-          columns={classroomColumns} 
-          data={paginatedClassrooms} 
-          loading={loading}
-          emptyMessage={
-            searchTerm || filterGradeId
-              ? 'Tidak ada rombel yang cocok dengan kriteria filter.'
-              : 'Belum ada data Rombel. Klik tombol Tambah Rombel untuk membuat baru.'
-          }
-          hasPagination={filteredClassrooms.length > 0}
-        />
-        
-        {!loading && filteredClassrooms.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredClassrooms.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={(limit) => {
-              setItemsPerPage(limit);
-              setCurrentPage(1);
-            }}
-          />
-        )}
-      </div>
+      {/* 3. Data Table */}
+      <DataTable 
+        columns={classroomColumns} 
+        data={paginatedItems} 
+        loading={loading}
+        pagination={pagination}
+        emptyMessage={
+          searchTerm || filterGradeId
+            ? 'Tidak ada rombel yang cocok dengan kriteria filter.'
+            : 'Belum ada data Rombel. Klik tombol Tambah Rombel untuk membuat baru.'
+        }
+      />
 
       {/* 4. Form Modal */}
       <Modal 

@@ -33,12 +33,6 @@ export const Layout: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // If user is Student or Guardian, they shouldn't be in this Layout
-  const isStudentOrGuardian = user?.roles?.some(r => r.name === 'Siswa' || r.name === 'Orang Tua / Wali');
-  if (isStudentOrGuardian) {
-    return <Navigate to="/student/dashboard" replace />;
-  }
-
   React.useEffect(() => {
     const fetchMaster = async () => {
       try {
@@ -53,6 +47,12 @@ export const Layout: React.FC = () => {
     };
     fetchMaster();
   }, [location.pathname]);
+
+  // If user is Student or Guardian, they shouldn't be in this Layout
+  const isStudentOrGuardian = user?.roles?.some(r => r.name === 'Siswa' || r.name === 'Orang Tua / Wali');
+  if (isStudentOrGuardian) {
+    return <Navigate to="/student/dashboard" replace />;
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-50 w-full max-w-full overflow-x-hidden">
