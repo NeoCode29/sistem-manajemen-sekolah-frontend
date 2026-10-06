@@ -285,11 +285,20 @@ export const Announcements: React.FC = () => {
       return;
     }
 
+    if (!formData.title?.trim()) {
+      notify.warning('Judul pengumuman wajib diisi dan tidak boleh hanya spasi.');
+      return;
+    }
+    if (!formData.content?.trim()) {
+      notify.warning('Isi konten pengumuman wajib diisi dan tidak boleh hanya spasi.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const dataPayload = new FormData();
-      dataPayload.append('title', formData.title || '');
-      dataPayload.append('content', formData.content || '');
+      dataPayload.append('title', formData.title.trim());
+      dataPayload.append('content', formData.content.trim());
       dataPayload.append('targetAudience', formData.targetAudience || 'SEMUA');
       dataPayload.append('isPinned', String(!!formData.isPinned));
       dataPayload.append('isActive', String(formData.isActive !== undefined ? formData.isActive : true));

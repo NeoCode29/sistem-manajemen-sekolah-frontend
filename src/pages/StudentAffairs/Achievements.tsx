@@ -10,6 +10,7 @@ import { Pagination } from '../../components/Common/Pagination';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../context/AuthContext';
 import { notify } from '../../utils/feedback';
+import { trimPayload } from '../../utils/formSanitizer';
 
 interface AchievementForm {
   studentId: string;
@@ -171,18 +172,23 @@ export const Achievements: React.FC = () => {
       return;
     }
 
+    if (!form.title.trim()) {
+      notify.warning('Judul prestasi wajib diisi dan tidak boleh hanya spasi.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-      const payload = {
+      const payload = trimPayload({
         studentId: form.studentId,
-        title: form.title,
-        description: form.description,
+        title: form.title.trim(),
+        description: form.description?.trim(),
         category: form.category,
         eventDate: new Date(form.date).toISOString(),
         level: form.level,
         rank: form.rank,
         points: Number(form.points)
-      };
+      });
       
       if (modal.editId) {
         await updateAchievement(modal.editId, payload);

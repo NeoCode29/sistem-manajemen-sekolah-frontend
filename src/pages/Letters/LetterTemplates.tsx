@@ -40,6 +40,7 @@ import { ContextAccessHeader } from '../../components/ui/ContextAccessHeader';
 import { generateLetterTemplateCode } from '../../utils/codeGenerator';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify } from '../../utils/feedback';
+import { trimPayload } from '../../utils/formSanitizer';
 
 export const LetterTemplates: React.FC = () => {
   const { user } = useAuth();
@@ -268,13 +269,28 @@ export const LetterTemplates: React.FC = () => {
       notify.error(null, 'Anda tidak memiliki izin untuk membuat template surat');
       return;
     }
+
+    if (!formData.name?.trim()) {
+      notify.warning('Nama template surat wajib diisi dan tidak boleh hanya spasi.');
+      return;
+    }
+    if (!formData.code?.trim()) {
+      notify.warning('Kode template surat wajib diisi dan tidak boleh hanya spasi.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
+      const sanitizedPayload = trimPayload({
+        ...formData,
+        name: formData.name.trim(),
+        code: formData.code.trim().toUpperCase(),
+      });
       let savedTemplate: any;
       if (editingId) {
-        savedTemplate = await updateLetterTemplate(editingId, formData);
+        savedTemplate = await updateLetterTemplate(editingId, sanitizedPayload);
       } else {
-        savedTemplate = await createLetterTemplate(formData);
+        savedTemplate = await createLetterTemplate(sanitizedPayload);
       }
 
       if (selectedFile) {

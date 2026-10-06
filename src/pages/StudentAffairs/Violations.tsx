@@ -10,6 +10,7 @@ import { Pagination } from '../../components/Common/Pagination';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../context/AuthContext';
 import { notify } from '../../utils/feedback';
+import { trimPayload } from '../../utils/formSanitizer';
 
 interface ViolationForm {
   studentId: string;
@@ -165,17 +166,22 @@ export const Violations: React.FC = () => {
       return;
     }
 
+    if (!form.title.trim()) {
+      notify.warning('Judul pelanggaran wajib diisi dan tidak boleh hanya spasi.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-      const payload = {
+      const payload = trimPayload({
         studentId: form.studentId,
-        title: form.title,
+        title: form.title.trim(),
         category: form.category,
         points: Number(form.points),
         actionTaken: form.actionTaken,
         notes: form.notes,
         violationDate: new Date(form.violationDate).toISOString(),
-      };
+      });
       
       if (modal.editId) {
         await updateViolation(modal.editId, payload);

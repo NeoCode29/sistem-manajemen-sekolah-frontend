@@ -9,6 +9,7 @@ import { PageHeader, Modal, FormField, Badge, Select, ConfirmDialog, type Confir
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
 import { notify } from '../../utils/feedback';
+import { trimPayload } from '../../utils/formSanitizer';
 
 interface EmployeeForm {
   positionId: string;
@@ -239,9 +240,28 @@ export const Employees: React.FC = () => {
       return;
     }
 
+    if (!form.employeeNumber.trim()) {
+      notify.warning('NIP / No. Induk wajib diisi dan tidak boleh hanya spasi.');
+      return;
+    }
+    if (!form.fullName.trim()) {
+      notify.warning('Nama lengkap wajib diisi dan tidak boleh hanya spasi.');
+      return;
+    }
+    if (!modal.editId && form.createAccount) {
+      if (!form.username?.trim()) {
+        notify.warning('Username akun wajib diisi dan tidak boleh hanya spasi.');
+        return;
+      }
+      if (!form.password) {
+        notify.warning('Password akun wajib diisi.');
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
-      const payload: any = {
+      const rawPayload: any = {
         positionId: form.positionId,
         employeeNumber: form.employeeNumber,
         fullName: form.fullName,
@@ -254,11 +274,13 @@ export const Employees: React.FC = () => {
       };
 
       if (!modal.editId && form.createAccount) {
-        payload.createAccount = true;
-        payload.username = form.username;
-        payload.password = form.password;
-        payload.roleId = form.roleId;
+        rawPayload.createAccount = true;
+        rawPayload.username = form.username;
+        rawPayload.password = form.password;
+        rawPayload.roleId = form.roleId;
       }
+
+      const payload = trimPayload(rawPayload, ['password']);
 
       if (modal.editId) {
         await update(modal.editId, payload);

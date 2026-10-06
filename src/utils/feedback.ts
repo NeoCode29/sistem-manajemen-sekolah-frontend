@@ -1,5 +1,29 @@
 import toast from 'react-hot-toast';
 
+function translateEnglishMessage(msg: string): string {
+  if (msg === 'Forbidden resource' || msg === 'Forbidden') {
+    return 'Anda tidak memiliki izin (hak akses) untuk melakukan aksi ini.';
+  }
+  if (msg === 'Unauthorized') {
+    return 'Sesi login Anda telah berakhir. Silakan masuk kembali.';
+  }
+  if (msg === 'Not Found') {
+    return 'Data yang diminta tidak ditemukan di server.';
+  }
+  if (msg === 'Bad Request') {
+    return 'Data yang dikirimkan tidak valid atau belum lengkap.';
+  }
+
+  let translated = msg;
+  translated = translated.replace(/(\w+) should not be empty/gi, 'Kolom $1 tidak boleh kosong');
+  translated = translated.replace(/(\w+) must be a string/gi, 'Kolom $1 harus berupa teks');
+  translated = translated.replace(/(\w+) must be an integer number/gi, 'Kolom $1 harus berupa angka bulat');
+  translated = translated.replace(/(\w+) must be a number/gi, 'Kolom $1 harus berupa angka');
+  translated = translated.replace(/(\w+) must be an email/gi, 'Format email pada kolom $1 tidak valid');
+
+  return translated;
+}
+
 /**
  * Helper to safely extract user-friendly error messages from NestJS / Axios API responses.
  */
@@ -12,6 +36,9 @@ export function parseApiError(error: unknown, fallbackMessage = 'Terjadi kesalah
   const resData = err.response?.data;
 
   // HTTP Status based intelligent translation
+  if (status === 400 && (!resData?.message || resData.message === 'Bad Request')) {
+    return 'Data yang dikirimkan tidak valid atau belum lengkap.';
+  }
   if (status === 403) {
     return 'Anda tidak memiliki izin (hak akses) untuk melakukan aksi ini.';
   }
@@ -34,26 +61,13 @@ export function parseApiError(error: unknown, fallbackMessage = 'Terjadi kesalah
   if (resData) {
     // NestJS default validation pipe returns { message: string | string[], error: string, statusCode: number }
     if (Array.isArray(resData.message) && resData.message.length > 0) {
-      return resData.message.join(', ');
+      return resData.message.map((m: any) => translateEnglishMessage(String(m))).join(', ');
     }
     if (typeof resData.message === 'string' && resData.message.trim().length > 0) {
-      const msg = resData.message.trim();
-      if (msg === 'Forbidden resource' || msg === 'Forbidden') {
-        return 'Anda tidak memiliki izin (hak akses) untuk melakukan aksi ini.';
-      }
-      if (msg === 'Unauthorized') {
-        return 'Sesi login Anda telah berakhir. Silakan masuk kembali.';
-      }
-      if (msg === 'Not Found') {
-        return 'Data yang diminta tidak ditemukan di server.';
-      }
-      return msg;
+      return translateEnglishMessage(resData.message.trim());
     }
     if (typeof resData.error === 'string' && resData.error.trim().length > 0) {
-      const errStr = resData.error.trim();
-      if (errStr === 'Forbidden') return 'Anda tidak memiliki izin (hak akses) untuk melakukan aksi ini.';
-      if (errStr === 'Unauthorized') return 'Sesi login Anda telah berakhir. Silakan masuk kembali.';
-      return errStr;
+      return translateEnglishMessage(resData.error.trim());
     }
   }
 

@@ -10,6 +10,7 @@ import type { Classroom } from '../../api/academicService';
 import { PageHeader, Modal, FormField, Select, Badge, ConfirmDialog } from '../../components/ui';
 import { generateUniqueCode } from '../../utils/codeGenerator';
 import { notify } from '../../utils/feedback';
+import { trimPayload } from '../../utils/formSanitizer';
 
 export const Classrooms: React.FC = () => {
   const navigate = useNavigate();
@@ -131,15 +132,24 @@ export const Classrooms: React.FC = () => {
       notify.error('Anda tidak memiliki izin untuk membuat rombel baru.');
       return;
     }
+    if (!code.trim()) {
+      notify.warning('Kode rombel wajib diisi dan tidak boleh hanya spasi.');
+      return;
+    }
+    if (!name.trim()) {
+      notify.warning('Nama rombel wajib diisi dan tidak boleh hanya spasi.');
+      return;
+    }
+
     try {
       setSubmitting(true);
-      const payload: any = {
+      const payload: any = trimPayload({
         gradeId: Number(gradeId),
         majorId: majorId ? Number(majorId) : null,
-        code,
-        name,
+        code: code.trim().toUpperCase(),
+        name: name.trim(),
         capacity: Number(capacity)
-      };
+      });
 
       if (isEditing) {
         await updateClassroom(editId, payload);
