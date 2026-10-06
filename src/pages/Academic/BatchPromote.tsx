@@ -5,14 +5,14 @@ import { getAcademicYears, getClassrooms, getSemesters, getClassroomCapacity } f
 import type { AcademicYear, Classroom as ClassType, Semester } from '../../api/academicService';
 import { getStudents } from '../../api/studentService';
 import type { Student } from '../../api/studentService';
-import { 
-  TrendingUp, 
-  AlertTriangle, 
-  ChevronRight, 
-  ChevronLeft, 
-  ArrowLeft, 
-  CheckSquare, 
-  Users, 
+import {
+  TrendingUp,
+  AlertTriangle,
+  ChevronRight,
+  ChevronLeft,
+  ArrowLeft,
+  CheckSquare,
+  Users,
   Info,
   Loader2
 } from 'lucide-react';
@@ -29,7 +29,7 @@ export const BatchPromote: React.FC = () => {
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [classes, setClasses] = useState<ClassType[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
-  
+
   // Selection State
   const [selectedSourceAcademicYear, setSelectedSourceAcademicYear] = useState('');
   const [selectedSourceSemester, setSelectedSourceSemester] = useState('');
@@ -38,16 +38,16 @@ export const BatchPromote: React.FC = () => {
   const [selectedTargetClass, setSelectedTargetClass] = useState('');
   const [selectedTargetSemester, setSelectedTargetSemester] = useState('');
   const [targetYearNotice, setTargetYearNotice] = useState<string | null>(null);
-  
+
   // Dual-Pane State
   const [sourceStudents, setSourceStudents] = useState<Student[]>([]);
   const [checkedSourceIds, setCheckedSourceIds] = useState<Set<string>>(new Set());
   const [promotedStudents, setPromotedStudents] = useState<Student[]>([]);
   const [checkedTargetIds, setCheckedTargetIds] = useState<Set<string>>(new Set());
   const [loadingStudents, setLoadingStudents] = useState(false);
-  
+
   // Capacity State
-  const [targetCapacityInfo, setTargetCapacityInfo] = useState<{capacity: number | null, currentCount: number, remaining: number | null} | null>(null);
+  const [targetCapacityInfo, setTargetCapacityInfo] = useState<{ capacity: number | null, currentCount: number, remaining: number | null } | null>(null);
 
   // Retain unpromoted option
   const [markRemainingAsRetained, setMarkRemainingAsRetained] = useState(false);
@@ -67,7 +67,7 @@ export const BatchPromote: React.FC = () => {
     title: '',
     message: '',
     confirmText: 'Lanjutkan',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   const autoFillTargetPeriod = (
@@ -252,7 +252,7 @@ export const BatchPromote: React.FC = () => {
 
   const moveRight = () => {
     const moving = sourceStudents.filter(s => checkedSourceIds.has(s.id.toString()));
-    
+
     // Check if adding these students exceeds capacity
     if (targetCapacityInfo && targetCapacityInfo.capacity !== null) {
       const futureTotal = targetCapacityInfo.currentCount + promotedStudents.length + moving.length;
@@ -263,7 +263,7 @@ export const BatchPromote: React.FC = () => {
     }
 
     const remaining = sourceStudents.filter(s => !checkedSourceIds.has(s.id.toString()));
-    
+
     setPromotedStudents([...promotedStudents, ...moving]);
     setSourceStudents(remaining);
     setCheckedSourceIds(new Set());
@@ -272,7 +272,7 @@ export const BatchPromote: React.FC = () => {
   const moveLeft = () => {
     const moving = promotedStudents.filter(s => checkedTargetIds.has(s.id.toString()));
     const remaining = promotedStudents.filter(s => !checkedTargetIds.has(s.id.toString()));
-    
+
     setSourceStudents([...sourceStudents, ...moving]);
     setPromotedStudents(remaining);
     setCheckedTargetIds(new Set());
@@ -350,13 +350,13 @@ export const BatchPromote: React.FC = () => {
         try {
           setSubmitting(true);
           const response = await batchPromote(payload);
-          
+
           if (response.failedCount > 0) {
             notify.warning(`Diproses: ${response.promotedCount} naik, ${response.retainedCount} tinggal. Gagal: ${response.failedCount} siswa.`);
           } else {
             notify.success(`Proses kenaikan kelas berhasil! ${response.promotedCount} siswa telah ditempatkan di ${targetClassName}.`);
           }
-          
+
           setConfirmConfig(prev => ({ ...prev, open: false }));
           navigate('/academic/promotions');
         } catch (err: any) {
@@ -402,15 +402,15 @@ export const BatchPromote: React.FC = () => {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* 1. Page Header with Back Button */}
       <div>
-        <button 
+        <button
           type="button"
-          onClick={() => navigate('/academic/promotions')} 
+          onClick={() => navigate('/academic/promotions')}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-indigo-600 transition-colors mb-3"
         >
           <ArrowLeft size={14} /> Kembali ke Riwayat Kenaikan
         </button>
-        <PageHeader 
-          title="Pemrosesan Kenaikan Kelas (Batch)" 
+        <PageHeader
+          title="Pemrosesan Kenaikan Kelas (Batch)"
           subtitle="Pindahkan dan naikkan rombel siswa secara bertahap antar tahun ajaran dan semester"
         />
       </div>
@@ -437,25 +437,25 @@ export const BatchPromote: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <FormField label="Tahun Ajaran Asal">
-              <Select 
+              <Select
                 wrapperClassName="w-full"
-                value={selectedSourceAcademicYear} 
+                value={selectedSourceAcademicYear}
                 onChange={(e) => handleSourceAcademicYearChange(e.target.value)}
                 options={sourceAyOptions}
               />
             </FormField>
             <FormField label="Semester Asal">
-              <Select 
+              <Select
                 wrapperClassName="w-full"
-                value={selectedSourceSemester} 
+                value={selectedSourceSemester}
                 onChange={(e) => handleSourceSemesterChange(e.target.value)}
                 options={sourceSemOptions}
               />
             </FormField>
             <FormField label="Kelas Asal">
-              <Select 
+              <Select
                 wrapperClassName="w-full"
-                value={selectedSourceClass} 
+                value={selectedSourceClass}
                 onChange={(e) => setSelectedSourceClass(e.target.value)}
                 options={classOptions}
               />
@@ -477,25 +477,25 @@ export const BatchPromote: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <FormField label="Tahun Ajaran Baru">
-              <Select 
+              <Select
                 wrapperClassName="w-full"
-                value={selectedTargetAcademicYear} 
+                value={selectedTargetAcademicYear}
                 onChange={(e) => setSelectedTargetAcademicYear(e.target.value)}
                 options={targetAyOptions}
               />
             </FormField>
             <FormField label="Semester Baru">
-              <Select 
+              <Select
                 wrapperClassName="w-full"
-                value={selectedTargetSemester} 
+                value={selectedTargetSemester}
                 onChange={(e) => setSelectedTargetSemester(e.target.value)}
                 options={targetSemOptions}
               />
             </FormField>
             <FormField label="Kelas Tujuan">
-              <Select 
+              <Select
                 wrapperClassName="w-full"
-                value={selectedTargetClass} 
+                value={selectedTargetClass}
                 onChange={(e) => setSelectedTargetClass(e.target.value)}
                 options={classOptions}
               />
@@ -525,7 +525,7 @@ export const BatchPromote: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 type="button"
                 className="text-xs cursor-pointer text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 transition-colors"
                 onClick={() => {
@@ -545,7 +545,7 @@ export const BatchPromote: React.FC = () => {
               </span>
             </div>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto p-3 bg-gray-50/40 min-h-[300px]">
             {loadingStudents ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16 text-xs gap-2">
@@ -563,55 +563,56 @@ export const BatchPromote: React.FC = () => {
                 <span className="font-semibold text-gray-600">Semua siswa sudah dipindahkan.</span>
               </div>
             ) : (
-              sourceStudents.map(student => {
-                const isSelected = checkedSourceIds.has(student.id.toString());
-                return (
-                  <div 
-                    key={student.id}
-                    onClick={() => toggleSourceSelection(student.id.toString())}
-                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer mb-2 ${
-                      isSelected 
-                        ? 'bg-indigo-50/70 border-indigo-200 shadow-xs' 
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                {sourceStudents.map(student => {
+                  const isSelected = checkedSourceIds.has(student.id.toString());
+                  return (
+                    <div
+                      key={student.id}
+                      onClick={() => toggleSourceSelection(student.id.toString())}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${isSelected
+                        ? 'bg-indigo-50/70 border-indigo-200 shadow-xs'
                         : 'bg-white border-gray-100 hover:border-gray-200 shadow-xs'
-                    }`}
-                  >
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                      checked={isSelected}
-                      onChange={() => toggleSourceSelection(student.id.toString())}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-900 text-xs md:text-sm truncate" title={student.fullName}>
-                        {student.fullName}
-                      </div>
-                      <div className="text-[11px] text-gray-500 font-mono mt-0.5">
-                        {student.nis || student.nisn || '-'}
+                        }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                        checked={isSelected}
+                        onChange={() => toggleSourceSelection(student.id.toString())}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 text-xs md:text-sm truncate" title={student.fullName}>
+                          {student.fullName}
+                        </div>
+                        <div className="text-[11px] text-gray-500 font-mono mt-0.5">
+                          {student.nis || student.nisn || '-'}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
 
         {/* Transfer Action Buttons */}
         <div className="flex md:flex-col justify-center items-center gap-3 py-2 md:py-0">
-          <button 
+          <button
             type="button"
-            className="w-11 h-11 flex items-center justify-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shadow-indigo-200" 
-            title="Pindahkan siswa terpilih ke Kelas Tujuan" 
+            className="w-11 h-11 flex items-center justify-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shadow-indigo-200"
+            title="Pindahkan siswa terpilih ke Kelas Tujuan"
             disabled={checkedSourceIds.size === 0 || !selectedTargetClass}
             onClick={moveRight}
           >
             <ChevronRight size={20} />
           </button>
-          <button 
+          <button
             type="button"
-            className="w-11 h-11 flex items-center justify-center bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-xs border border-gray-200" 
-            title="Kembalikan siswa terpilih ke Kelas Asal" 
+            className="w-11 h-11 flex items-center justify-center bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-xs border border-gray-200"
+            title="Kembalikan siswa terpilih ke Kelas Asal"
             disabled={checkedTargetIds.size === 0}
             onClick={moveLeft}
           >
@@ -636,7 +637,7 @@ export const BatchPromote: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 type="button"
                 className="text-xs cursor-pointer text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 transition-colors"
                 onClick={() => {
@@ -656,7 +657,7 @@ export const BatchPromote: React.FC = () => {
               </span>
             </div>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto p-3 bg-gray-50/40 min-h-[300px]">
             {!selectedTargetClass ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16 text-xs text-center">
@@ -669,36 +670,37 @@ export const BatchPromote: React.FC = () => {
                 <span>Gunakan tombol panah untuk memindahkan siswa yang naik kelas ke sini.</span>
               </div>
             ) : (
-              promotedStudents.map(student => {
-                const isSelected = checkedTargetIds.has(student.id.toString());
-                return (
-                  <div 
-                    key={student.id}
-                    onClick={() => toggleTargetSelection(student.id.toString())}
-                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer mb-2 ${
-                      isSelected 
-                        ? 'bg-emerald-50/70 border-emerald-300 shadow-xs' 
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                {promotedStudents.map(student => {
+                  const isSelected = checkedTargetIds.has(student.id.toString());
+                  return (
+                    <div
+                      key={student.id}
+                      onClick={() => toggleTargetSelection(student.id.toString())}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${isSelected
+                        ? 'bg-emerald-50/70 border-emerald-300 shadow-xs'
                         : 'bg-white border-gray-100 hover:border-gray-200 shadow-xs'
-                    }`}
-                  >
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
-                      checked={isSelected}
-                      onChange={() => toggleTargetSelection(student.id.toString())}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-900 text-xs md:text-sm truncate" title={student.fullName}>
-                        {student.fullName}
-                      </div>
-                      <div className="text-[11px] text-emerald-700 font-mono mt-0.5">
-                        {student.nis || student.nisn || '-'}
+                        }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+                        checked={isSelected}
+                        onChange={() => toggleTargetSelection(student.id.toString())}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 text-xs md:text-sm truncate" title={student.fullName}>
+                          {student.fullName}
+                        </div>
+                        <div className="text-[11px] text-emerald-700 font-mono mt-0.5">
+                          {student.nis || student.nisn || '-'}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
@@ -708,8 +710,8 @@ export const BatchPromote: React.FC = () => {
       <div className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg shadow-gray-100 sticky bottom-4 z-20">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
           <label className="flex items-center gap-2.5 cursor-pointer text-xs md:text-sm font-medium text-gray-700 select-none bg-gray-50 px-3.5 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
               checked={markRemainingAsRetained}
               onChange={(e) => setMarkRemainingAsRetained(e.target.checked)}
@@ -727,14 +729,14 @@ export const BatchPromote: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-          <button 
+          <button
             type="button"
             className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
             onClick={() => navigate('/academic/promotions')}
           >
             Batal
           </button>
-          <button 
+          <button
             type="button"
             className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-200 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleBatchPromoteSubmit}

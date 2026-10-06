@@ -1,26 +1,26 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { 
-  getLetterTemplates, 
-  createLetterTemplate, 
-  updateLetterTemplate, 
-  deleteLetterTemplate, 
+import {
+  getLetterTemplates,
+  createLetterTemplate,
+  updateLetterTemplate,
+  deleteLetterTemplate,
   uploadTemplateAttachment,
-  type LetterTemplate 
+  type LetterTemplate
 } from '../../api/letterService';
-import { 
-  getSchoolProfile, 
-  updateSchoolProfile, 
-  uploadSchoolLogo, 
-  downloadTemplateDocx 
+import {
+  getSchoolProfile,
+  updateSchoolProfile,
+  uploadSchoolLogo,
+  downloadTemplateDocx
 } from '../../api/schoolProfileService';
-import { 
-  FileCode, 
-  Plus, 
-  Download, 
-  Settings, 
-  FileText, 
-  Filter, 
-  Search, 
+import {
+  FileCode,
+  Plus,
+  Download,
+  Settings,
+  FileText,
+  Filter,
+  Search,
   RotateCcw,
   Building2,
   Loader2,
@@ -89,22 +89,22 @@ export const LetterTemplates: React.FC = () => {
     hasPermission('letters.write');
 
   const hasActions = canUpdate || canDelete;
-  
+
   const [activeTab, setActiveTab] = useState<'KOP_SURAT' | 'TEMPLATE'>('KOP_SURAT');
-  
+
   // Tab: KOP_SURAT
   const [profile, setProfile] = useState<any>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
-  
+
   // Tab: TEMPLATE
   const [templates, setTemplates] = useState<LetterTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  
+
   // Filters & Search
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
@@ -126,9 +126,9 @@ export const LetterTemplates: React.FC = () => {
     title: '',
     message: '',
     variant: 'danger',
-    action: async () => {},
+    action: async () => { },
   });
-  
+
   const [formData, setFormData] = useState<Partial<LetterTemplate>>({
     name: '',
     code: '',
@@ -192,7 +192,7 @@ export const LetterTemplates: React.FC = () => {
       if (logoFile) {
         await uploadSchoolLogo(logoFile);
       }
-      
+
       notify.success('Pengaturan Kop Surat berhasil disimpan');
       fetchData();
       setLogoFile(null);
@@ -296,7 +296,7 @@ export const LetterTemplates: React.FC = () => {
       if (selectedFile) {
         await uploadTemplateAttachment(savedTemplate.id, selectedFile);
       }
-      
+
       notify.success(editingId ? 'Template surat berhasil diperbarui' : 'Template surat berhasil ditambahkan');
       closeModal();
       fetchData();
@@ -426,19 +426,19 @@ export const LetterTemplates: React.FC = () => {
     },
     ...(hasActions
       ? [
-          {
-            key: 'actions',
-            header: 'Aksi',
-            render: (item: LetterTemplate) => (
-              <div className="flex justify-end">
-                <ActionButtons
-                  onEdit={canUpdate ? () => openModal(item) : undefined}
-                  onDelete={canDelete ? () => handleDelete(item.id, item.name) : undefined}
-                />
-              </div>
-            ),
-          },
-        ]
+        {
+          key: 'actions',
+          header: 'Aksi',
+          render: (item: LetterTemplate) => (
+            <div className="flex justify-end">
+              <ActionButtons
+                onEdit={canUpdate ? () => openModal(item) : undefined}
+                onDelete={canDelete ? () => handleDelete(item.id, item.name) : undefined}
+              />
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -455,22 +455,20 @@ export const LetterTemplates: React.FC = () => {
       {/* 2. Modern Tab Switcher */}
       <div className="flex bg-slate-100/80 p-1.5 rounded-2xl w-max border border-slate-200/60 shadow-inner">
         <button
-          className={`px-5 py-2.5 text-xs md:text-sm font-semibold rounded-xl flex items-center gap-2 transition-all ${
-            activeTab === 'KOP_SURAT'
+          className={`px-5 py-2.5 text-xs md:text-sm font-semibold rounded-xl flex items-center gap-2 transition-all ${activeTab === 'KOP_SURAT'
               ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
               : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-          }`}
+            }`}
           onClick={() => setActiveTab('KOP_SURAT')}
         >
           <Settings size={16} />
           <span>Pengaturan Kop Surat</span>
         </button>
         <button
-          className={`px-5 py-2.5 text-xs md:text-sm font-semibold rounded-xl flex items-center gap-2 transition-all ${
-            activeTab === 'TEMPLATE'
+          className={`px-5 py-2.5 text-xs md:text-sm font-semibold rounded-xl flex items-center gap-2 transition-all ${activeTab === 'TEMPLATE'
               ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
               : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-          }`}
+            }`}
           onClick={() => setActiveTab('TEMPLATE')}
         >
           <FileText size={16} />
@@ -553,8 +551,8 @@ export const LetterTemplates: React.FC = () => {
                 </FormField>
               </div>
 
-              <FormField 
-                label="Teks Header Kop Surat" 
+              <FormField
+                label="Teks Header Kop Surat"
                 hint="Teks ini otomatis dicetak rata tengah (center) pada bagian kop surat. Gunakan baris baru (enter) untuk memisahkan setiap tingkatan instansi."
               >
                 <textarea
@@ -569,21 +567,21 @@ export const LetterTemplates: React.FC = () => {
 
               <div className="pt-5 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-3">
                 {canUpdateProfile && (
-                  <button 
-                    type="submit" 
-                    className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-xs md:text-sm flex items-center justify-center gap-2 w-full sm:w-auto" 
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-xs md:text-sm flex items-center justify-center gap-2 w-full sm:w-auto"
                     disabled={profileSaving}
                   >
                     {profileSaving && <Loader2 className="animate-spin" size={16} />}
                     <span>{profileSaving ? 'Menyimpan Perubahan...' : 'Simpan Pengaturan Kop'}</span>
                   </button>
                 )}
-                <button 
-                  type="button" 
-                  className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs md:text-sm font-semibold flex items-center justify-center gap-2 transition-colors border border-slate-200 shadow-sm w-full sm:w-auto" 
+                <button
+                  type="button"
+                  className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs md:text-sm font-semibold flex items-center justify-center gap-2 transition-colors border border-slate-200 shadow-sm w-full sm:w-auto"
                   onClick={handleDownloadDocx}
                 >
-                  <Download size={16} /> 
+                  <Download size={16} />
                   <span>Unduh Format Template Docx</span>
                 </button>
               </div>
@@ -681,13 +679,13 @@ export const LetterTemplates: React.FC = () => {
 
           {/* DataTable Card */}
           <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
-            <DataTable 
+            <DataTable
               columns={columns}
               data={paginatedTemplates}
               loading={loading}
               emptyMessage={
-                hasActiveFilters 
-                  ? "Tidak ada template surat yang cocok dengan filter yang dipilih." 
+                hasActiveFilters
+                  ? "Tidak ada template surat yang cocok dengan filter yang dipilih."
                   : "Belum ada template surat yang terdaftar."
               }
             />
@@ -724,7 +722,7 @@ export const LetterTemplates: React.FC = () => {
                 {error}
               </div>
             )}
-            
+
             <FormField label="Nama Template" required>
               <input
                 type="text"
@@ -776,9 +774,9 @@ export const LetterTemplates: React.FC = () => {
             </div>
 
             <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/70">
-              <FormField 
-                label="Berkas Master Template (.docx / .pdf)" 
-                hint="Unggah file surat master yang sudah memiliki format standar layout dokumen." 
+              <FormField
+                label="Berkas Master Template (.docx / .pdf)"
+                hint="Unggah file surat master yang sudah memiliki format standar layout dokumen."
                 required={!editingId}
               >
                 <input
@@ -792,9 +790,8 @@ export const LetterTemplates: React.FC = () => {
             </div>
 
             <div>
-              <label className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-colors w-full ${
-                formData.isActive ? 'bg-emerald-50/60 border-emerald-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-              }`}>
+              <label className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-colors w-full ${formData.isActive ? 'bg-emerald-50/60 border-emerald-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                }`}>
                 <input
                   type="checkbox"
                   name="isActive"
@@ -812,16 +809,16 @@ export const LetterTemplates: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 mt-2">
-              <button 
-                type="button" 
-                className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 transition-colors text-xs md:text-sm" 
+              <button
+                type="button"
+                className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 transition-colors text-xs md:text-sm"
                 onClick={closeModal}
                 disabled={isSubmitting}
               >
                 Batal
               </button>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-xs md:text-sm flex items-center gap-2"
                 disabled={isSubmitting}
               >

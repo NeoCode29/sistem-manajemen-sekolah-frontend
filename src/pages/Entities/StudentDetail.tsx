@@ -1639,7 +1639,7 @@ export const StudentDetail: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-5 shadow-xs">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Total Prestasi</span>
+                  <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Total Point Prestasi</span>
                   <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
                     <Trophy size={16} />
                   </div>
@@ -1650,7 +1650,7 @@ export const StudentDetail: React.FC = () => {
 
               <div className="bg-gradient-to-br from-rose-50 to-orange-50 border border-rose-100 rounded-2xl p-5 shadow-xs">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-rose-700 uppercase tracking-wider">Total Pelanggaran</span>
+                  <span className="text-xs font-bold text-rose-700 uppercase tracking-wider">Total Point Pelanggaran</span>
                   <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center">
                     <ShieldAlert size={16} />
                   </div>
