@@ -192,112 +192,124 @@ export const Users: React.FC = () => {
     });
   }, [users, searchQuery, statusFilter, roleFilter]);
 
-  const { paginatedItems, pagination } = useClientPagination(filteredUsers, 10, [searchQuery, statusFilter, roleFilter]);
-
-  const columns: Column<User>[] = [
-    { 
-      key: 'username', 
-      header: 'Username', 
-      render: (user) => (
-        <span 
-          className="font-semibold text-gray-900 block max-w-[160px] md:max-w-[200px] truncate" 
-          title={user.username}
-        >
-          {user.username}
-        </span>
-      )
-    },
-    { 
-      key: 'name', 
-      header: 'Nama Lengkap', 
-      render: (user) => (
-        <span 
-          className="font-medium text-gray-700 block max-w-[180px] md:max-w-[240px] truncate" 
-          title={user.name}
-        >
-          {user.name}
-        </span>
-      )
-    },
-    { 
-      key: 'status', 
-      header: 'Status', 
-      render: (user) => (
-        <Badge variant={user.isActive ? 'success' : 'default'}>
-          {user.isActive ? 'Aktif' : 'Nonaktif'}
-        </Badge>
-      )
-    },
-    { 
-      key: 'roles', 
-      header: 'Peran (Roles)', 
-      render: (user) => (
-        <div className="flex flex-wrap gap-1">
-          {user.roles && user.roles.length > 0 ? (
-            user.roles.map(r => (
-              <span key={r.id} className="text-xs px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 font-medium">
-                {r.name}
-              </span>
-            ))
-          ) : (
-            <span className="text-gray-400 text-xs italic">Belum ada peran</span>
-          )}
-        </div>
-      )
-    }
-  ];
-
-  if (canAssignRoles || canUpdateUser || canDeleteUser) {
-    columns.push({ 
-      key: 'actions', 
-      header: 'Aksi', 
-      render: (user) => {
-        const isSelf = String(user.id) === String(currentUser?.id);
-        return (
-          <div className="flex items-center gap-2 justify-end">
-            {canAssignRoles && (
-              <button
-                type="button"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
-                onClick={() => openAssignModal(user)}
-              >
-                <Shield size={14} /> Atur Peran
-              </button>
-            )}
-            {canUpdateUser && (
-              <button 
-                type="button"
-                className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
-                onClick={() => handleEdit(user)}
-                title="Edit Akun"
-              >
-                <Edit size={16} />
-              </button>
-            )}
-            {canDeleteUser && (
-              <button
-                type="button"
-                disabled={isSelf}
-                className={`p-1.5 rounded-xl transition-colors ${
-                  isSelf
-                    ? 'text-gray-300 cursor-not-allowed opacity-50'
-                    : 'text-gray-400 hover:text-rose-600 hover:bg-rose-50'
-                }`}
-                onClick={() => handleDeleteClick(user)}
-                title={
-                  isSelf
-                    ? 'Anda tidak dapat menghapus akun Anda sendiri'
-                    : 'Hapus Akun Pengguna'
-                }
-              >
-                <Trash2 size={16} />
-              </button>
+  const columns: Column<User>[] = useMemo(() => {
+    const cols: Column<User>[] = [
+      { 
+        key: 'username', 
+        header: 'Username', 
+        render: (user) => (
+          <span 
+            className="font-semibold text-gray-900 block max-w-[160px] md:max-w-[200px] truncate" 
+            title={user.username}
+          >
+            {user.username}
+          </span>
+        )
+      },
+      { 
+        key: 'name', 
+        header: 'Nama Lengkap', 
+        render: (user) => (
+          <span 
+            className="font-medium text-gray-700 block max-w-[180px] md:max-w-[240px] truncate" 
+            title={user.name}
+          >
+            {user.name}
+          </span>
+        )
+      },
+      { 
+        key: 'status', 
+        header: 'Status', 
+        sortValue: (user) => (user.isActive ? 1 : 0),
+        render: (user) => (
+          <Badge variant={user.isActive ? 'success' : 'default'}>
+            {user.isActive ? 'Aktif' : 'Nonaktif'}
+          </Badge>
+        )
+      },
+      { 
+        key: 'roles', 
+        header: 'Peran (Roles)', 
+        sortValue: (user) => user.roles?.map(r => r.name).join(' ') || '',
+        render: (user) => (
+          <div className="flex flex-wrap gap-1">
+            {user.roles && user.roles.length > 0 ? (
+              user.roles.map(r => (
+                <span key={r.id} className="text-xs px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 font-medium">
+                  {r.name}
+                </span>
+              ))
+            ) : (
+              <span className="text-gray-400 text-xs italic">Belum ada peran</span>
             )}
           </div>
-        );
-      } 
-    });
-  }
+        )
+      }
+    ];
+
+    if (canAssignRoles || canUpdateUser || canDeleteUser) {
+      cols.push({ 
+        key: 'actions', 
+        header: 'Aksi', 
+        sortable: false,
+        render: (user) => {
+          const isSelf = String(user.id) === String(currentUser?.id);
+          return (
+            <div className="flex items-center gap-2 justify-end">
+              {canAssignRoles && (
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                  onClick={() => openAssignModal(user)}
+                >
+                  <Shield size={14} /> Atur Peran
+                </button>
+              )}
+              {canUpdateUser && (
+                <button 
+                  type="button"
+                  className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                  onClick={() => handleEdit(user)}
+                  title="Edit Akun"
+                >
+                  <Edit size={16} />
+                </button>
+              )}
+              {canDeleteUser && (
+                <button
+                  type="button"
+                  disabled={isSelf}
+                  className={`p-1.5 rounded-xl transition-colors ${
+                    isSelf
+                      ? 'text-gray-300 cursor-not-allowed opacity-50'
+                      : 'text-gray-400 hover:text-rose-600 hover:bg-rose-50'
+                  }`}
+                  onClick={() => handleDeleteClick(user)}
+                  title={
+                    isSelf
+                      ? 'Anda tidak dapat menghapus akun Anda sendiri'
+                      : 'Hapus Akun Pengguna'
+                  }
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
+            </div>
+          );
+        } 
+      });
+    }
+
+    return cols;
+  }, [canAssignRoles, canUpdateUser, canDeleteUser, currentUser?.id]);
+
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredUsers, 
+    10, 
+    [searchQuery, statusFilter, roleFilter],
+    columns
+  );
 
   const hasActiveFilter = Boolean(searchQuery || statusFilter || roleFilter);
 
@@ -394,6 +406,8 @@ export const Users: React.FC = () => {
         data={paginatedItems}
         loading={loading}
         pagination={pagination}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
         emptyMessage={
           searchQuery || statusFilter || roleFilter
             ? 'Tidak ada pengguna yang cocok dengan kriteria pencarian.'

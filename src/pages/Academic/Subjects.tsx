@@ -176,57 +176,68 @@ export const Subjects: React.FC = () => {
     );
   }, [subjects, searchTerm]);
 
-  const { paginatedItems, pagination } = useClientPagination(filteredSubjects, 10, [searchTerm]);
-
-  const columns: Column<Subject>[] = [
-    { 
-      key: 'code', 
-      header: 'Kode', 
-      render: (row) => (
-        <span className="font-mono text-xs font-semibold text-gray-700 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200">
-          {row.code}
-        </span>
-      ) 
-    },
-    { 
-      key: 'name', 
-      header: 'Nama Mata Pelajaran', 
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          <span 
-            className="font-semibold text-gray-900 block max-w-[280px] md:max-w-[360px] truncate"
-            title={row.name}
-          >
-            {row.name}
+  const columns: Column<Subject>[] = useMemo(() => {
+    const cols: Column<Subject>[] = [
+      { 
+        key: 'code', 
+        header: 'Kode', 
+        render: (row) => (
+          <span className="font-mono text-xs font-semibold text-gray-700 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200">
+            {row.code}
           </span>
-        </div>
-      )
-    },
-    { 
-      key: 'minimumPassingGrade', 
-      header: 'KKM (Nilai Lulus)', 
-      render: (row) => (
-        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
-          KKM: {row.minimumPassingGrade ?? '-'}
-        </span>
-      )
-    }
-  ];
+        ) 
+      },
+      { 
+        key: 'name', 
+        header: 'Nama Mata Pelajaran', 
+        render: (row) => (
+          <div className="flex items-center gap-2">
+            <span 
+              className="font-semibold text-gray-900 block max-w-[280px] md:max-w-[360px] truncate"
+              title={row.name}
+            >
+              {row.name}
+            </span>
+          </div>
+        )
+      },
+      { 
+        key: 'minimumPassingGrade', 
+        header: 'KKM (Nilai Lulus)', 
+        sortValue: (row) => row.minimumPassingGrade ?? 0,
+        render: (row) => (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+            KKM: {row.minimumPassingGrade ?? '-'}
+          </span>
+        )
+      }
+    ];
 
-  if (hasActions) {
-    columns.push({ 
-      key: 'actions', 
-      header: 'Aksi', 
-      render: (row) => (
-        <div className="flex items-center justify-end">
-          <ActionButtons 
-            onEdit={canEditSubject ? () => handleEdit(row) : undefined}
-            onDelete={canDeleteSubject ? () => handleDelete(row) : undefined}
-          />
-        </div>
-      )
-    });
-  }
+    if (hasActions) {
+      cols.push({ 
+        key: 'actions', 
+        header: 'Aksi', 
+        sortable: false,
+        render: (row) => (
+          <div className="flex items-center justify-end">
+            <ActionButtons 
+              onEdit={canEditSubject ? () => handleEdit(row) : undefined}
+              onDelete={canDeleteSubject ? () => handleDelete(row) : undefined}
+            />
+          </div>
+        )
+      });
+    }
+
+    return cols;
+  }, [hasActions, canEditSubject, canDeleteSubject]);
+
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredSubjects, 
+    10, 
+    [searchTerm],
+    columns
+  );
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -290,6 +301,8 @@ export const Subjects: React.FC = () => {
         data={paginatedItems} 
         loading={loading}
         pagination={pagination}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
         emptyMessage={
           searchTerm 
             ? 'Tidak ada mata pelajaran yang sesuai dengan kata kunci pencarian.' 

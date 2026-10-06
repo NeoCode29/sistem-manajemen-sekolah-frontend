@@ -186,91 +186,103 @@ export const AcademicYears: React.FC = () => {
     });
   }, [years, searchTerm, statusFilter]);
 
-  const { paginatedItems, pagination } = useClientPagination(filteredYears, 10, [searchTerm, statusFilter]);
-
-  const columns: Column<AcademicYear>[] = [
-    { 
-      key: 'name', 
-      header: 'Nama Tahun Ajaran', 
-      render: (row) => (
-        <span 
-          className="font-semibold text-gray-900 block max-w-[200px] md:max-w-[260px] truncate" 
-          title={row.name}
-        >
-          {row.name}
-        </span>
-      ) 
-    },
-    {
-      key: 'semesters',
-      header: 'Semester Bawaan',
-      render: (row) => (
-        row.semesters && row.semesters.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {row.semesters.map((s: any) => (
-              <span
-                key={s.id}
-                className={`text-xs px-2.5 py-0.5 rounded-md border font-medium ${
-                  s.isActive
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-xs'
-                    : 'bg-gray-50 text-gray-600 border-gray-200'
-                }`}
-              >
-                {s.name} {s.isActive && '(Aktif)'}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <span className="text-gray-400 text-xs italic">Otomatis (Ganjil & Genap)</span>
+  const columns: Column<AcademicYear>[] = useMemo(() => {
+    const cols: Column<AcademicYear>[] = [
+      { 
+        key: 'name', 
+        header: 'Nama Tahun Ajaran', 
+        render: (row) => (
+          <span 
+            className="font-semibold text-gray-900 block max-w-[200px] md:max-w-[260px] truncate" 
+            title={row.name}
+          >
+            {row.name}
+          </span>
+        ) 
+      },
+      {
+        key: 'semesters',
+        header: 'Semester Bawaan',
+        sortValue: (row) => row.semesters?.map((s: any) => s.name).join(' '),
+        render: (row) => (
+          row.semesters && row.semesters.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {row.semesters.map((s: any) => (
+                <span
+                  key={s.id}
+                  className={`text-xs px-2.5 py-0.5 rounded-md border font-medium ${
+                    s.isActive
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-xs'
+                      : 'bg-gray-50 text-gray-600 border-gray-200'
+                  }`}
+                >
+                  {s.name} {s.isActive && '(Aktif)'}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-gray-400 text-xs italic">Otomatis (Ganjil & Genap)</span>
+          )
+        ),
+      },
+      { 
+        key: 'isActive', 
+        header: 'Status', 
+        sortValue: (row) => (row.isActive ? 1 : 0),
+        render: (row) => (
+          <button
+            type="button"
+            onClick={() => canToggle ? handleToggle(row) : undefined}
+            className={!canToggle ? "cursor-default" : "hover:opacity-80 transition-opacity"}
+            title={canToggle ? "Klik untuk ubah status aktif" : undefined}
+          >
+            <Badge variant={row.isActive ? 'success' : 'default'}>
+              {row.isActive ? 'Aktif' : 'Nonaktif'}
+            </Badge>
+          </button>
         )
-      ),
-    },
-    { 
-      key: 'status', 
-      header: 'Status', 
-      render: (row) => (
-        <button
-          type="button"
-          onClick={() => canToggle ? handleToggle(row) : undefined}
-          className={!canToggle ? "cursor-default" : "hover:opacity-80 transition-opacity"}
-          title={canToggle ? "Klik untuk ubah status aktif" : undefined}
-        >
-          <Badge variant={row.isActive ? 'success' : 'default'}>
-            {row.isActive ? 'Aktif' : 'Nonaktif'}
-          </Badge>
-        </button>
-      )
-    }
-  ];
+      }
+    ];
 
-  if (canManageAcademic) {
-    columns.push({ 
-      key: 'actions', 
-      header: 'Aksi', 
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          {canToggle && (
-            <button 
-              type="button"
-              className={`p-1.5 rounded-lg transition-colors ${
-                row.isActive 
-                  ? 'text-amber-600 hover:bg-amber-50' 
-                  : 'text-emerald-600 hover:bg-emerald-50'
-              }`}
-              onClick={() => handleToggle(row)}
-              title={row.isActive ? 'Nonaktifkan Tahun Ajaran' : 'Aktifkan Tahun Ajaran'}
-            >
-              {row.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
-            </button>
-          )}
-          <ActionButtons 
-            onEdit={canEdit ? () => handleEdit(row) : undefined}
-            onDelete={canDelete ? () => handleDelete(row) : undefined}
-          />
-        </div>
-      )
-    });
-  }
+    if (canManageAcademic) {
+      cols.push({ 
+        key: 'actions', 
+        header: 'Aksi', 
+        sortable: false,
+        render: (row) => (
+          <div className="flex items-center gap-2">
+            {canToggle && (
+              <button 
+                type="button"
+                className={`p-1.5 rounded-lg transition-colors ${
+                  row.isActive 
+                    ? 'text-amber-600 hover:bg-amber-50' 
+                    : 'text-emerald-600 hover:bg-emerald-50'
+                }`}
+                onClick={() => handleToggle(row)}
+                title={row.isActive ? 'Nonaktifkan Tahun Ajaran' : 'Aktifkan Tahun Ajaran'}
+              >
+                {row.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
+              </button>
+            )}
+            <ActionButtons 
+              onEdit={canEdit ? () => handleEdit(row) : undefined}
+              onDelete={canDelete ? () => handleDelete(row) : undefined}
+            />
+          </div>
+        )
+      });
+    }
+
+    return cols;
+  }, [canManageAcademic, canToggle, canEdit, canDelete]);
+
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredYears, 
+    10, 
+    [searchTerm, statusFilter],
+    columns
+  );
 
   const activeYear = years.find(y => y.isActive);
 
@@ -360,6 +372,8 @@ export const AcademicYears: React.FC = () => {
         data={paginatedItems} 
         loading={loading}
         pagination={pagination}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
         emptyMessage={
           searchTerm || statusFilter !== 'ALL'
             ? 'Tidak ada tahun ajaran yang sesuai dengan kriteria filter.'

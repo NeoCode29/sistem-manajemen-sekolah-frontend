@@ -215,116 +215,129 @@ export const Positions: React.FC = () => {
     });
   }, [items, searchTerm, statusFilter]);
 
-  const { paginatedItems, pagination } = useClientPagination(filteredItems, 10, [searchTerm, statusFilter]);
-
-  const columns: Column<Position>[] = [
-    { 
-      key: 'code', 
-      header: 'Kode', 
-      render: row => (
-        <span className="font-mono text-xs font-semibold text-slate-900 bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/80">
-          {row.code}
-        </span>
-      ) 
-    },
-    { 
-      key: 'name', 
-      header: 'Nama Jabatan', 
-      render: row => {
-        const isSystem = row.code === 'KEPSEK' || row.name.toLowerCase().includes('kepala sekolah');
-        return (
-          <div className="flex items-center gap-2 max-w-[200px] md:max-w-[250px]">
-            <span 
-              className="font-bold text-slate-900 truncate" 
-              title={row.name}
-            >
-              {row.name}
-            </span>
-            {isSystem && (
-              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
-                System
+  const columns: Column<Position>[] = useMemo(() => {
+    const cols: Column<Position>[] = [
+      { 
+        key: 'code', 
+        header: 'Kode', 
+        render: row => (
+          <span className="font-mono text-xs font-semibold text-slate-900 bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/80">
+            {row.code}
+          </span>
+        ) 
+      },
+      { 
+        key: 'name', 
+        header: 'Nama Jabatan', 
+        render: row => {
+          const isSystem = row.code === 'KEPSEK' || row.name.toLowerCase().includes('kepala sekolah');
+          return (
+            <div className="flex items-center gap-2 max-w-[200px] md:max-w-[250px]">
+              <span 
+                className="font-bold text-slate-900 truncate" 
+                title={row.name}
+              >
+                {row.name}
               </span>
-            )}
-          </div>
-        );
-      } 
-    },
-    {
-      key: 'mappedRole',
-      header: 'Sinkronisasi Role',
-      render: row => (
-        row.mappedRole ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
-            <BadgeCheck size={13} className="text-indigo-600" />
-            {row.mappedRole.name}
-          </span>
-        ) : (
-          <span className="text-slate-400 text-xs">-</span>
+              {isSystem && (
+                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                  System
+                </span>
+              )}
+            </div>
+          );
+        } 
+      },
+      {
+        key: 'mappedRole',
+        header: 'Sinkronisasi Role',
+        sortValue: row => row.mappedRole?.name || '',
+        render: row => (
+          row.mappedRole ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+              <BadgeCheck size={13} className="text-indigo-600" />
+              {row.mappedRole.name}
+            </span>
+          ) : (
+            <span className="text-slate-400 text-xs">-</span>
+          )
         )
-      )
-    },
-    {
-      key: 'maxUsers',
-      header: 'Batas Kuota',
-      render: row => (
-        row.maxUsers ? (
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold border ${
-            (row.activeEmployeeCount ?? 0) >= row.maxUsers
-              ? 'bg-amber-50 text-amber-800 border-amber-300'
-              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-          }`}>
-            {row.activeEmployeeCount ?? 0} / {row.maxUsers} Terisi
-          </span>
-        ) : (
-          <span className="text-slate-400 text-xs">Tanpa Batas</span>
+      },
+      {
+        key: 'maxUsers',
+        header: 'Batas Kuota',
+        sortValue: row => (row.maxUsers != null ? row.maxUsers : 999999),
+        render: row => (
+          row.maxUsers ? (
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold border ${
+              (row.activeEmployeeCount ?? 0) >= row.maxUsers
+                ? 'bg-amber-50 text-amber-800 border-amber-300'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            }`}>
+              {row.activeEmployeeCount ?? 0} / {row.maxUsers} Terisi
+            </span>
+          ) : (
+            <span className="text-slate-400 text-xs">Tanpa Batas</span>
+          )
         )
-      )
-    },
-    { 
-      key: 'description', 
-      header: 'Deskripsi', 
-      render: row => (
-        <span 
-          className="text-slate-500 text-xs block max-w-[200px] md:max-w-[260px] truncate" 
-          title={row.description || '-'}
-        >
-          {row.description || '-'}
-        </span>
-      ) 
-    },
-    { 
-      key: 'isActive', 
-      header: 'Status', 
-      render: row => (
-        <button 
-          type="button" 
-          onClick={() => canTogglePosition ? handleToggleActive(row) : undefined} 
-          className={!canTogglePosition ? "cursor-default" : "hover:opacity-80 transition-opacity"}
-          title={canTogglePosition ? "Klik untuk ubah status aktif" : undefined}
-        >
-          <Badge variant={row.isActive ? 'success' : 'danger'}>
-            {row.isActive ? 'Aktif' : 'Nonaktif'}
-          </Badge>
-        </button>
-      ) 
-    }
-  ];
+      },
+      { 
+        key: 'description', 
+        header: 'Deskripsi', 
+        render: row => (
+          <span 
+            className="text-slate-500 text-xs block max-w-[200px] md:max-w-[260px] truncate" 
+            title={row.description || '-'}
+          >
+            {row.description || '-'}
+          </span>
+        ) 
+      },
+      { 
+        key: 'isActive', 
+        header: 'Status', 
+        sortValue: row => (row.isActive ? 1 : 0),
+        render: row => (
+          <button 
+            type="button" 
+            onClick={() => canTogglePosition ? handleToggleActive(row) : undefined} 
+            className={!canTogglePosition ? "cursor-default" : "hover:opacity-80 transition-opacity"}
+            title={canTogglePosition ? "Klik untuk ubah status aktif" : undefined}
+          >
+            <Badge variant={row.isActive ? 'success' : 'danger'}>
+              {row.isActive ? 'Aktif' : 'Nonaktif'}
+            </Badge>
+          </button>
+        ) 
+      }
+    ];
 
-  if (hasActions) {
-    columns.push({ 
-      key: 'actions', 
-      header: 'Aksi', 
-      render: row => {
-        const isSystem = row.code === 'KEPSEK' || row.name.toLowerCase().includes('kepala sekolah');
-        return (
-          <ActionButtons 
-            onEdit={canEditPosition ? () => openEdit(row) : undefined} 
-            onDelete={canDeletePosition && !isSystem ? () => handleDelete(row) : undefined} 
-          />
-        );
-      } 
-    });
-  }
+    if (hasActions) {
+      cols.push({ 
+        key: 'actions', 
+        header: 'Aksi', 
+        sortable: false,
+        render: row => {
+          const isSystem = row.code === 'KEPSEK' || row.name.toLowerCase().includes('kepala sekolah');
+          return (
+            <ActionButtons 
+              onEdit={canEditPosition ? () => openEdit(row) : undefined} 
+              onDelete={canDeletePosition && !isSystem ? () => handleDelete(row) : undefined} 
+            />
+          );
+        } 
+      });
+    }
+
+    return cols;
+  }, [hasActions, canTogglePosition, canEditPosition, canDeletePosition]);
+
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredItems, 
+    10, 
+    [searchTerm, statusFilter],
+    columns
+  );
 
   return (
     <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
@@ -411,6 +424,8 @@ export const Positions: React.FC = () => {
         data={paginatedItems} 
         loading={loading}
         pagination={pagination}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
         emptyMessage={
           searchTerm || statusFilter !== 'ALL'
             ? 'Tidak ada data jabatan yang sesuai dengan filter pencarian.'

@@ -184,8 +184,6 @@ export const Classrooms: React.FC = () => {
     );
   }, [classrooms, searchTerm]);
   
-  const { paginatedItems, pagination } = useClientPagination(filteredClassrooms, 10, [searchTerm, filterGradeId]);
-
   const gradeOptions = useMemo(() => {
     return [
       { value: '', label: 'Semua Tingkat' },
@@ -194,7 +192,7 @@ export const Classrooms: React.FC = () => {
   }, [grades]);
 
   // DataTable Columns Configuration
-  const classroomColumns: Column<Classroom>[] = [
+  const classroomColumns: Column<Classroom>[] = useMemo(() => [
     { 
       key: 'code', 
       header: 'Kode', 
@@ -219,6 +217,7 @@ export const Classrooms: React.FC = () => {
     { 
       key: 'grade', 
       header: 'Tingkat', 
+      sortValue: (row) => row.grade?.name || '',
       render: (row) => (
         <Badge variant="purple" className="max-w-[140px] truncate">
           {row.grade?.name || '-'}
@@ -228,6 +227,7 @@ export const Classrooms: React.FC = () => {
     { 
       key: 'major', 
       header: 'Jurusan', 
+      sortValue: (row) => row.major?.name || '',
       render: (row) => {
         const majorName = row.major?.name || '-';
         return (
@@ -243,6 +243,7 @@ export const Classrooms: React.FC = () => {
     { 
       key: 'capacity', 
       header: 'Kapasitas', 
+      sortValue: (row) => row.capacity || 0,
       render: (row) => (
         <span className="text-xs text-gray-700 font-medium">
           {row.capacity || 0} Siswa
@@ -252,6 +253,7 @@ export const Classrooms: React.FC = () => {
     { 
       key: 'actions', 
       header: 'Aksi', 
+      sortable: false,
       render: (row) => (
         <ActionButtons 
           onView={canReadClassrooms ? () => navigate(`/academic/classrooms/${row.id}`) : undefined}
@@ -260,7 +262,14 @@ export const Classrooms: React.FC = () => {
         />
       )
     }
-  ];
+  ], [canReadClassrooms, canUpdateClassroom, canDeleteClassroom, navigate]);
+
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredClassrooms, 
+    10, 
+    [searchTerm, filterGradeId],
+    classroomColumns
+  );
 
   return (
     <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
@@ -357,6 +366,8 @@ export const Classrooms: React.FC = () => {
         data={paginatedItems} 
         loading={loading}
         pagination={pagination}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
         emptyMessage={
           searchTerm || filterGradeId
             ? 'Tidak ada rombel yang cocok dengan kriteria filter.'

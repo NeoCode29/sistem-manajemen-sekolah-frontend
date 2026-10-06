@@ -190,72 +190,83 @@ export const Majors: React.FC = () => {
     });
   }, [majors, searchTerm, statusFilter]);
 
-  const { paginatedItems, pagination } = useClientPagination(filteredMajors, 10, [searchTerm, statusFilter]);
+  const columns: Column<Major>[] = useMemo(() => {
+    const cols: Column<Major>[] = [
+      { 
+        key: 'code', 
+        header: 'Kode', 
+        render: (row) => (
+          <span className="font-mono text-xs font-semibold text-gray-900 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-200">
+            {row.code}
+          </span>
+        ) 
+      },
+      { 
+        key: 'name', 
+        header: 'Nama Jurusan', 
+        render: (row) => (
+          <span 
+            className="font-semibold text-gray-900 block max-w-[200px] md:max-w-[260px] truncate" 
+            title={row.name}
+          >
+            {row.name}
+          </span>
+        )
+      },
+      { 
+        key: 'description', 
+        header: 'Deskripsi', 
+        render: (row) => (
+          <span 
+            className="text-gray-600 text-xs block max-w-[260px] md:max-w-[360px] truncate" 
+            title={row.description || '-'}
+          >
+            {row.description || '-'}
+          </span>
+        ) 
+      },
+      { 
+        key: 'isActive', 
+        header: 'Status', 
+        sortValue: (row) => (row.isActive ? 1 : 0),
+        render: (row) => (
+          <button 
+            type="button"
+            onClick={() => canToggleMajor ? handleToggleStatus(row) : undefined} 
+            className={!canToggleMajor ? "cursor-default" : "hover:opacity-80 transition-opacity"}
+            title={canToggleMajor ? "Klik untuk ubah status aktif" : undefined}
+          >
+            <Badge variant={row.isActive ? 'success' : 'danger'}>
+              {row.isActive ? 'Aktif' : 'Nonaktif'}
+            </Badge>
+          </button>
+        )
+      }
+    ];
 
-  const columns: Column<Major>[] = [
-    { 
-      key: 'code', 
-      header: 'Kode', 
-      render: (row) => (
-        <span className="font-mono text-xs font-semibold text-gray-900 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-200">
-          {row.code}
-        </span>
-      ) 
-    },
-    { 
-      key: 'name', 
-      header: 'Nama Jurusan', 
-      render: (row) => (
-        <span 
-          className="font-semibold text-gray-900 block max-w-[200px] md:max-w-[260px] truncate" 
-          title={row.name}
-        >
-          {row.name}
-        </span>
-      )
-    },
-    { 
-      key: 'description', 
-      header: 'Deskripsi', 
-      render: (row) => (
-        <span 
-          className="text-gray-600 text-xs block max-w-[260px] md:max-w-[360px] truncate" 
-          title={row.description || '-'}
-        >
-          {row.description || '-'}
-        </span>
-      ) 
-    },
-    { 
-      key: 'isActive', 
-      header: 'Status', 
-      render: (row) => (
-        <button 
-          type="button"
-          onClick={() => canToggleMajor ? handleToggleStatus(row) : undefined} 
-          className={!canToggleMajor ? "cursor-default" : "hover:opacity-80 transition-opacity"}
-          title={canToggleMajor ? "Klik untuk ubah status aktif" : undefined}
-        >
-          <Badge variant={row.isActive ? 'success' : 'danger'}>
-            {row.isActive ? 'Aktif' : 'Nonaktif'}
-          </Badge>
-        </button>
-      )
+    if (hasActions) {
+      cols.push({ 
+        key: 'actions', 
+        header: 'Aksi', 
+        sortable: false,
+        render: (row) => (
+          <ActionButtons 
+            onEdit={canEditMajor ? () => handleEdit(row) : undefined}
+            onDelete={canDeleteMajor ? () => handleDelete(row) : undefined}
+          />
+        )
+      });
     }
-  ];
 
-  if (hasActions) {
-    columns.push({ 
-      key: 'actions', 
-      header: 'Aksi', 
-      render: (row) => (
-        <ActionButtons 
-          onEdit={canEditMajor ? () => handleEdit(row) : undefined}
-          onDelete={canDeleteMajor ? () => handleDelete(row) : undefined}
-        />
-      )
-    });
-  }
+    return cols;
+  }, [hasActions, canToggleMajor, canEditMajor, canDeleteMajor]);
+
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredMajors, 
+    10, 
+    [searchTerm, statusFilter],
+    columns
+  );
 
   return (
     <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
@@ -343,6 +354,8 @@ export const Majors: React.FC = () => {
         data={paginatedItems} 
         loading={loading}
         pagination={pagination}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
         emptyMessage={
           searchTerm || statusFilter !== 'ALL'
             ? 'Tidak ada jurusan yang sesuai dengan kriteria filter.'

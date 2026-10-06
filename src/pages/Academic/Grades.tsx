@@ -167,58 +167,69 @@ export const Grades: React.FC = () => {
     });
   }, [grades, searchTerm, educationFilter]);
 
-  const { paginatedItems, pagination } = useClientPagination(filteredGrades, 10, [searchTerm, educationFilter]);
+  const columns: Column<Grade>[] = useMemo(() => {
+    const cols: Column<Grade>[] = [
+      { 
+        key: 'code', 
+        header: 'Kode', 
+        render: (row) => (
+          <span className="font-mono text-xs font-semibold text-gray-900 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-200">
+            {row.code}
+          </span>
+        ) 
+      },
+      { 
+        key: 'name', 
+        header: 'Nama Tingkat', 
+        render: (row) => (
+          <span 
+            className="font-semibold text-gray-900 block max-w-[200px] md:max-w-[260px] truncate" 
+            title={row.name}
+          >
+            {row.name}
+          </span>
+        )
+      },
+      { 
+        key: 'level', 
+        header: 'Level (Angka)',
+        sortValue: (row) => row.level,
+        render: (row) => <span className="font-semibold text-gray-700 text-xs">Level {row.level}</span>
+      },
+      { 
+        key: 'educationLevel', 
+        header: 'Jenjang Pendidikan', 
+        render: (row) => (
+          <Badge variant={row.educationLevel === 'SMA' || row.educationLevel === 'SMK' ? 'purple' : 'info'}>
+            {row.educationLevel}
+          </Badge>
+        )
+      }
+    ];
 
-  const columns: Column<Grade>[] = [
-    { 
-      key: 'code', 
-      header: 'Kode', 
-      render: (row) => (
-        <span className="font-mono text-xs font-semibold text-gray-900 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-200">
-          {row.code}
-        </span>
-      ) 
-    },
-    { 
-      key: 'name', 
-      header: 'Nama Tingkat', 
-      render: (row) => (
-        <span 
-          className="font-semibold text-gray-900 block max-w-[200px] md:max-w-[260px] truncate" 
-          title={row.name}
-        >
-          {row.name}
-        </span>
-      )
-    },
-    { 
-      key: 'level', 
-      header: 'Level (Angka)',
-      render: (row) => <span className="font-semibold text-gray-700 text-xs">Level {row.level}</span>
-    },
-    { 
-      key: 'educationLevel', 
-      header: 'Jenjang Pendidikan', 
-      render: (row) => (
-        <Badge variant={row.educationLevel === 'SMA' || row.educationLevel === 'SMK' ? 'purple' : 'info'}>
-          {row.educationLevel}
-        </Badge>
-      )
+    if (hasActions) {
+      cols.push({ 
+        key: 'actions', 
+        header: 'Aksi', 
+        sortable: false,
+        render: (row) => (
+          <ActionButtons 
+            onEdit={canEditGrade ? () => handleEdit(row) : undefined}
+            onDelete={canDeleteGrade ? () => handleDelete(row) : undefined}
+          />
+        )
+      });
     }
-  ];
 
-  if (hasActions) {
-    columns.push({ 
-      key: 'actions', 
-      header: 'Aksi', 
-      render: (row) => (
-        <ActionButtons 
-          onEdit={canEditGrade ? () => handleEdit(row) : undefined}
-          onDelete={canDeleteGrade ? () => handleDelete(row) : undefined}
-        />
-      )
-    });
-  }
+    return cols;
+  }, [hasActions, canEditGrade, canDeleteGrade]);
+
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredGrades, 
+    10, 
+    [searchTerm, educationFilter],
+    columns
+  );
 
   return (
     <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
@@ -308,6 +319,8 @@ export const Grades: React.FC = () => {
         data={paginatedItems} 
         loading={loading}
         pagination={pagination}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
         emptyMessage={
           searchTerm || educationFilter !== 'ALL'
             ? 'Tidak ada tingkat kelas yang sesuai dengan kriteria filter.'

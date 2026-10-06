@@ -198,64 +198,77 @@ export const ClassPeriods: React.FC = () => {
     });
   }, [periods, searchTerm, filterType]);
 
-  const { paginatedItems, pagination } = useClientPagination(filteredPeriods, 10, [searchTerm, filterType]);
-
-  const columns: Column<ClassPeriod>[] = [
-    { 
-      key: 'periodNumber', 
-      header: 'Jam Ke-', 
-      render: (row) => (
-        <span className="font-mono text-xs font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-lg border border-gray-200">
-          #{row.periodNumber}
-        </span>
-      ) 
-    },
-    { 
-      key: 'code', 
-      header: 'Kode', 
-      render: (row) => (
-        <span className="font-mono text-xs font-semibold text-gray-700 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200">
-          {row.code}
-        </span>
-      ) 
-    },
-    { 
-      key: 'time', 
-      header: 'Rentang Waktu', 
-      render: (row) => (
-        <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
-          <Clock size={15} className="text-gray-400" />
-          <span>{row.startTime} – {row.endTime} WIB</span>
-        </div>
-      )
-    },
-    { 
-      key: 'status', 
-      header: 'Tipe Sesi', 
-      render: (row) => (
-        row.isBreak ? (
-          <Badge variant="warning">Istirahat</Badge>
-        ) : (
-          <Badge variant="success">Pelajaran</Badge>
+  const columns: Column<ClassPeriod>[] = useMemo(() => {
+    const cols: Column<ClassPeriod>[] = [
+      { 
+        key: 'periodNumber', 
+        header: 'Jam Ke-', 
+        sortValue: (row) => row.periodNumber,
+        render: (row) => (
+          <span className="font-mono text-xs font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-lg border border-gray-200">
+            #{row.periodNumber}
+          </span>
+        ) 
+      },
+      { 
+        key: 'code', 
+        header: 'Kode', 
+        render: (row) => (
+          <span className="font-mono text-xs font-semibold text-gray-700 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200">
+            {row.code}
+          </span>
+        ) 
+      },
+      { 
+        key: 'time', 
+        header: 'Rentang Waktu', 
+        sortValue: (row) => row.startTime,
+        render: (row) => (
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
+            <Clock size={15} className="text-gray-400" />
+            <span>{row.startTime} – {row.endTime} WIB</span>
+          </div>
         )
-      )
-    }
-  ];
+      },
+      { 
+        key: 'status', 
+        header: 'Tipe Sesi', 
+        sortValue: (row) => (row.isBreak ? 'Istirahat' : 'Pelajaran'),
+        render: (row) => (
+          row.isBreak ? (
+            <Badge variant="warning">Istirahat</Badge>
+          ) : (
+            <Badge variant="success">Pelajaran</Badge>
+          )
+        )
+      }
+    ];
 
-  if (hasActions) {
-    columns.push({ 
-      key: 'actions', 
-      header: 'Aksi', 
-      render: (row) => (
-        <div className="flex items-center justify-end">
-          <ActionButtons 
-            onEdit={canEditPeriod ? () => handleEdit(row) : undefined}
-            onDelete={canDeletePeriod ? () => handleDelete(row) : undefined}
-          />
-        </div>
-      )
-    });
-  }
+    if (hasActions) {
+      cols.push({ 
+        key: 'actions', 
+        header: 'Aksi', 
+        sortable: false,
+        render: (row) => (
+          <div className="flex items-center justify-end">
+            <ActionButtons 
+              onEdit={canEditPeriod ? () => handleEdit(row) : undefined}
+              onDelete={canDeletePeriod ? () => handleDelete(row) : undefined}
+            />
+          </div>
+        )
+      });
+    }
+
+    return cols;
+  }, [hasActions, canEditPeriod, canDeletePeriod]);
+
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredPeriods, 
+    10, 
+    [searchTerm, filterType],
+    columns
+  );
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -340,6 +353,8 @@ export const ClassPeriods: React.FC = () => {
         data={paginatedItems} 
         loading={loading}
         pagination={pagination}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
         emptyMessage={
           searchTerm || filterType !== 'all' 
             ? 'Tidak ada jam pelajaran yang sesuai dengan kriteria filter.' 
