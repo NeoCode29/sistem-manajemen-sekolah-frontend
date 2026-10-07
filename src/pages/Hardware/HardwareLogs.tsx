@@ -25,6 +25,17 @@ import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify } from '../../utils/feedback';
+const SCAN_TYPE_OPTIONS = [
+  { value: '', label: 'Semua Tipe' },
+  { value: 'CARD', label: 'Kartu RFID' },
+  { value: 'FINGER', label: 'Sidik Jari' },
+];
+
+const STATUS_OPTIONS: { value: 'ALL' | 'MATCHED' | 'UNMATCHED'; label: string }[] = [
+  { value: 'ALL', label: 'Semua Status' },
+  { value: 'MATCHED', label: 'Berhasil Terdeteksi' },
+  { value: 'UNMATCHED', label: 'Tidak Dikenali' },
+];
 
 export const HardwareLogs: React.FC = () => {
   const { user } = useAuth();
@@ -514,101 +525,108 @@ export const HardwareLogs: React.FC = () => {
 
       {/* 3. Filter Bar Pola Log Mesin (Hardware Logs Filter Pattern) */}
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-wrap gap-4 items-end">
+        {/* Pencarian Keyword */}
         <div className="flex-1 min-w-[200px]">
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
             Pencarian Data Scan
           </label>
           <div className="relative group">
             <Search 
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" 
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" 
               size={16} 
             />
             <input
               type="text"
               placeholder="Cari ID Scan, Nama, NIS, NIP, atau Device..."
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium"
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3 items-end">
-          <div className="w-36">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
-              Device ID
-            </label>
-            <div className="relative group">
-              <Monitor className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
-              <input
-                type="text"
-                placeholder="Semua"
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
-                value={deviceId}
-                onChange={(e) => setDeviceId(e.target.value)}
-              />
-            </div>
+        {/* Device ID */}
+        <div className="w-full sm:w-44 min-w-[150px]">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Device ID
+          </label>
+          <div className="relative group">
+            <Monitor className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" size={16} />
+            <input
+              type="text"
+              placeholder="Cari Device..."
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium"
+              value={deviceId}
+              onChange={(e) => setDeviceId(e.target.value)}
+            />
           </div>
+        </div>
 
-          <div className="w-36">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
-              Tipe Scan
-            </label>
-            <div className="relative group">
-              <Fingerprint className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
-              <select
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
-                value={scanType}
-                onChange={(e) => setScanType(e.target.value)}
-              >
-                <option value="">Semua Tipe</option>
-                <option value="CARD">Kartu RFID</option>
-                <option value="FINGER">Sidik Jari</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="w-44">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
-              Status Presensi
-            </label>
-            <div className="relative group">
-              <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
-              <select
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-              >
-                <option value="ALL">Semua Status</option>
-                <option value="MATCHED">Berhasil Terdeteksi</option>
-                <option value="UNMATCHED">Tidak Dikenali</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button 
-              type="button"
-              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-slate-200 shadow-sm cursor-pointer disabled:opacity-50"
-              onClick={fetchLogs}
-              disabled={loading || isLiveMode}
-              title="Segarkan data dari server"
+        {/* Tipe Scan */}
+        <div className="w-full sm:w-48 min-w-[170px]">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Tipe Scan
+          </label>
+          <div className="relative group">
+            <Fingerprint className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" size={16} />
+            <select
+              className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer text-slate-900 font-medium"
+              value={scanType}
+              onChange={(e) => setScanType(e.target.value)}
             >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              <span>Segarkan</span>
-            </button>
-            {hasActiveFilter && (
-              <button
-                type="button"
-                onClick={handleResetFilter}
-                className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-rose-200 shadow-sm cursor-pointer"
-                title="Reset seluruh filter"
-              >
-                <RotateCcw size={14} />
-                <span>Reset</span>
-              </button>
-            )}
+              {SCAN_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
+
+        {/* Status Presensi */}
+        <div className="w-full sm:w-52 min-w-[180px]">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Status Presensi
+          </label>
+          <div className="relative group">
+            <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" size={16} />
+            <select
+              className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer text-slate-900 font-medium"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          <button 
+            type="button"
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-slate-200 shadow-sm cursor-pointer disabled:opacity-50"
+            onClick={fetchLogs}
+            disabled={loading || isLiveMode}
+            title="Segarkan data dari server"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <span>Segarkan</span>
+          </button>
+          {hasActiveFilter && (
+            <button
+              type="button"
+              onClick={handleResetFilter}
+              className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-rose-200 shadow-sm cursor-pointer"
+              title="Reset seluruh filter"
+            >
+              <RotateCcw size={14} />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       </div>
 
