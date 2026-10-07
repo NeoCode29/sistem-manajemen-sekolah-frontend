@@ -1,12 +1,20 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Compass, Home, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export const NotFound: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const isStudentOrGuardian = user?.roles?.some(
+    (r) => r.name === 'Siswa' || r.name === 'Orang Tua / Wali'
+  );
+
+  const targetDashboard = isStudentOrGuardian ? '/student/dashboard' : '/dashboard';
 
   return (
-    <div className="flex min-h-[calc(100vh-80px)] w-full flex-col items-center justify-center p-6 text-center">
+    <div className="flex min-h-screen w-full flex-col items-center justify-center p-6 text-center bg-slate-50">
       <div className="relative mb-6 flex items-center justify-center">
         {/* Glow backdrop effect */}
         <div className="absolute h-32 w-32 rounded-full bg-indigo-500/15 blur-2xl" />
@@ -41,7 +49,7 @@ export const NotFound: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => navigate('/dashboard', { replace: true })}
+          onClick={() => navigate(targetDashboard, { replace: true })}
           className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-700 transition-all cursor-pointer"
         >
           <Home size={16} />
@@ -51,3 +59,4 @@ export const NotFound: React.FC = () => {
     </div>
   );
 };
+

@@ -65,11 +65,13 @@ export const AppRoutes: React.FC = () => {
           <Route path="/kiosk/attendance" element={<KioskAttendancePage />} />
           <Route path="/design-system" element={<ComponentShowcase />} />
           <Route element={<ProtectedRoute />}>
+            {/* Halaman Error Mandiri (Bisa diakses oleh semua role tanpa pencegatan Layout) */}
+            <Route path="/403" element={<Forbidden />} />
+
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/ui-demo" element={<ComponentShowcase />} />
               <Route path="/homeroom/dashboard" element={<HomeroomDashboard />} />
-              <Route path="/403" element={<Forbidden />} />
               
               {/* Akademik & Kurikulum */}
               <Route element={<AuthorizedRoute requiredPermissions={['academic_years.read']} disallowedRoles={['Siswa', 'Orang Tua / Wali']} />}>
@@ -189,7 +191,6 @@ export const AppRoutes: React.FC = () => {
               </Route>
 
               <Route path="/settings" element={<AccountSettings />} />
-              <Route path="*" element={<NotFound />} />
             </Route>
 
             <Route path="/student" element={<StudentLayout />}>
@@ -200,6 +201,8 @@ export const AppRoutes: React.FC = () => {
               <Route path="schedule" element={<StudentSchedule />} />
             </Route>
 
+            {/* Fallback 404 global untuk semua rute terproteksi */}
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </AuthProvider>
