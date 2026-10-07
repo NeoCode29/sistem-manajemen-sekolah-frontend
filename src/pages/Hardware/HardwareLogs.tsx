@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable, type Column } from '../../components/Common/DataTable';
-import { Pagination } from '../../components/Common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -58,10 +58,6 @@ export const HardwareLogs: React.FC = () => {
   const [scanType, setScanType] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'MATCHED' | 'UNMATCHED'>('ALL');
   const [searchKeyword, setSearchKeyword] = useState('');
-
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchLogs();
@@ -120,7 +116,7 @@ export const HardwareLogs: React.FC = () => {
     if (!canReadLogs) return;
     try {
       setLoading(true);
-      const data = await getScanLogs({ deviceId, scanType, limit: 100 });
+      const data = await getScanLogs({ limit: 200 });
       setLogs(Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []));
     } catch (err: any) {
       notify.error(err, 'Gagal memuat log mesin absensi');
@@ -207,30 +203,22 @@ export const HardwareLogs: React.FC = () => {
     }
   };
 
-  const handleApplyFilter = () => {
-    if (isLiveMode) stopLiveMode();
-    setCurrentPage(1);
-    fetchLogs();
-  };
-
   const handleResetFilter = () => {
     setDeviceId('');
     setScanType('');
     setStatusFilter('ALL');
     setSearchKeyword('');
-    setCurrentPage(1);
     if (isLiveMode) stopLiveMode();
-    fetchLogs();
   };
 
   const hasActiveFilter = Boolean(deviceId || scanType || statusFilter !== 'ALL' || searchKeyword);
 
   // Helper check for success status
   const isScanSuccess = (log: HardwareLog) => {
-    return log.status === 'ATTENDANCE_SUCCESS' || log.status === 'MATCHED';
+    return log.status === 'ATTENDANCE_SUCCESS' || log.status === 'MATCHED' || log.status === 'REGISTER_MODE';
   };
 
-  // Filtered & Paginated logs
+  // Filtered logs with full reactivity across all filter inputs
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
       const q = searchKeyword.toLowerCase().trim();
@@ -250,36 +238,36 @@ export const HardwareLogs: React.FC = () => {
         eName.includes(q) ||
         eNip.includes(q);
 
+      const matchesDevice = !deviceId.trim() || dev.includes(deviceId.toLowerCase().trim());
+      const matchesScanType = !scanType || (log.scanType || 'CARD') === scanType;
+
       const matched = isScanSuccess(log);
       const matchesStatus =
         statusFilter === 'ALL' ||
         (statusFilter === 'MATCHED' && matched) ||
         (statusFilter === 'UNMATCHED' && !matched);
 
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesDevice && matchesScanType && matchesStatus;
     });
-  }, [logs, searchKeyword, statusFilter]);
+  }, [logs, searchKeyword, deviceId, scanType, statusFilter]);
 
-  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage) || 1;
-  const paginatedLogs = useMemo(() => {
-    return filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  }, [filteredLogs, currentPage, itemsPerPage]);
-
-  const totalMatched = useMemo(() => logs.filter((l) => isScanSuccess(l)).length, [logs]);
-  const totalUnmatched = useMemo(() => logs.filter((l) => !isScanSuccess(l)).length, [logs]);
+  const totalMatched = useMemo(() => filteredLogs.filter((l) => isScanSuccess(l)).length, [filteredLogs]);
+  const totalUnmatched = useMemo(() => filteredLogs.filter((l) => !isScanSuccess(l)).length, [filteredLogs]);
 
   const columns: Column<HardwareLog>[] = [
     { 
       key: 'time', 
       header: 'Waktu & Device', 
+      sortable: true,
+      sortValue: (log) => new Date(log.scanTimestamp || log.createdAt).getTime(),
       render: (log) => (
-        <div className="flex flex-col">
+        <div className="flex flex-col min-w-0">
           <span className="font-semibold text-slate-900 flex items-center gap-1.5 text-xs md:text-sm">
-            <Clock size={14} className="text-indigo-500" />
+            <Clock size={14} className="text-indigo-500 shrink-0" />
             {new Date(log.scanTimestamp || log.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </span>
-          <span className="text-xs text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
-            <Monitor size={12} className="text-slate-400" /> {log.deviceId || 'GATE-01'}
+          <span className="text-xs text-slate-500 mt-1 flex items-center gap-1.5 font-medium truncate">
+            <Monitor size={12} className="text-slate-400 shrink-0" /> {log.deviceId || 'GATE-01'}
           </span>
           <span className="text-[10px] text-slate-400 mt-0.5 font-mono">
             {new Date(log.scanTimestamp || log.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -290,13 +278,15 @@ export const HardwareLogs: React.FC = () => {
     { 
       key: 'scanInfo', 
       header: 'Tipe & ID Scan', 
+      sortable: true,
+      sortValue: (log) => `${log.scanType}_${log.scanValue || log.identityValue || ''}`,
       render: (log) => (
-        <div className="flex flex-col gap-1.5 items-start">
+        <div className="flex flex-col gap-1.5 items-start min-w-0">
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
-            <Fingerprint size={12} />
+            <Fingerprint size={12} className="shrink-0" />
             {log.scanType || 'CARD'}
           </span>
-          <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/80">
+          <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/80 break-all select-all">
             {log.scanValue || log.identityValue || '-'}
           </span>
         </div>
@@ -305,20 +295,24 @@ export const HardwareLogs: React.FC = () => {
     { 
       key: 'status', 
       header: 'Status Presensi', 
+      sortable: true,
+      sortValue: (log) => (isScanSuccess(log) ? 1 : 0),
       render: (log) => {
         const matched = isScanSuccess(log);
         return matched ? (
-          <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50/80 px-2.5 py-1.5 rounded-xl border border-emerald-200/70 w-max shadow-xs">
+          <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50/80 px-2.5 py-1.5 rounded-xl border border-emerald-200/70 w-max shadow-2xs">
             <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
             <span className="text-xs font-semibold">{log.message || 'Berhasil Terdeteksi'}</span>
           </div>
         ) : (
-          <div className="flex flex-col gap-1 text-rose-700 bg-rose-50/80 px-2.5 py-1.5 rounded-xl border border-rose-200/70 w-max shadow-xs">
+          <div className="flex flex-col gap-1 text-rose-700 bg-rose-50/80 px-2.5 py-1.5 rounded-xl border border-rose-200/70 w-max shadow-2xs max-w-xs">
             <div className="flex items-center gap-1.5">
               <AlertCircle size={15} className="text-rose-600 shrink-0" />
               <span className="text-xs font-semibold">Tidak Dikenali</span>
             </div>
-            <span className="text-[10px] text-rose-500 font-medium ml-5">{log.message || log.errorMessage || 'Kartu belum diregistrasi'}</span>
+            <span className="text-[10px] text-rose-500 font-medium ml-5 truncate" title={log.message || log.errorMessage || 'Kartu belum diregistrasi'}>
+              {log.message || log.errorMessage || 'Kartu belum diregistrasi'}
+            </span>
           </div>
         );
       }
@@ -326,20 +320,22 @@ export const HardwareLogs: React.FC = () => {
     { 
       key: 'identity', 
       header: 'Identitas Terdeteksi', 
+      sortable: true,
+      sortValue: (log) => log.student?.name || log.employee?.name || '',
       render: (log) => {
         const matched = isScanSuccess(log);
         const isStudent = log.matchedUserType === 'STUDENT' || log.attendableType === 'Student';
         return matched ? (
-          <div className="flex items-start gap-3">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border shadow-inner ${
+          <div className="flex items-start gap-3 min-w-0 max-w-sm">
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs ${
               isStudent
                 ? 'bg-indigo-50 text-indigo-600 border-indigo-200' 
                 : 'bg-purple-50 text-purple-600 border-purple-200'
             }`}>
               <User size={16} />
             </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-xs md:text-sm text-slate-900">
+            <div className="flex flex-col min-w-0">
+              <span className="font-bold text-xs md:text-sm text-slate-900 truncate block" title={log.student ? log.student.name : (log.employee ? log.employee.name : 'Terdaftar')}>
                 {log.student ? log.student.name : (log.employee ? log.employee.name : 'Terdaftar')}
               </span>
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -355,10 +351,10 @@ export const HardwareLogs: React.FC = () => {
                 </span>
               </div>
               {log.student?.class && (
-                <span className="text-[11px] text-slate-500 mt-0.5 font-medium">Kelas: {log.student.class.name}</span>
+                <span className="text-[11px] text-slate-500 mt-0.5 font-medium truncate">Kelas: {log.student.class.name}</span>
               )}
               {log.employee?.position && (
-                <span className="text-[11px] text-slate-500 mt-0.5 font-medium">Jabatan: {log.employee.position.name}</span>
+                <span className="text-[11px] text-slate-500 mt-0.5 font-medium truncate">Jabatan: {log.employee.position.name}</span>
               )}
             </div>
           </div>
@@ -370,6 +366,17 @@ export const HardwareLogs: React.FC = () => {
       }
     }
   ];
+
+  // Standardized compound pagination with 3-state whole-dataset sorting
+  const {
+    paginatedItems: paginatedLogs,
+    pagination: paginationProps,
+  } = useClientPagination<HardwareLog>(
+    filteredLogs,
+    10,
+    [searchKeyword, deviceId, scanType, statusFilter],
+    columns
+  );
 
   return (
     <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
@@ -582,13 +589,13 @@ export const HardwareLogs: React.FC = () => {
           <div className="flex items-center gap-2">
             <button 
               type="button"
-              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-slate-200 shadow-sm cursor-pointer"
-              onClick={handleApplyFilter}
-              disabled={isLiveMode}
-              title={isLiveMode ? "Matikan Live Mode untuk memfilter history lengkap" : "Terapkan Filter"}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-slate-200 shadow-sm cursor-pointer disabled:opacity-50"
+              onClick={fetchLogs}
+              disabled={loading || isLiveMode}
+              title="Segarkan data dari server"
             >
-              <Filter size={14} />
-              <span>Terapkan</span>
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              <span>Segarkan</span>
             </button>
             {hasActiveFilter && (
               <button
@@ -605,9 +612,9 @@ export const HardwareLogs: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. DataTable Card & Pagination */}
-      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 md:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white/40">
+      {/* 4. Riwayat Pemindaian Header & DataTable Terstandarisasi */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 px-1">
           <div>
             <div className="flex items-center gap-2.5">
               <h3 className="text-base font-bold text-slate-900 m-0">Riwayat Pemindaian Mesin</h3>
@@ -618,7 +625,7 @@ export const HardwareLogs: React.FC = () => {
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">Daftar log tap kartu RFID, sidik jari, dan face recognition yang tercatat di sistem</p>
+            <p className="text-xs text-slate-500 mt-0.5">Daftar log tap kartu RFID, sidik jari, dan biometrik yang tercatat di sistem</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="success">{totalMatched} Terdeteksi</Badge>
@@ -633,28 +640,13 @@ export const HardwareLogs: React.FC = () => {
           columns={columns}
           data={paginatedLogs}
           loading={loading && !isLiveMode}
+          pagination={paginationProps}
           emptyMessage={
             isLiveMode 
               ? "Menunggu data pemindaian dari mesin..." 
               : (hasActiveFilter ? "Tidak ada log yang cocok dengan filter yang dipilih." : "Belum ada log scan yang terekam.")
           }
         />
-
-        {!loading && filteredLogs.length > 0 && (
-          <div className="p-4 border-t border-gray-100">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={filteredLogs.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={(val) => {
-                setItemsPerPage(val);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
