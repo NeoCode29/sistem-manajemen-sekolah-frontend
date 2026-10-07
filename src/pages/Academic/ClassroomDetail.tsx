@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { FormField, Select, EmptyState, Badge } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify } from '../../utils/feedback';
@@ -180,10 +181,10 @@ export const ClassroomDetail: React.FC = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 'siswa' && id && selectedAy && selectedSm) {
+    if (id && selectedAy && selectedSm) {
       fetchStudents();
     }
-  }, [activeTab, id, selectedAy, selectedSm]);
+  }, [id, selectedAy, selectedSm]);
 
   // Filtered Students for the roster table
   const filteredStudents = useMemo(() => {
@@ -197,6 +198,16 @@ export const ClassroomDetail: React.FC = () => {
       return matchQuery && matchGender;
     });
   }, [students, searchQuery, genderFilter]);
+
+  // Client-side pagination for student roster
+  const {
+    paginatedItems: paginatedStudents,
+    pagination: studentPaginationProps
+  } = useClientPagination<Student>(
+    filteredStudents,
+    10,
+    [searchQuery, genderFilter, selectedAy, selectedSm]
+  );
 
   // Statistics
   const maleCount = useMemo(() => students.filter(s => s.gender === 'Laki-laki').length, [students]);
@@ -219,9 +230,15 @@ export const ClassroomDetail: React.FC = () => {
     {
       key: 'no',
       header: 'No',
-      render: (_: Student, index?: number) => (
-        <span className="text-gray-400 text-xs font-mono font-medium">{(index ?? 0) + 1}</span>
-      )
+      render: (_: Student, index?: number) => {
+        const page = studentPaginationProps.currentPage || 1;
+        const limit = studentPaginationProps.itemsPerPage || 10;
+        return (
+          <span className="text-gray-400 text-xs font-mono font-medium">
+            {(page - 1) * limit + (index ?? 0) + 1}
+          </span>
+        );
+      }
     },
     {
       key: 'fullName',
@@ -439,6 +456,61 @@ export const ClassroomDetail: React.FC = () => {
         </div>
       </div>
 
+      {/* Global Academic Period Filter Bar (Hardware Logs Pattern) */}
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-wrap items-end gap-4">
+        <div className="min-w-[200px] flex-1 sm:flex-none">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Tahun Ajaran
+          </label>
+          <div className="relative group">
+            <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
+            <select
+              value={selectedAy}
+              onChange={(e) => setSelectedAy(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium"
+            >
+              <option value="">-- Pilih Tahun Ajaran --</option>
+              {academicYears.map((ay) => (
+                <option key={ay.id} value={ay.id}>
+                  {ay.name} {ay.isActive ? '(Aktif)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="min-w-[200px] flex-1 sm:flex-none">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Semester
+          </label>
+          <div className="relative group">
+            <Layers size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
+            <select
+              value={selectedSm}
+              onChange={(e) => setSelectedSm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium"
+            >
+              <option value="">-- Pilih Semester --</option>
+              {semesters.map((sm) => (
+                <option key={sm.id} value={sm.id}>
+                  {sm.name} {sm.isActive ? '(Aktif)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Status Periode Terpilih */}
+        <div className="pb-1 text-xs text-gray-500 flex items-center gap-2">
+          {currentAy?.isActive && currentSm?.isActive && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Periode Akademik Aktif Saat Ini
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Tabs Navigation */}
       <div className="flex gap-6 border-b border-gray-200">
         <button 
@@ -530,37 +602,10 @@ export const ClassroomDetail: React.FC = () => {
 
               {canManageHomeroom ? (
                 <form onSubmit={handleAssignHomeroom} className="space-y-4 pt-1">
-                  <FormField label="Tahun Ajaran" required>
-                    <Select
-                      wrapperClassName="w-full"
-                      value={selectedAy}
-                      onChange={(e) => setSelectedAy(e.target.value)}
-                      options={[
-                        { value: '', label: '-- Pilih Tahun Ajaran --' },
-                        ...academicYears.map(ay => ({
-                          value: ay.id,
-                          label: `${ay.name} ${ay.isActive ? '(Aktif)' : ''}`
-                        }))
-                      ]}
-                      required
-                    />
-                  </FormField>
-
-                  <FormField label="Semester" required>
-                    <Select
-                      wrapperClassName="w-full"
-                      value={selectedSm}
-                      onChange={(e) => setSelectedSm(e.target.value)}
-                      options={[
-                        { value: '', label: '-- Pilih Semester --' },
-                        ...semesters.map(sm => ({
-                          value: sm.id,
-                          label: `${sm.name} ${sm.isActive ? '(Aktif)' : ''}`
-                        }))
-                      ]}
-                      required
-                    />
-                  </FormField>
+                  <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl text-xs text-indigo-900 flex items-center gap-2">
+                    <Calendar size={14} className="text-indigo-600 shrink-0" />
+                    <span>Periode Penugasan: <strong>{currentAy?.name || '-'}</strong> &bull; <strong>{currentSm?.name || '-'}</strong></span>
+                  </div>
 
                   <FormField label="Guru / Wali Kelas" required>
                     <Select
@@ -725,18 +770,17 @@ export const ClassroomDetail: React.FC = () => {
             </div>
 
             {/* Table Data */}
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden p-6">
-              <DataTable
-                columns={studentColumns}
-                data={filteredStudents}
-                loading={loadingStudents}
-                emptyMessage={
-                  searchQuery || genderFilter !== 'ALL'
-                    ? "Tidak ada siswa yang sesuai dengan filter pencarian."
-                    : "Belum ada siswa yang ditempatkan di kelas ini pada periode yang dipilih."
-                }
-              />
-            </div>
+            <DataTable
+              columns={studentColumns}
+              data={paginatedStudents}
+              loading={loadingStudents}
+              pagination={studentPaginationProps}
+              emptyMessage={
+                searchQuery || genderFilter !== 'ALL'
+                  ? "Tidak ada siswa yang sesuai dengan filter pencarian."
+                  : "Belum ada siswa yang ditempatkan di kelas ini pada periode yang dipilih."
+              }
+            />
           </div>
         )}
       </div>
