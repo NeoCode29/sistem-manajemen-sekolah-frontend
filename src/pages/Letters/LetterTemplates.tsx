@@ -41,6 +41,7 @@ import { generateLetterTemplateCode } from '../../utils/codeGenerator';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify } from '../../utils/feedback';
 import { trimPayload } from '../../utils/formSanitizer';
+import { getFileUrl } from '../../utils/fileUrl';
 
 export const LetterTemplates: React.FC = () => {
   const { user } = useAuth();
@@ -184,8 +185,11 @@ export const LetterTemplates: React.FC = () => {
     if (!profile) return;
     try {
       setProfileSaving(true);
+      const { id, createdAt, updatedAt, logoUrl, principalSignatureUrl, ...restProfile } = profile;
       await updateSchoolProfile({
+        ...restProfile,
         code: profile.code || 'SCH001',
+        name: profile.name || 'Sekolah',
         headerText: profile.headerText,
       });
 
@@ -411,7 +415,7 @@ export const LetterTemplates: React.FC = () => {
       render: (item) =>
         item.attachmentUrl ? (
           <a
-            href={`http://localhost:3000${item.attachmentUrl}`}
+            href={getFileUrl(item.attachmentUrl)}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl transition-all border border-indigo-200"
@@ -530,7 +534,7 @@ export const LetterTemplates: React.FC = () => {
                       {logoPreview ? (
                         <img src={logoPreview} alt="Pratinjau Baru" className="max-w-full max-h-full object-contain" />
                       ) : profile.logoUrl ? (
-                        <img src={`http://localhost:3000${profile.logoUrl}`} alt="Logo Sekolah" className="max-w-full max-h-full object-contain" />
+                        <img src={getFileUrl(profile.logoUrl)} alt="Logo Sekolah" className="max-w-full max-h-full object-contain" />
                       ) : (
                         <Building2 size={24} className="text-slate-300" />
                       )}
