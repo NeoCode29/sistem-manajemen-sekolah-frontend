@@ -48,10 +48,13 @@ export const Layout: React.FC = () => {
     fetchMaster();
   }, [location.pathname]);
 
-  // If user is Student or Guardian, they shouldn't be in this Layout
+  // If user is Student or Guardian, they shouldn't be in this Staff/Admin Layout
   const isStudentOrGuardian = user?.roles?.some(r => r.name === 'Siswa' || r.name === 'Orang Tua / Wali');
   if (isStudentOrGuardian) {
-    return <Navigate to="/student/dashboard" replace />;
+    if (location.pathname === '/dashboard' || location.pathname === '/dashboard/') {
+      return <Navigate to="/student/dashboard" replace />;
+    }
+    return <Navigate to="/403" replace />;
   }
 
   return (
