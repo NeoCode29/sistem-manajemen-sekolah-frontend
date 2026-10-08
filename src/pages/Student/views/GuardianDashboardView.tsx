@@ -60,6 +60,7 @@ export const GuardianDashboardView: React.FC<GuardianDashboardViewProps> = ({
 
   const todayAttendance = data?.todayAttendance;
   const attendanceStats = data?.attendanceStats;
+  const hasEffectiveDays = (attendanceStats?.totalDays ?? 0) > 0;
 
   const renderAttendanceBadge = () => {
     if (!todayAttendance || !todayAttendance.status) {
@@ -114,13 +115,17 @@ export const GuardianDashboardView: React.FC<GuardianDashboardViewProps> = ({
           </div>
         );
       case 'IZIN':
+      case 'DISPEN':
+      case 'DISPENSASI':
         return (
           <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 shadow-2xs">
             <Info size={18} className="text-blue-600 shrink-0" />
             <div className="min-w-0">
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-900 block">Izin</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-900 block">
+                {todayAttendance.status.toUpperCase() === 'IZIN' ? 'Izin' : 'Dispensasi'}
+              </span>
               <span className="text-xs text-blue-700 font-medium">
-                {todayAttendance.notes ? todayAttendance.notes : 'Keterangan izin resmi tercatat'}
+                {todayAttendance.notes ? todayAttendance.notes : 'Keterangan izin/dispensasi resmi tercatat'}
               </span>
             </div>
           </div>
@@ -367,18 +372,27 @@ export const GuardianDashboardView: React.FC<GuardianDashboardViewProps> = ({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         
         {/* Presensi Kehadiran */}
-        <div className="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-emerald-300 hover:shadow-md transition-all">
+        <div className={`bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border flex flex-col justify-between gap-3 group transition-all ${
+          hasEffectiveDays 
+            ? 'border-slate-200/80 hover:border-emerald-300 hover:shadow-md' 
+            : 'border-slate-200/70 hover:border-slate-300'
+        }`}>
           <div className="flex items-center justify-between">
             <span className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Kehadiran</span>
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center ${
+              hasEffectiveDays ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+            }`}>
               <UserCheck size={18} />
             </div>
           </div>
           <div>
             <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">
-              {data?.attendancePercentage ?? 0}<span className="text-base sm:text-lg font-bold text-emerald-600">%</span>
+              {hasEffectiveDays ? (data?.attendancePercentage ?? 0) : 0}
+              <span className={`text-base sm:text-lg font-bold ${hasEffectiveDays ? 'text-emerald-600' : 'text-slate-400'}`}>%</span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Semester Berjalan</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {hasEffectiveDays ? 'Semester Berjalan' : 'Belum Ada Hari Efektif'}
+            </p>
           </div>
         </div>
 
