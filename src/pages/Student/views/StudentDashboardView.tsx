@@ -13,7 +13,11 @@ import {
   BookOpen, 
   ChevronLeft, 
   ChevronRight, 
-  Sparkles
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  Info
 } from 'lucide-react';
 import type { DashboardSummary } from '../../../api/studentPortalService';
 import type { Announcement } from '../../../api/announcementService';
@@ -54,6 +58,100 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
     month: 'long',
     year: 'numeric'
   });
+
+  const todayAttendance = data?.todayAttendance;
+  const attendanceStats = data?.attendanceStats;
+  const hasEffectiveDays = (attendanceStats?.totalDays ?? 0) > 0;
+
+  const renderAttendanceBadge = () => {
+    if (!todayAttendance || !todayAttendance.status) {
+      return (
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-600">
+          <Clock size={16} className="text-slate-500 shrink-0" />
+          <div className="min-w-0">
+            <span className="text-xs font-bold block">Belum Ada Presensi Hari Ini</span>
+            <span className="text-[11px] text-slate-500">Menunggu pencatatan oleh wali kelas atau mesin presensi</span>
+          </div>
+        </div>
+      );
+    }
+
+    switch (todayAttendance.status.toUpperCase()) {
+      case 'HADIR':
+        return (
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 shadow-2xs">
+            <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+            <div className="min-w-0">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-900 block">Hadir Tepat Waktu</span>
+              <span className="text-xs text-emerald-700 font-medium">
+                Masuk: {todayAttendance.checkinTime ? `pkl ${todayAttendance.checkinTime} WIB` : '-'}
+                {todayAttendance.checkoutTime && ` • Pulang: pkl ${todayAttendance.checkoutTime} WIB`}
+              </span>
+            </div>
+          </div>
+        );
+      case 'TERLAMBAT':
+        return (
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 shadow-2xs">
+            <AlertCircle size={18} className="text-amber-600 shrink-0" />
+            <div className="min-w-0">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-900 block">Hadir (Terlambat)</span>
+              <span className="text-xs text-amber-700 font-medium">
+                Masuk: {todayAttendance.checkinTime ? `pkl ${todayAttendance.checkinTime} WIB` : '-'}
+                {todayAttendance.checkoutTime && ` • Pulang: pkl ${todayAttendance.checkoutTime} WIB`}
+              </span>
+            </div>
+          </div>
+        );
+      case 'SAKIT':
+        return (
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 shadow-2xs">
+            <AlertCircle size={18} className="text-amber-600 shrink-0" />
+            <div className="min-w-0">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-900 block">Sakit</span>
+              <span className="text-xs text-amber-700 font-medium">
+                {todayAttendance.notes ? todayAttendance.notes : 'Keterangan sakit telah diverifikasi sekolah'}
+              </span>
+            </div>
+          </div>
+        );
+      case 'IZIN':
+      case 'DISPEN':
+      case 'DISPENSASI':
+        return (
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 shadow-2xs">
+            <Info size={18} className="text-blue-600 shrink-0" />
+            <div className="min-w-0">
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-900 block">
+                {todayAttendance.status.toUpperCase() === 'IZIN' ? 'Izin' : 'Dispensasi'}
+              </span>
+              <span className="text-xs text-blue-700 font-medium">
+                {todayAttendance.notes ? todayAttendance.notes : 'Keterangan izin/dispensasi resmi tercatat'}
+              </span>
+            </div>
+          </div>
+        );
+      case 'ALPA':
+        return (
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 shadow-2xs">
+            <XCircle size={18} className="text-rose-600 shrink-0" />
+            <div className="min-w-0">
+              <span className="text-xs font-bold uppercase tracking-wider text-rose-900 block">Alpa / Tanpa Keterangan</span>
+              <span className="text-xs text-rose-700 font-medium">
+                Siswa tidak hadir tanpa konfirmasi surat keterangan
+              </span>
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-700">
+            <Clock size={16} className="text-slate-500 shrink-0" />
+            <span className="text-xs font-semibold">{todayAttendance.status}</span>
+          </div>
+        );
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full min-w-0 max-w-full overflow-x-hidden">
@@ -275,18 +373,27 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         
         {/* Presensi Kehadiran */}
-        <div className="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between gap-3 group hover:border-emerald-300 hover:shadow-md transition-all">
+        <div className={`bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border flex flex-col justify-between gap-3 group transition-all ${
+          hasEffectiveDays 
+            ? 'border-slate-200/80 hover:border-emerald-300 hover:shadow-md' 
+            : 'border-slate-200/70 hover:border-slate-300'
+        }`}>
           <div className="flex items-center justify-between">
             <span className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Kehadiran</span>
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center ${
+              hasEffectiveDays ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+            }`}>
               <UserCheck size={18} />
             </div>
           </div>
           <div>
             <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">
-              {data?.attendancePercentage ?? 0}<span className="text-base sm:text-lg font-bold text-emerald-600">%</span>
+              {hasEffectiveDays ? (data?.attendancePercentage ?? 0) : 0}
+              <span className={`text-base sm:text-lg font-bold ${hasEffectiveDays ? 'text-emerald-600' : 'text-slate-400'}`}>%</span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Semester Berjalan</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {hasEffectiveDays ? 'Semester Berjalan' : 'Belum Ada Hari Efektif'}
+            </p>
           </div>
         </div>
 
@@ -343,21 +450,69 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
       {/* 3. Aktivitas Hari Ini (2 Kolom Seimbang: Presensi Mandiri GPS & Jadwal) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-stretch">
         
-        {/* Kolom Kiri: Presensi Mandiri (6 Kolom) */}
+        {/* Kolom Kiri: Presensi Siswa (6 Kolom) */}
         <div className="lg:col-span-6 flex flex-col">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 sm:p-6 space-y-4 flex flex-col justify-between h-full">
-            <div className="flex items-center gap-2.5 text-indigo-600 pb-3 border-b border-slate-100">
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                <UserCheck size={18} />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2.5 text-indigo-600 pb-3 border-b border-slate-100">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                  <UserCheck size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 leading-tight">Presensi Kehadiran Siswa</h3>
+                  <p className="text-xs text-slate-500 font-normal">Status kehadiran hari ini dan catatan semester</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 leading-tight">Presensi Kehadiran Siswa</h3>
-                <p className="text-xs text-slate-500 font-normal">Check-in mandiri berbasis lokasi GPS area sekolah</p>
+
+              {/* Status Terkini Hari Ini */}
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status Hari Ini</span>
+                {renderAttendanceBadge()}
+              </div>
+
+              {/* Presensi Mandiri GPS jika belum absen */}
+              {(!todayAttendance || !todayAttendance.status) && (
+                <div className="pt-1">
+                  <GeolocationCheckin embedded />
+                </div>
+              )}
+
+              {/* Rekap Kehadiran Semester Ini */}
+              <div className="space-y-2.5 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rekap Semester Ini</span>
+                  <span className="text-[11px] font-medium text-slate-500">
+                    Total {attendanceStats?.totalDays ?? 0} Hari Efektif
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+                  <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-2.5 text-center">
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Hadir</span>
+                    <span className="text-base sm:text-lg font-black text-emerald-800">{attendanceStats?.present ?? 0}</span>
+                  </div>
+                  <div className="bg-amber-50/70 border border-amber-100 rounded-xl p-2.5 text-center">
+                    <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Sakit</span>
+                    <span className="text-base sm:text-lg font-black text-amber-800">{attendanceStats?.sick ?? 0}</span>
+                  </div>
+                  <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-2.5 text-center">
+                    <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">Izin</span>
+                    <span className="text-base sm:text-lg font-black text-blue-800">{attendanceStats?.permit ?? 0}</span>
+                  </div>
+                  <div className="bg-rose-50/70 border border-rose-100 rounded-xl p-2.5 text-center">
+                    <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Alpa</span>
+                    <span className="text-base sm:text-lg font-black text-rose-800">{attendanceStats?.absent ?? 0}</span>
+                  </div>
+                </div>
               </div>
             </div>
-            
-            <div className="flex-1 flex flex-col justify-between pt-1">
-              <GeolocationCheckin embedded />
+
+            {/* Note Informasi Siswa */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-500 leading-relaxed flex items-start gap-2 mt-2">
+              <Info size={15} className="text-indigo-500 shrink-0 mt-0.5" />
+              <span>
+                Pencatatan presensi siswa dilakukan oleh wali kelas di rombel atau secara otomatis melalui mesin RFID/kartu sekolah.
+              </span>
             </div>
           </div>
         </div>
