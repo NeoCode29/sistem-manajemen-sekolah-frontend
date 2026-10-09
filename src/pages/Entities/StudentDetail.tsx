@@ -9,6 +9,8 @@ import {
   deleteGuardian, 
   createGuardianAccount,
   resetGuardianPassword,
+  createStudentAccount,
+  resetStudentPassword,
   updateEnrollment, 
   createEnrollment,
   type Student, 
@@ -704,6 +706,64 @@ export const StudentDetail: React.FC = () => {
     }
   };
 
+  // --- STUDENT PORTAL ACCOUNT HANDLERS ---
+  const [studentAccountActionLoading, setStudentAccountActionLoading] = useState(false);
+
+  const handleCreateStudentAccount = () => {
+    if (!canUpdateStudent) {
+      notify.error('Anda tidak memiliki izin untuk mengelola akun siswa.');
+      return;
+    }
+    if (!student) return;
+    setConfirmConfig({
+      open: true,
+      variant: 'info',
+      title: 'Buat Akun Portal Siswa',
+      message: `Buat akun login portal siswa untuk ${student.fullName}? Username dan password awal akan diset sesuai nomor NIS (${student.nis}).`,
+      confirmText: 'Ya, Buat Akun',
+      onConfirm: async () => {
+        try {
+          setStudentAccountActionLoading(true);
+          const res = await createStudentAccount(student.id);
+          notify.success(res.message || 'Akun portal siswa berhasil dibuat');
+          setConfirmConfig(prev => ({ ...prev, open: false }));
+          await fetchStudent();
+        } catch (err: any) {
+          notify.error(err, 'Gagal membuat akun portal siswa');
+        } finally {
+          setStudentAccountActionLoading(false);
+        }
+      },
+    });
+  };
+
+  const handleResetStudentPassword = () => {
+    if (!canUpdateStudent) {
+      notify.error('Anda tidak memiliki izin untuk mereset password akun siswa.');
+      return;
+    }
+    if (!student) return;
+    setConfirmConfig({
+      open: true,
+      variant: 'warning',
+      title: 'Reset Password Portal Siswa',
+      message: `Reset password login portal untuk siswa ${student.fullName}? Password akan dikembalikan ke nomor NIS (${student.nis}).`,
+      confirmText: 'Ya, Reset Password',
+      onConfirm: async () => {
+        try {
+          setStudentAccountActionLoading(true);
+          const res = await resetStudentPassword(student.id);
+          notify.success(res.message || 'Password akun portal siswa berhasil di-reset ke NIS');
+          setConfirmConfig(prev => ({ ...prev, open: false }));
+        } catch (err: any) {
+          notify.error(err, 'Gagal mereset password akun portal siswa');
+        } finally {
+          setStudentAccountActionLoading(false);
+        }
+      },
+    });
+  };
+
   // --- ENROLLMENT HANDLERS ---
   const handleOpenEditEnrollment = (enr: StudentEnrollment) => {
     if (!canManageEnrollment && !canManageStudentClassroom) {
@@ -1011,25 +1071,55 @@ export const StudentDetail: React.FC = () => {
                   </div>
 
                   {/* Akun Portal Siswa */}
-                  <div className="p-2.5 rounded-xl border flex items-center justify-between gap-2 min-w-0 bg-gray-50/50 border-gray-100/80">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className={`w-2 h-2 rounded-full shrink-0 ${student.users && student.users.length > 0 && student.users[0]?.isActive !== false ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-                      <div className="min-w-0">
-                        <span className="text-gray-500 font-medium block text-[11px] leading-tight">Akun Portal Siswa</span>
-                        <span className="font-mono text-gray-800 text-[11px] font-semibold truncate block">
-                          {student.users && student.users.length > 0 ? `ID: ${student.nis}` : 'Belum diaktifkan'}
-                        </span>
+                  <div className="p-3.5 rounded-xl border bg-gradient-to-br from-indigo-50/50 to-white border-indigo-100/90 shadow-2xs space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                          <KeyRound size={14} />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[11px] font-semibold text-gray-900 block leading-tight">Akun Portal Siswa</span>
+                          <span className="font-mono text-gray-600 text-[11px] block truncate">
+                            {student.users && student.users.length > 0 ? (student.users[0]?.username ? `User: ${student.users[0]?.username}` : `NIS: ${student.nis}`) : 'Belum Terdaftar'}
+                          </span>
+                        </div>
                       </div>
+                      {student.users && student.users.length > 0 ? (
+                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200/60 shrink-0">
+                          Aktif
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-semibold rounded-full border border-amber-200/60 shrink-0">
+                          Belum Ada Akun
+                        </span>
+                      )}
                     </div>
-                    {student.users && student.users.length > 0 ? (
-                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200/60 shrink-0">
-                        Aktif
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-medium rounded-full shrink-0">
-                        Nonaktif
-                      </span>
-                    )}
+
+                    <div className="pt-2 border-t border-indigo-100/60 flex items-center gap-2">
+                      {student.users && student.users.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={handleResetStudentPassword}
+                          disabled={studentAccountActionLoading || !canUpdateStudent}
+                          className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 bg-white hover:bg-amber-50 text-amber-700 text-[11px] font-semibold rounded-lg border border-amber-200 shadow-2xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Reset password login siswa kembali ke nomor NIS"
+                        >
+                          <RotateCcw size={12} className={studentAccountActionLoading ? 'animate-spin' : ''} />
+                          Reset Password ke NIS
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleCreateStudentAccount}
+                          disabled={studentAccountActionLoading || !canUpdateStudent}
+                          className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Buat akun login portal siswa (Username & Password = NIS)"
+                        >
+                          <Sparkles size={12} />
+                          Buat Akun Portal Siswa
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

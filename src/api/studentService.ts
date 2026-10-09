@@ -70,7 +70,7 @@ export interface Student {
   email?: string;
   isActive?: boolean;
   major?: any;
-  users?: { id: string; isActive: boolean }[];
+  users?: { id: string; isActive: boolean; username?: string; name?: string }[];
   guardians?: StudentGuardian[];
   enrollments?: StudentEnrollment[];
 
@@ -286,3 +286,20 @@ export const restoreStudent = async (id: string): Promise<any> => {
   const response = await api.post(`/students/${id}/restore`);
   return response.data;
 };
+
+export const createStudentAccount = async (
+  studentId: string | number,
+  data?: { password?: string }
+): Promise<{ message: string; userId: string; username: string }> => {
+  const response = await api.post(`/students/${studentId}/account`, data);
+  return response.data;
+};
+
+export const resetStudentPassword = async (
+  studentId: string | number,
+  data?: { newPassword?: string }
+): Promise<{ message: string; username: string }> => {
+  const response = await api.post(`/students/${studentId}/reset-password`, data);
+  return response.data;
+};
+
