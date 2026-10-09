@@ -1,7 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { getAttendanceSetting, updateAttendanceSetting } from '../../api/attendanceService';
-import { Clock, Save, MapPin, AlertTriangle, ShieldCheck, Loader2, CheckCircle2, CreditCard, Smartphone, UserCheck, Sliders } from 'lucide-react';
+import { getAttendanceSetting, updateAttendanceSetting, triggerAutoAlpha, type AttendanceExemptionDate } from '../../api/attendanceService';
+import {
+  Clock,
+  Save,
+  MapPin,
+  AlertTriangle,
+  ShieldCheck,
+  Loader2,
+  CheckCircle2,
+  CreditCard,
+  Smartphone,
+  UserCheck,
+  Sliders,
+  Sparkles,
+  Play,
+  CalendarOff,
+  Trash2,
+  Plus,
+  Calendar,
+  Check,
+  Info,
+  CalendarCheck,
+  Clock4,
+} from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { MapLocationPicker } from '../../components/widgets/MapLocationPicker';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify, parseApiError } from '../../utils/feedback';
@@ -30,6 +53,15 @@ export const AttendanceSettings: React.FC = () => {
   const [employeeGpsEnabled, setEmployeeGpsEnabled] = useState(true);
   const [employeeManualEnabled, setEmployeeManualEnabled] = useState(true);
 
+  // Auto-Alpha Automation State
+  const [autoAlphaEnabled, setAutoAlphaEnabled] = useState(true);
+  const [autoAlphaTime, setAutoAlphaTime] = useState('16:30');
+  const [autoAlphaSkippedDates, setAutoAlphaSkippedDates] = useState<AttendanceExemptionDate[]>([]);
+  const [newExemptionDate, setNewExemptionDate] = useState('');
+  const [newExemptionReason, setNewExemptionReason] = useState('');
+  const [triggeringAlpha, setTriggeringAlpha] = useState(false);
+  const [confirmTriggerOpen, setConfirmTriggerOpen] = useState(false);
+
   const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
@@ -55,6 +87,9 @@ export const AttendanceSettings: React.FC = () => {
         setEmployeeRfidEnabled(data.employeeRfidEnabled ?? true);
         setEmployeeGpsEnabled(data.employeeGpsEnabled ?? true);
         setEmployeeManualEnabled(data.employeeManualEnabled ?? true);
+        setAutoAlphaEnabled(data.autoAlphaEnabled ?? true);
+        setAutoAlphaTime(data.autoAlphaTime || '16:30');
+        setAutoAlphaSkippedDates(Array.isArray(data.autoAlphaSkippedDates) ? data.autoAlphaSkippedDates : []);
         setIsActive(data.isActive ?? true);
       }
     } catch (err: any) {
@@ -90,6 +125,65 @@ export const AttendanceSettings: React.FC = () => {
     return true;
   };
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isTodaySkipped = autoAlphaSkippedDates.some((d) => d.date === todayStr);
+
+  const handleToggleSkipToday = () => {
+    if (isTodaySkipped) {
+      setAutoAlphaSkippedDates((prev) => prev.filter((d) => d.date !== todayStr));
+      notify.success('Penandaan Alpa otomatis untuk HARI INI diaktifkan kembali. Pastikan klik Simpan Pengaturan.');
+    } else {
+      const newEntry: AttendanceExemptionDate = {
+        date: todayStr,
+        reason: 'Dilewati manual oleh Admin',
+        createdAt: new Date().toISOString(),
+      };
+      setAutoAlphaSkippedDates((prev) => [newEntry, ...prev]);
+      notify.info('Penandaan Alpa otomatis untuk HARI INI berhasil dilewati.');
+    }
+  };
+
+  const handleAddExemptionDate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newExemptionDate) {
+      notify.error('Pilih tanggal pengecualian libur terlebih dahulu.');
+      return;
+    }
+    if (autoAlphaSkippedDates.some((d) => d.date === newExemptionDate)) {
+      notify.error('Tanggal ini sudah terdaftar dalam daftar pengecualian.');
+      return;
+    }
+
+    const newEntry: AttendanceExemptionDate = {
+      date: newExemptionDate,
+      reason: newExemptionReason.trim() || 'Libur Khusus / Kegiatan Sekolah',
+      createdAt: new Date().toISOString(),
+    };
+
+    setAutoAlphaSkippedDates((prev) => [newEntry, ...prev]);
+    setNewExemptionDate('');
+    setNewExemptionReason('');
+    notify.success(`Tanggal ${newExemptionDate} berhasil ditambahkan ke daftar pengecualian.`);
+  };
+
+  const handleRemoveExemptionDate = (dateToRemove: string) => {
+    setAutoAlphaSkippedDates((prev) => prev.filter((d) => d.date !== dateToRemove));
+    notify.info(`Tanggal ${dateToRemove} dihapus dari daftar pengecualian.`);
+  };
+
+  const handleRunAutoAlphaNow = async () => {
+    try {
+      setTriggeringAlpha(true);
+      const res = await triggerAutoAlpha();
+      notify.success(res?.message || 'Proses evaluasi penandaan Alpa otomatis berhasil dijalankan!');
+    } catch (err: any) {
+      notify.error(parseApiError(err, 'Gagal menjalankan evaluasi Alpa'));
+    } finally {
+      setTriggeringAlpha(false);
+      setConfirmTriggerOpen(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManageAttendanceSettings) {
@@ -116,11 +210,14 @@ export const AttendanceSettings: React.FC = () => {
         employeeRfidEnabled,
         employeeGpsEnabled,
         employeeManualEnabled,
+        autoAlphaEnabled,
+        autoAlphaTime,
+        autoAlphaSkippedDates,
         isActive,
       };
 
       await updateAttendanceSetting(payload);
-      notify.success('Pengaturan jam, lokasi, dan metode absensi berhasil disimpan!');
+      notify.success('Pengaturan jam, lokasi, dan otomatisasi absensi berhasil disimpan!');
     } catch (err: any) {
       notify.error(parseApiError(err, 'Gagal menyimpan pengaturan absensi'));
     } finally {
@@ -575,6 +672,270 @@ export const AttendanceSettings: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Card 4: Otomatisasi Presensi & Penandaan Alpa (Auto-Alpha) */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+            {/* Header Card 4 */}
+            <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-indigo-50 text-indigo-600 border border-indigo-100 shrink-0">
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-slate-900 m-0">Otomatisasi Presensi & Penandaan Alpa (Auto-Alpha)</h2>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-colors ${
+                        autoAlphaEnabled
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}
+                    >
+                      {autoAlphaEnabled ? 'Fitur Aktif' : 'Fitur Nonaktif'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Konfigurasi cron job penandaan Alpa otomatis siswa tanpa presensi masuk, jam eksekusi, dan pengecualian hari libur
+                  </p>
+                </div>
+              </div>
+
+              {canManageAttendanceSettings && (
+                <button
+                  type="button"
+                  disabled={triggeringAlpha}
+                  onClick={() => setConfirmTriggerOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm shadow-indigo-200 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  {triggeringAlpha ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Play size={13} className="fill-white" />
+                  )}
+                  <span>{triggeringAlpha ? 'Menjalankan...' : 'Jalankan Alpa Sekarang'}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Body Card 4 */}
+            <div className="p-6 md:p-8 space-y-6">
+              {/* Row 1: Master Switch & Jam Eksekusi */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Master Switch */}
+                <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-slate-900">Master Switch Penandaan Alpa</span>
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Bila aktif, siswa yang belum memiliki presensi masuk hingga jam batas akan ditandai <strong className="text-rose-600">ALPA</strong> otomatis oleh cron harian.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={autoAlphaEnabled}
+                    onClick={() => setAutoAlphaEnabled(!autoAlphaEnabled)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${
+                      autoAlphaEnabled ? 'bg-indigo-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        autoAlphaEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Jam Eksekusi Cron */}
+                <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                      <Clock4 size={16} className="text-indigo-600" />
+                      Jam Eksekusi Harian (WIB)
+                    </label>
+                    <span className="text-[11px] font-semibold text-slate-400">Senin - Jumat</span>
+                  </div>
+                  <input
+                    type="time"
+                    value={autoAlphaTime}
+                    onChange={(e) => setAutoAlphaTime(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    Disarankan diatur setelah batas maksimal check-out kepulangan siswa (default: 16:30 WIB).
+                  </p>
+                </div>
+              </div>
+
+              {/* Row 2: Banner Aksi Cepat "Lewati Alpa Hari Ini" (Quick Skip Today) */}
+              <div
+                className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                  isTodaySkipped
+                    ? 'bg-amber-50/90 border-amber-200 text-amber-900 shadow-2xs'
+                    : 'bg-indigo-50/50 border-indigo-100 text-indigo-950'
+                }`}
+              >
+                <div className="flex items-start gap-3.5">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      isTodaySkipped
+                        ? 'bg-amber-100 text-amber-700 border border-amber-300/60'
+                        : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                    }`}
+                  >
+                    {isTodaySkipped ? <CalendarOff size={18} /> : <CalendarCheck size={18} />}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm">
+                      {isTodaySkipped
+                        ? 'Penandaan Alpa Hari Ini Dikecualikan / Dilewati'
+                        : 'Status Hari Ini: Berjalan Normal'}
+                    </h3>
+                    <p className="text-xs mt-0.5 opacity-80 leading-relaxed">
+                      {isTodaySkipped
+                        ? `Tanggal hari ini (${todayStr}) ada di daftar pengecualian. Siswa yang tidak hadir tidak akan ditandai Alpa otomatis.`
+                        : `Penandaan Alpa otomatis akan dieksekusi hari ini pada pukul ${autoAlphaTime} WIB untuk siswa tanpa presensi.`}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleToggleSkipToday}
+                  className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer shrink-0 ${
+                    isTodaySkipped
+                      ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-200'
+                      : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 shadow-slate-100'
+                  }`}
+                >
+                  {isTodaySkipped ? (
+                    <>
+                      <Check size={14} />
+                      <span>Aktifkan Kembali Hari Ini</span>
+                    </>
+                  ) : (
+                    <>
+                      <CalendarOff size={14} className="text-rose-600" />
+                      <span>Lewati Alpa Hari Ini</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Row 3: Kalender / Daftar Pengecualian Tanggal Libur Khusus */}
+              <div className="space-y-4 pt-2 border-t border-slate-100">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <Calendar size={16} className="text-indigo-600" />
+                      Daftar Tanggal Libur Khusus / Pengecualian Alpa
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Tambahkan tanggal libur fakultatif, rapat dinas, atau class meeting agar penandaan Alpa otomatis tidak dieksekusi.
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 w-fit">
+                    {autoAlphaSkippedDates.length} Tanggal Dikecualikan
+                  </span>
+                </div>
+
+                {/* Form Tambah Pengecualian */}
+                <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+                  <div className="sm:w-48 space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 block">Pilih Tanggal</label>
+                    <input
+                      type="date"
+                      value={newExemptionDate}
+                      onChange={(e) => setNewExemptionDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div className="flex-1 space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 block">Keterangan / Alasan Libur</label>
+                    <input
+                      type="text"
+                      placeholder="Misal: Class Meeting Ganjil, Libur Hardiknas, Peringatan HUT..."
+                      value={newExemptionReason}
+                      onChange={(e) => setNewExemptionReason(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddExemptionDate}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-2xs transition-all cursor-pointer h-[38px] shrink-0"
+                  >
+                    <Plus size={14} />
+                    <span>Tambah Pengecualian</span>
+                  </button>
+                </div>
+
+                {/* Tabel Mini Tanggal Pengecualian */}
+                {autoAlphaSkippedDates.length === 0 ? (
+                  <div className="py-8 px-4 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/40">
+                    <Info size={24} className="mx-auto text-slate-400 mb-1.5" />
+                    <p className="text-xs font-semibold text-slate-600">Belum ada tanggal pengecualian libur khusus.</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Gunakan formulir di atas untuk mengecualikan tanggal tertentu dari sistem penandaan Alpa otomatis.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="border border-slate-200/80 rounded-xl overflow-hidden shadow-2xs">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                        <tr>
+                          <th className="px-4 py-2.5">Tanggal</th>
+                          <th className="px-4 py-2.5">Keterangan / Alasan Libur</th>
+                          <th className="px-4 py-2.5 text-center w-28">Status</th>
+                          <th className="px-4 py-2.5 text-right w-16">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {autoAlphaSkippedDates.map((item) => {
+                          const isCurrentToday = item.date === todayStr;
+                          return (
+                            <tr key={item.date} className="hover:bg-slate-50/60 transition-colors">
+                              <td className="px-4 py-2.5 font-mono font-bold text-slate-900">
+                                <div className="flex items-center gap-2">
+                                  <span>{item.date}</span>
+                                  {isCurrentToday && (
+                                    <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
+                                      Hari Ini
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-2.5 text-slate-700">{item.reason || '-'}</td>
+                              <td className="px-4 py-2.5 text-center">
+                                <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                  Dilewati
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveExemptionDate(item.date)}
+                                  title="Hapus pengecualian tanggal ini"
+                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </fieldset>
 
           {/* Bottom Action Card */}
@@ -602,6 +963,31 @@ export const AttendanceSettings: React.FC = () => {
         </form>
         </div>
       )}
+
+      {/* Confirmation Dialog for Manual Auto-Alpha Execution */}
+      <ConfirmDialog
+        open={confirmTriggerOpen}
+        onClose={() => setConfirmTriggerOpen(false)}
+        onConfirm={handleRunAutoAlphaNow}
+        title="Jalankan Penandaan Alpa Sekarang?"
+        message={
+          <div className="space-y-2 text-sm text-slate-600">
+            <p>
+              Sistem akan memindai seluruh siswa aktif di rombel untuk hari ini ({todayStr}).
+            </p>
+            <p>
+              Siswa yang belum memiliki catatan presensi masuk (Hadir/Izin/Sakit/Terlambat) akan langsung ditandai sebagai <strong className="text-rose-600">ALPA</strong>.
+            </p>
+            <p className="text-xs text-amber-700 font-semibold bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+              Perhatian: Tindakan ini akan langsung membuat catatan presensi ALPA baru bagi siswa yang belum memiliki presensi.
+            </p>
+          </div>
+        }
+        variant="warning"
+        confirmText="Ya, Jalankan Sekarang"
+        cancelText="Batal"
+        isLoading={triggeringAlpha}
+      />
     </div>
   );
 };
