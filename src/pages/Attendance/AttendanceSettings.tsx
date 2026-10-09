@@ -132,6 +132,23 @@ export const AttendanceSettings: React.FC = () => {
   const todayStr = new Date().toISOString().split('T')[0];
   const isTodaySkipped = autoAlphaSkippedDates.some((d) => d.date === todayStr);
 
+  const formatIndonesianDate = (dateStr: string) => {
+    try {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      if (!y || !m || !d) return dateStr;
+      const date = new Date(Date.UTC(y, m - 1, d));
+      return new Intl.DateTimeFormat('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(date);
+    } catch {
+      return dateStr;
+    }
+  };
+
   const handleToggleSkipToday = () => {
     if (isTodaySkipped) {
       setAutoAlphaSkippedDates((prev) => prev.filter((d) => d.date !== todayStr));
@@ -147,8 +164,8 @@ export const AttendanceSettings: React.FC = () => {
     }
   };
 
-  const handleAddExemptionDate = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddExemptionDate = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!newExemptionDate) {
       notify.error('Pilih tanggal pengecualian libur terlebih dahulu.');
       return;
@@ -842,8 +859,8 @@ export const AttendanceSettings: React.FC = () => {
                     </h3>
                     <p className="text-xs mt-0.5 opacity-80 leading-relaxed">
                       {isTodaySkipped
-                        ? `Tanggal hari ini (${todayStr}) ada di daftar pengecualian. Siswa yang tidak hadir tidak akan ditandai Alpa otomatis.`
-                        : `Penandaan Alpa otomatis akan dieksekusi hari ini pada pukul ${autoAlphaTime} WIB untuk siswa tanpa presensi.`}
+                        ? `Tanggal hari ini (${todayStr}) ada di daftar pengecualian. Siswa dan pegawai yang tidak hadir tidak akan ditandai Alpa otomatis.`
+                        : `Penandaan Alpa otomatis akan dieksekusi hari ini pada pukul ${autoAlphaTime} WIB untuk siswa dan pegawai tanpa presensi.`}
                     </p>
                   </div>
                 </div>
@@ -870,33 +887,53 @@ export const AttendanceSettings: React.FC = () => {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
 
-              {/* Row 3: Kalender / Daftar Pengecualian Tanggal Libur Khusus */}
-              <div className="space-y-4 pt-2 border-t border-slate-100">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                      <Calendar size={16} className="text-indigo-600" />
-                      Daftar Tanggal Libur Khusus / Pengecualian Alpa
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Tambahkan tanggal libur fakultatif, rapat dinas, atau class meeting agar penandaan Alpa otomatis tidak dieksekusi.
-                    </p>
+          {/* Card 5: Pengaturan Tanggal Libur Khusus & Pengecualian Presensi */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+            {/* Header Card 5 */}
+            <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600 border border-amber-100 shrink-0">
+                  <CalendarOff size={20} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-slate-900 m-0">Pengaturan Tanggal Libur Khusus & Pengecualian Presensi</h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-amber-50 text-amber-700 border-amber-200">
+                      {autoAlphaSkippedDates.length} Tanggal Terdaftar
+                    </span>
                   </div>
-                  <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 w-fit">
-                    {autoAlphaSkippedDates.length} Tanggal Dikecualikan
-                  </span>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Daftar tanggal libur khusus, cuti bersama, atau agenda kegiatan sekolah di mana sistem tidak akan menjalankan penandaan Alpa otomatis
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body Card 5 */}
+            <div className="p-6 md:p-8 space-y-6">
+              {/* Form Tambah Tanggal Libur Khusus */}
+              <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80">
+                <div className="mb-3">
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <Plus size={14} className="text-indigo-600" />
+                    Tambah Tanggal Pengecualian Baru
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Pilih tanggal kalender dan tentukan keterangan libur (misal: Rapat Dinas, Class Meeting, Hari Libur Keagamaan).
+                  </p>
                 </div>
 
-                {/* Form Tambah Pengecualian */}
-                <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
-                  <div className="sm:w-48 space-y-1">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+                  <div className="sm:w-56 space-y-1">
                     <label className="text-[11px] font-bold text-slate-700 block">Pilih Tanggal</label>
                     <input
                       type="date"
                       value={newExemptionDate}
                       onChange={(e) => setNewExemptionDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
                     />
                   </div>
 
@@ -904,70 +941,104 @@ export const AttendanceSettings: React.FC = () => {
                     <label className="text-[11px] font-bold text-slate-700 block">Keterangan / Alasan Libur</label>
                     <input
                       type="text"
-                      placeholder="Misal: Class Meeting Ganjil, Libur Hardiknas, Peringatan HUT..."
+                      placeholder="Contoh: Class Meeting Semester Ganjil, Libur Hardiknas, Rapat Kerja..."
                       value={newExemptionReason}
                       onChange={(e) => setNewExemptionReason(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddExemptionDate();
+                        }
+                      }}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                     />
                   </div>
 
                   <button
                     type="button"
-                    onClick={handleAddExemptionDate}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-2xs transition-all cursor-pointer h-[38px] shrink-0"
+                    onClick={() => handleAddExemptionDate()}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-indigo-200 transition-all cursor-pointer h-[42px] shrink-0"
                   >
-                    <Plus size={14} />
-                    <span>Tambah Pengecualian</span>
+                    <Plus size={15} />
+                    <span>Tambah ke Daftar</span>
                   </button>
                 </div>
+              </div>
 
-                {/* Tabel Mini Tanggal Pengecualian */}
+              {/* Tabel Standar Daftar Tanggal Libur Khusus */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar size={14} className="text-indigo-600" />
+                    Daftar Tanggal Libur Terdaftar
+                  </h3>
+                  <span className="text-xs text-slate-500">
+                    Total: <strong className="text-slate-800">{autoAlphaSkippedDates.length}</strong> hari
+                  </span>
+                </div>
+
                 {autoAlphaSkippedDates.length === 0 ? (
-                  <div className="py-8 px-4 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/40">
-                    <Info size={24} className="mx-auto text-slate-400 mb-1.5" />
-                    <p className="text-xs font-semibold text-slate-600">Belum ada tanggal pengecualian libur khusus.</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Gunakan formulir di atas untuk mengecualikan tanggal tertentu dari sistem penandaan Alpa otomatis.
+                  <div className="py-12 px-4 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/40">
+                    <div className="w-12 h-12 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+                      <CalendarOff size={24} />
+                    </div>
+                    <p className="text-sm font-bold text-slate-700">Belum Ada Tanggal Libur Khusus</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                      Belum ada tanggal libur yang terdaftar. Gunakan formulir di atas untuk mengecualikan tanggal tertentu dari sistem penandaan Alpa otomatis.
                     </p>
                   </div>
                 ) : (
-                  <div className="border border-slate-200/80 rounded-xl overflow-hidden shadow-2xs">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <div className="overflow-x-auto border border-slate-200/80 rounded-2xl shadow-2xs bg-white">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                      <thead className="bg-slate-50/70 text-slate-600 font-semibold border-b border-slate-200 text-xs">
                         <tr>
-                          <th className="px-4 py-2.5">Tanggal</th>
-                          <th className="px-4 py-2.5">Keterangan / Alasan Libur</th>
-                          <th className="px-4 py-2.5 text-center w-28">Status</th>
-                          <th className="px-4 py-2.5 text-right w-16">Aksi</th>
+                          <th className="w-14 text-center py-3.5 px-3">No</th>
+                          <th className="py-3.5 px-4 min-w-[220px]">Tanggal Libur</th>
+                          <th className="py-3.5 px-4">Keterangan / Alasan Libur</th>
+                          <th className="w-36 py-3.5 px-4 text-center">Status Presensi</th>
+                          <th className="w-20 py-3.5 px-4 text-center">Aksi</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
-                        {autoAlphaSkippedDates.map((item) => {
+                      <tbody className="divide-y divide-slate-100 text-xs">
+                        {autoAlphaSkippedDates.map((item, index) => {
                           const isCurrentToday = item.date === todayStr;
                           return (
-                            <tr key={item.date} className="hover:bg-slate-50/60 transition-colors">
-                              <td className="px-4 py-2.5 font-mono font-bold text-slate-900">
+                            <tr key={item.date} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="text-center text-slate-400 py-3.5 px-3 font-mono font-medium">
+                                {index + 1}
+                              </td>
+                              <td className="py-3.5 px-4">
                                 <div className="flex items-center gap-2">
-                                  <span>{item.date}</span>
+                                  <span className="font-mono font-bold text-slate-900 text-xs">
+                                    {item.date}
+                                  </span>
                                   {isCurrentToday && (
-                                    <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
+                                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-200">
                                       Hari Ini
                                     </span>
                                   )}
                                 </div>
-                              </td>
-                              <td className="px-4 py-2.5 text-slate-700">{item.reason || '-'}</td>
-                              <td className="px-4 py-2.5 text-center">
-                                <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                  Dilewati
+                                <span className="text-[11px] text-slate-500 font-medium block mt-0.5">
+                                  {formatIndonesianDate(item.date)}
                                 </span>
                               </td>
-                              <td className="px-4 py-2.5 text-right">
+                              <td className="py-3.5 px-4">
+                                <span className="font-medium text-slate-800 text-xs">
+                                  {item.reason || '-'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                  Alpa Dikecualikan
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveExemptionDate(item.date)}
-                                  title="Hapus pengecualian tanggal ini"
-                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Hapus tanggal ini dari daftar pengecualian"
+                                  className="inline-flex items-center justify-center w-8 h-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
                                 >
                                   <Trash2 size={15} />
                                 </button>
