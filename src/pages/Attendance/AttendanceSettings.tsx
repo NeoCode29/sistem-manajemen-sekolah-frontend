@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getAttendanceSetting, updateAttendanceSetting, triggerAutoAlpha, type AttendanceExemptionDate } from '../../api/attendanceService';
+import { getAttendanceSetting, updateAttendanceSetting, triggerAutoAlpha, triggerAllAutoAlpha, type AttendanceExemptionDate } from '../../api/attendanceService';
 import {
   Clock,
   Save,
@@ -22,6 +22,8 @@ import {
   Info,
   CalendarCheck,
   Clock4,
+  GraduationCap,
+  Users,
 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -55,6 +57,7 @@ export const AttendanceSettings: React.FC = () => {
 
   // Auto-Alpha Automation State
   const [autoAlphaEnabled, setAutoAlphaEnabled] = useState(true);
+  const [employeeAutoAlphaEnabled, setEmployeeAutoAlphaEnabled] = useState(true);
   const [autoAlphaTime, setAutoAlphaTime] = useState('16:30');
   const [autoAlphaSkippedDates, setAutoAlphaSkippedDates] = useState<AttendanceExemptionDate[]>([]);
   const [newExemptionDate, setNewExemptionDate] = useState('');
@@ -88,6 +91,7 @@ export const AttendanceSettings: React.FC = () => {
         setEmployeeGpsEnabled(data.employeeGpsEnabled ?? true);
         setEmployeeManualEnabled(data.employeeManualEnabled ?? true);
         setAutoAlphaEnabled(data.autoAlphaEnabled ?? true);
+        setEmployeeAutoAlphaEnabled(data.employeeAutoAlphaEnabled ?? true);
         setAutoAlphaTime(data.autoAlphaTime || '16:30');
         setAutoAlphaSkippedDates(Array.isArray(data.autoAlphaSkippedDates) ? data.autoAlphaSkippedDates : []);
         setIsActive(data.isActive ?? true);
@@ -174,7 +178,7 @@ export const AttendanceSettings: React.FC = () => {
   const handleRunAutoAlphaNow = async () => {
     try {
       setTriggeringAlpha(true);
-      const res = await triggerAutoAlpha();
+      const res = await triggerAllAutoAlpha();
       notify.success(res?.message || 'Proses evaluasi penandaan Alpa otomatis berhasil dijalankan!');
     } catch (err: any) {
       notify.error(parseApiError(err, 'Gagal menjalankan evaluasi Alpa'));
@@ -211,6 +215,7 @@ export const AttendanceSettings: React.FC = () => {
         employeeGpsEnabled,
         employeeManualEnabled,
         autoAlphaEnabled,
+        employeeAutoAlphaEnabled,
         autoAlphaTime,
         autoAlphaSkippedDates,
         isActive,
@@ -684,18 +689,29 @@ export const AttendanceSettings: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-bold text-slate-900 m-0">Otomatisasi Presensi & Penandaan Alpa (Auto-Alpha)</h2>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-colors ${
-                        autoAlphaEnabled
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border-rose-200'
-                      }`}
-                    >
-                      {autoAlphaEnabled ? 'Fitur Aktif' : 'Fitur Nonaktif'}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                          autoAlphaEnabled
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}
+                      >
+                        Siswa: {autoAlphaEnabled ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                          employeeAutoAlphaEnabled
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}
+                      >
+                        Pegawai: {employeeAutoAlphaEnabled ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </div>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Konfigurasi cron job penandaan Alpa otomatis siswa tanpa presensi masuk, jam eksekusi, dan pengecualian hari libur
+                    Konfigurasi cron job penandaan Alpa otomatis siswa dan pegawai/guru tanpa presensi masuk, jam eksekusi, dan pengecualian hari libur
                   </p>
                 </div>
               </div>
@@ -719,16 +735,17 @@ export const AttendanceSettings: React.FC = () => {
 
             {/* Body Card 4 */}
             <div className="p-6 md:p-8 space-y-6">
-              {/* Row 1: Master Switch & Jam Eksekusi */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Master Switch */}
-                <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 flex items-start justify-between gap-4">
+              {/* Row 1: Master Switches & Jam Eksekusi */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* Master Switch Siswa */}
+                <div className="bg-slate-50/70 p-4 md:p-5 rounded-2xl border border-slate-200/80 flex items-start justify-between gap-3">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-slate-900">Master Switch Penandaan Alpa</span>
+                    <div className="flex items-center gap-1.5">
+                      <GraduationCap size={16} className="text-indigo-600 shrink-0" />
+                      <span className="font-bold text-xs md:text-sm text-slate-900">Alpa Siswa</span>
                     </div>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      Bila aktif, siswa yang belum memiliki presensi masuk hingga jam batas akan ditandai <strong className="text-rose-600">ALPA</strong> otomatis oleh cron harian.
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Siswa tanpa presensi masuk akan otomatis ditandai <strong className="text-rose-600">ALPA</strong>.
                     </p>
                   </div>
                   <button
@@ -749,23 +766,52 @@ export const AttendanceSettings: React.FC = () => {
                   </button>
                 </div>
 
+                {/* Master Switch Pegawai */}
+                <div className="bg-slate-50/70 p-4 md:p-5 rounded-2xl border border-slate-200/80 flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <Users size={16} className="text-purple-600 shrink-0" />
+                      <span className="font-bold text-xs md:text-sm text-slate-900">Alpa Pegawai</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Guru/pegawai aktif tanpa presensi masuk akan otomatis ditandai <strong className="text-rose-600">ALPA</strong>.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={employeeAutoAlphaEnabled}
+                    onClick={() => setEmployeeAutoAlphaEnabled(!employeeAutoAlphaEnabled)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 ${
+                      employeeAutoAlphaEnabled ? 'bg-purple-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        employeeAutoAlphaEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
                 {/* Jam Eksekusi Cron */}
-                <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-2">
+                <div className="bg-slate-50/70 p-4 md:p-5 rounded-2xl border border-slate-200/80 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
-                      <Clock4 size={16} className="text-indigo-600" />
-                      Jam Eksekusi Harian (WIB)
+                    <label className="font-bold text-xs md:text-sm text-slate-900 flex items-center gap-1.5">
+                      <Clock4 size={15} className="text-indigo-600" />
+                      Jam Eksekusi Harian
                     </label>
-                    <span className="text-[11px] font-semibold text-slate-400">Senin - Jumat</span>
+                    <span className="text-[10px] font-semibold text-slate-400">Senin - Jumat</span>
                   </div>
                   <input
                     type="time"
                     value={autoAlphaTime}
                     onChange={(e) => setAutoAlphaTime(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs md:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
                   />
-                  <p className="text-[11px] text-slate-500">
-                    Disarankan diatur setelah batas maksimal check-out kepulangan siswa (default: 16:30 WIB).
+                  <p className="text-[10px] text-slate-500">
+                    Disarankan setelah batas kepulangan (default: 16:30 WIB).
                   </p>
                 </div>
               </div>
@@ -973,13 +1019,18 @@ export const AttendanceSettings: React.FC = () => {
         message={
           <div className="space-y-2 text-sm text-slate-600">
             <p>
-              Sistem akan memindai seluruh siswa aktif di rombel untuk hari ini ({todayStr}).
+              Sistem akan memindai presensi untuk hari ini ({todayStr}):
             </p>
-            <p>
-              Siswa yang belum memiliki catatan presensi masuk (Hadir/Izin/Sakit/Terlambat) akan langsung ditandai sebagai <strong className="text-rose-600">ALPA</strong>.
-            </p>
+            <ul className="list-disc pl-5 text-xs space-y-1 text-slate-700">
+              <li>
+                <strong>Siswa</strong>: Seluruh siswa aktif di rombel yang belum hadir akan ditandai <strong className="text-rose-600">ALPA</strong>.
+              </li>
+              <li>
+                <strong>Pegawai & Guru</strong>: Seluruh pegawai/guru aktif yang belum hadir akan ditandai <strong className="text-rose-600">ALPA</strong>.
+              </li>
+            </ul>
             <p className="text-xs text-amber-700 font-semibold bg-amber-50 p-2.5 rounded-lg border border-amber-200">
-              Perhatian: Tindakan ini akan langsung membuat catatan presensi ALPA baru bagi siswa yang belum memiliki presensi.
+              Perhatian: Tindakan ini akan langsung membuat catatan presensi ALPA baru bagi siswa dan pegawai yang belum memiliki catatan presensi hari ini.
             </p>
           </div>
         }

@@ -23,6 +23,7 @@ export interface AttendanceSetting {
   employeeGpsEnabled?: boolean;
   employeeManualEnabled?: boolean;
   autoAlphaEnabled?: boolean;
+  employeeAutoAlphaEnabled?: boolean;
   autoAlphaTime?: string;
   autoAlphaSkippedDates?: AttendanceExemptionDate[];
   isActive: boolean;
@@ -131,5 +132,15 @@ export const upsertEmployeeAttendanceBatch = async (
 
 export const triggerAutoAlpha = async (targetDate?: string) => {
   const response = await api.post('/attendances/students/auto-alpha', { targetDate });
+  return response.data;
+};
+
+export const triggerEmployeeAutoAlpha = async (targetDate?: string) => {
+  const response = await api.post('/attendances/employees/auto-alpha', { targetDate });
+  return response.data;
+};
+
+export const triggerAllAutoAlpha = async (targetDate?: string) => {
+  const response = await api.post('/attendances/auto-alpha', { targetDate });
   return response.data;
 };
