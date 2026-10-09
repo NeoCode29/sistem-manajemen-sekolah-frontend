@@ -1,5 +1,11 @@
 import api from './axios';
 
+export interface AttendanceExemptionDate {
+  date: string;
+  reason: string;
+  createdAt?: string;
+}
+
 export interface AttendanceSetting {
   id: string;
   minCheckinTime: string;
@@ -16,6 +22,9 @@ export interface AttendanceSetting {
   employeeRfidEnabled?: boolean;
   employeeGpsEnabled?: boolean;
   employeeManualEnabled?: boolean;
+  autoAlphaEnabled?: boolean;
+  autoAlphaTime?: string;
+  autoAlphaSkippedDates?: AttendanceExemptionDate[];
   isActive: boolean;
 }
 
@@ -117,5 +126,10 @@ export const upsertEmployeeAttendanceBatch = async (
     date,
     attendances,
   });
+  return response.data;
+};
+
+export const triggerAutoAlpha = async (targetDate?: string) => {
+  const response = await api.post('/attendances/students/auto-alpha', { targetDate });
   return response.data;
 };
