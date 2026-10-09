@@ -13,6 +13,7 @@ interface ImportStudentModalProps {
 
 export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [file, setFile] = useState<File | null>(null);
+  const [createUserAccounts, setCreateUserAccounts] = useState<boolean>(true);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -100,7 +101,7 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
     setIsUploading(true);
     setError(null);
     try {
-      const res = await importStudents(file);
+      const res = await importStudents(file, createUserAccounts);
       setResult(res);
       if (res.totalSuccess > 0) {
         onSuccess();
@@ -163,16 +164,19 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
               </h4>
               <ol className="list-decimal pl-5 space-y-1.5 text-xs text-indigo-900 leading-relaxed">
                 <li>
-                  <strong>Unduh Template Excel Terbaru:</strong> Template dilengkapi 21 kolom standar Dapodik. Kolom wajib ditandai dengan warna header khusus dan label <em>(Wajib)</em>: <strong>NIS</strong>, <strong>Nama Lengkap</strong>, <strong>L/P</strong>, dan <strong>Status</strong>. Kolom kelas menggunakan <strong>Nama Kelas</strong> langsung (bukan kode), dan jurusan otomatis mengikuti kelas yang dipilih.
+                  <strong>Unduh Template Excel Terbaru:</strong> Template dilengkapi 23 kolom standar Dapodik. Kolom wajib ditandai dengan warna header khusus dan label <em>(Wajib)</em>: <strong>NIS</strong>, <strong>Nama Lengkap</strong>, <strong>L/P</strong>, dan <strong>Status</strong>. Kolom kelas menggunakan <strong>Nama Kelas</strong> langsung (bukan kode), dan jurusan otomatis mengikuti kelas yang dipilih.
                 </li>
                 <li>
-                  <strong>Dropdown Pilihan Otomatis:</strong> Kolom <strong>L/P</strong>, <strong>Status</strong>, <strong>Nama Kelas</strong>, <strong>Agama</strong>, <strong>Tempat Tinggal</strong>, dan <strong>Moda Transportasi</strong> telah dilengkapi dropdown validasi pilihan bawaan.
+                  <strong>Data Wali Murid & Tanggal Fleksibel:</strong> Kolom 21–23 mencakup <strong>Nama Wali Murid</strong>, <strong>Hubungan Wali</strong> (Ayah, Ibu, Wali), dan <strong>No HP/WA Wali</strong>. Format tanggal lahir mendukung <code>YYYY-MM-DD</code> maupun <code>DD/MM/YYYY</code>.
                 </li>
                 <li>
-                  <strong>Format Angka Kependudukan:</strong> Kolom NIK, No KK, NISN, dan No Akta telah diformat otomatis sebagai teks agar angka 16 digit tidak berubah menjadi format eksponensial di Excel.
+                  <strong>Dropdown Pilihan Otomatis:</strong> Kolom <strong>L/P</strong>, <strong>Status</strong>, <strong>Nama Kelas</strong>, <strong>Agama</strong>, <strong>Tempat Tinggal</strong>, <strong>Moda Transportasi</strong>, dan <strong>Hubungan Wali</strong> telah dilengkapi dropdown validasi pilihan bawaan.
                 </li>
                 <li>
-                  <strong>Mekanisme Upsert Pintar:</strong> Jika baris siswa dengan NIS yang sama sudah ada di database, profil kependudukan & alamat wilayahnya akan diperbarui secara otomatis.
+                  <strong>Format Angka Kependudukan:</strong> Kolom NIK, No KK, NISN, No Akta, dan No HP telah diformat otomatis sebagai teks agar angka panjang tidak berubah menjadi format eksponensial di Excel.
+                </li>
+                <li>
+                  <strong>Mekanisme Upsert Pintar:</strong> Jika baris siswa dengan NIS yang sama sudah ada di database, profil kependudukan, wali murid, & alamat wilayahnya akan diperbarui secara otomatis.
                 </li>
               </ol>
               <button
@@ -180,9 +184,27 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
                 onClick={handleDownloadTemplate}
                 className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs font-semibold cursor-pointer"
               >
-                <Download size={15} /> Unduh Template Excel (Dapodik Lengkap)
+                <Download size={15} /> Unduh Template Excel (Dapodik Lengkap 23 Kolom)
               </button>
             </div>
+
+            {/* Opsi pembuatan akun portal siswa */}
+            <label className="flex items-center gap-3 p-3.5 bg-indigo-50/70 hover:bg-indigo-50 rounded-xl border border-indigo-200/80 cursor-pointer transition-colors shadow-2xs">
+              <input
+                type="checkbox"
+                checked={createUserAccounts}
+                onChange={(e) => setCreateUserAccounts(e.target.checked)}
+                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
+              />
+              <div className="min-w-0">
+                <span className="text-xs font-semibold text-indigo-950 block">
+                  Buat akun login portal siswa otomatis
+                </span>
+                <span className="text-[11px] text-indigo-700">
+                  Username dan password awal akan otomatis diset sesuai nomor NIS siswa.
+                </span>
+              </div>
+            </label>
 
             {/* Input file tersembunyi */}
             <input

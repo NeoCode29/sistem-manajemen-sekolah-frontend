@@ -267,9 +267,10 @@ export const downloadImportTemplate = async (): Promise<void> => {
   link.remove();
 };
 
-export const importStudents = async (file: File) => {
+export const importStudents = async (file: File, createUserAccounts: boolean = true) => {
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('createUserAccounts', String(createUserAccounts));
   const response = await api.post('/students/import', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
