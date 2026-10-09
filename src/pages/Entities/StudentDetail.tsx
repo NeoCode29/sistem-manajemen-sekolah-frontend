@@ -391,7 +391,7 @@ export const StudentDetail: React.FC = () => {
       nis: student.nis,
       nisn: student.nisn || '',
       fullName: student.fullName,
-      gender: student.gender,
+      gender: student.gender ? (student.gender.toUpperCase().startsWith('P') ? 'Perempuan' : 'Laki-laki') : 'Laki-laki',
       nickname: student.nickname || '',
       phone: student.phone || '',
       email: student.email || '',
@@ -1972,7 +1972,7 @@ export const StudentDetail: React.FC = () => {
                   <input type="email" className="input-std" placeholder="Contoh: siswa@sekolah.sch.id" value={editProfilData.email || ''} onChange={(e)=>setEditProfilData({...editProfilData, email: e.target.value})}/>
                 </FormField>
                 <FormField label="Jenis Kelamin" required>
-                  <select className="input-std" value={editProfilData.gender || ''} onChange={(e)=>setEditProfilData({...editProfilData, gender: e.target.value})} required>
+                  <select className="input-std" value={editProfilData.gender?.toUpperCase().startsWith('P') ? 'Perempuan' : 'Laki-laki'} onChange={(e)=>setEditProfilData({...editProfilData, gender: e.target.value})} required>
                     <option value="Laki-laki">Laki-laki</option>
                     <option value="Perempuan">Perempuan</option>
                   </select>

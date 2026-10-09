@@ -164,13 +164,13 @@ export const ImportStudentModal: React.FC<ImportStudentModalProps> = ({ isOpen, 
               </h4>
               <ol className="list-decimal pl-5 space-y-1.5 text-xs text-indigo-900 leading-relaxed">
                 <li>
-                  <strong>Unduh Template Excel Terbaru:</strong> Template dilengkapi 23 kolom standar Dapodik. Kolom wajib ditandai dengan warna header khusus dan label <em>(Wajib)</em>: <strong>NIS</strong>, <strong>Nama Lengkap</strong>, <strong>L/P</strong>, dan <strong>Status</strong>. Kolom kelas menggunakan <strong>Nama Kelas</strong> langsung (bukan kode), dan jurusan otomatis mengikuti kelas yang dipilih.
+                  <strong>Unduh Template Excel Terbaru:</strong> Template dilengkapi 23 kolom standar Dapodik. Kolom wajib ditandai dengan warna header khusus dan label <em>(Wajib)</em>: <strong>NIS</strong>, <strong>Nama Lengkap</strong>, <strong>Jenis Kelamin</strong> (Laki-laki / Perempuan atau L / P), dan <strong>Status</strong>. Kolom kelas menggunakan <strong>Nama Kelas</strong> langsung (bukan kode), dan jurusan otomatis mengikuti kelas yang dipilih.
                 </li>
                 <li>
                   <strong>Data Wali Murid & Tanggal Fleksibel:</strong> Kolom 21–23 mencakup <strong>Nama Wali Murid</strong>, <strong>Hubungan Wali</strong> (Ayah, Ibu, Wali), dan <strong>No HP/WA Wali</strong>. Format tanggal lahir mendukung <code>YYYY-MM-DD</code> maupun <code>DD/MM/YYYY</code>.
                 </li>
                 <li>
-                  <strong>Dropdown Pilihan Otomatis:</strong> Kolom <strong>L/P</strong>, <strong>Status</strong>, <strong>Nama Kelas</strong>, <strong>Agama</strong>, <strong>Tempat Tinggal</strong>, <strong>Moda Transportasi</strong>, dan <strong>Hubungan Wali</strong> telah dilengkapi dropdown validasi pilihan bawaan.
+                  <strong>Dropdown Pilihan Otomatis:</strong> Kolom <strong>Jenis Kelamin</strong>, <strong>Status</strong>, <strong>Nama Kelas</strong>, <strong>Agama</strong>, <strong>Tempat Tinggal</strong>, <strong>Moda Transportasi</strong>, dan <strong>Hubungan Wali</strong> telah dilengkapi dropdown validasi pilihan bawaan.
                 </li>
                 <li>
                   <strong>Format Angka Kependudukan:</strong> Kolom NIK, No KK, NISN, No Akta, dan No HP telah diformat otomatis sebagai teks agar angka panjang tidak berubah menjadi format eksponensial di Excel.

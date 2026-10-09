@@ -519,7 +519,9 @@ export const Students: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <span className="font-medium text-gray-900 leading-tight">{row.fullName}</span>
-            <span className="text-[11px] text-gray-400 capitalize">{row.gender}</span>
+            <span className="text-[11px] text-gray-400 capitalize">
+              {row.gender?.toUpperCase() === 'P' ? 'Perempuan' : row.gender?.toUpperCase() === 'L' ? 'Laki-laki' : (row.gender || '-')}
+            </span>
           </div>
         </div>
       ),
