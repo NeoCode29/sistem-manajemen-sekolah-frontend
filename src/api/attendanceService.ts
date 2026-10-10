@@ -26,6 +26,7 @@ export interface AttendanceSetting {
   employeeAutoAlphaEnabled?: boolean;
   autoAlphaTime?: string;
   autoAlphaSkippedDates?: AttendanceExemptionDate[];
+  workingDays?: number[];
   isActive: boolean;
 }
 

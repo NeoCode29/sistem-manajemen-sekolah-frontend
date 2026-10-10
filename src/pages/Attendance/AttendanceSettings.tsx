@@ -31,6 +31,16 @@ import { MapLocationPicker } from '../../components/widgets/MapLocationPicker';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify, parseApiError } from '../../utils/feedback';
 
+const DAY_OPTIONS = [
+  { value: 1, label: 'Senin', short: 'Sen' },
+  { value: 2, label: 'Selasa', short: 'Sel' },
+  { value: 3, label: 'Rabu', short: 'Rab' },
+  { value: 4, label: 'Kamis', short: 'Kam' },
+  { value: 5, label: 'Jumat', short: 'Jum' },
+  { value: 6, label: 'Sabtu', short: 'Sab' },
+  { value: 0, label: 'Minggu', short: 'Min' },
+];
+
 export const AttendanceSettings: React.FC = () => {
   const { canManageAttendanceSettings } = usePermissions();
   const [loading, setLoading] = useState(true);
@@ -45,6 +55,9 @@ export const AttendanceSettings: React.FC = () => {
   const [latitude, setLatitude] = useState<number | ''>('');
   const [longitude, setLongitude] = useState<number | ''>('');
   const [radiusMeter, setRadiusMeter] = useState<number | ''>('');
+
+  // Working Days State (0=Minggu, 1=Senin, ..., 6=Sabtu)
+  const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5]);
 
   // Allowed Methods State
   const [studentRfidEnabled, setStudentRfidEnabled] = useState(true);
@@ -94,6 +107,11 @@ export const AttendanceSettings: React.FC = () => {
         setEmployeeAutoAlphaEnabled(data.employeeAutoAlphaEnabled ?? true);
         setAutoAlphaTime(data.autoAlphaTime || '16:30');
         setAutoAlphaSkippedDates(Array.isArray(data.autoAlphaSkippedDates) ? data.autoAlphaSkippedDates : []);
+        if (Array.isArray(data.workingDays) && data.workingDays.length > 0) {
+          setWorkingDays(data.workingDays);
+        } else {
+          setWorkingDays([1, 2, 3, 4, 5]);
+        }
         setIsActive(data.isActive ?? true);
       }
     } catch (err: any) {
@@ -106,6 +124,11 @@ export const AttendanceSettings: React.FC = () => {
   };
 
   const validateTimes = (): boolean => {
+    if (!workingDays || workingDays.length === 0) {
+      notify.error('Pilih minimal 1 hari operasional/sekolah aktif.');
+      return false;
+    }
+
     if (!minCheckinTime || !maxCheckinTime || !lateThreshold || !minCheckoutTime || !maxCheckoutTime) {
       notify.error('Seluruh kolom rentang jam absensi wajib diisi.');
       return false;
@@ -131,6 +154,8 @@ export const AttendanceSettings: React.FC = () => {
 
   const todayStr = new Date().toISOString().split('T')[0];
   const isTodaySkipped = autoAlphaSkippedDates.some((d) => d.date === todayStr);
+  const todayDayOfWeek = new Date().getDay();
+  const isTodaySchoolDay = workingDays.includes(todayDayOfWeek);
 
   const formatIndonesianDate = (dateStr: string) => {
     try {
@@ -235,6 +260,7 @@ export const AttendanceSettings: React.FC = () => {
         employeeAutoAlphaEnabled,
         autoAlphaTime,
         autoAlphaSkippedDates,
+        workingDays,
         isActive,
       };
 
@@ -289,21 +315,127 @@ export const AttendanceSettings: React.FC = () => {
           <form id="attendance-settings-form" onSubmit={handleSubmit} className="space-y-6">
             <fieldset disabled={!canManageAttendanceSettings} className="space-y-6 border-0 p-0 m-0 min-w-0 disabled:opacity-90">
           
-          {/* Card 1: Waktu & Rentang Jam Absensi */}
+          {/* Card 1: Hari Sekolah & Rentang Jam Absensi */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
             {/* Standard Header Section */}
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3.5 bg-slate-50/50">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-indigo-50 text-indigo-600 border border-indigo-100 shrink-0">
-                <Clock size={20} />
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-3.5 bg-slate-50/50 flex-wrap">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-indigo-50 text-indigo-600 border border-indigo-100 shrink-0">
+                  <Clock size={20} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 m-0">Hari Sekolah & Rentang Jam Absensi</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Hari operasional aktif sekolah, batas waktu kedatangan, toleransi keterlambatan, dan kepulangan</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-base font-bold text-slate-900 m-0">Waktu & Rentang Jam Absensi</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Batas waktu check-in kedatangan, toleransi keterlambatan, dan kepulangan</p>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                  {workingDays.length} Hari Aktif Terpilih
+                </span>
               </div>
             </div>
 
             {/* Body */}
             <div className="p-6 md:p-8 space-y-6">
+              {/* Section Hari Operasional / Hari Aktif Sekolah */}
+              <div className="bg-slate-50/70 p-5 md:p-6 rounded-2xl border border-slate-200/80 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <CalendarCheck size={15} className="text-indigo-600" />
+                      Hari Operasional / Hari Sekolah Aktif
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Pilih hari di mana presensi dan penandaan Alpa otomatis diberlakukan. Hari yang tidak dipilih otomatis menjadi hari libur sekolah.
+                    </p>
+                  </div>
+
+                  {/* Preset Shortcuts */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-semibold text-slate-400 mr-1">Preset Cepat:</span>
+                    <button
+                      type="button"
+                      onClick={() => setWorkingDays([1, 2, 3, 4, 5])}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                        JSON.stringify(workingDays.slice().sort()) === JSON.stringify([1, 2, 3, 4, 5])
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                          : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs'
+                      }`}
+                    >
+                      5 Hari (Sen - Jum)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWorkingDays([1, 2, 3, 4, 5, 6])}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                        JSON.stringify(workingDays.slice().sort()) === JSON.stringify([1, 2, 3, 4, 5, 6])
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                          : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs'
+                      }`}
+                    >
+                      6 Hari (Sen - Sab)
+                    </button>
+                  </div>
+                </div>
+
+                {/* 7 Day Pills Multi-Checkbox */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5 pt-1">
+                  {DAY_OPTIONS.map((day) => {
+                    const isSelected = workingDays.includes(day.value);
+                    return (
+                      <button
+                        key={day.value}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            if (workingDays.length <= 1) {
+                              notify.warning('Minimal harus ada 1 hari aktif sekolah yang dipilih.');
+                              return;
+                            }
+                            setWorkingDays(workingDays.filter((d) => d !== day.value).sort());
+                          } else {
+                            setWorkingDays([...workingDays, day.value].sort());
+                          }
+                        }}
+                        className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer text-center ${
+                          isSelected
+                            ? 'bg-indigo-50/90 border-indigo-300 text-indigo-950 shadow-2xs ring-1 ring-indigo-500/20'
+                            : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600 shadow-2xs'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-xs font-bold ${isSelected ? 'text-indigo-950' : 'text-slate-600'}`}>
+                            {day.label}
+                          </span>
+                          {isSelected && <Check size={12} className="text-indigo-600 stroke-[3]" />}
+                        </div>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          isSelected ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          {isSelected ? 'Aktif' : 'Libur'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs pt-2 border-t border-slate-200/60">
+                  <span className="text-slate-600 font-medium">
+                    Total: <strong className="text-slate-900 font-bold">{workingDays.length} hari</strong> operasional per minggu.
+                  </span>
+                  {workingDays.includes(6) ? (
+                    <span className="text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-lg border border-amber-200/80 font-bold text-[11px] w-fit">
+                      Sistem 6 Hari Sekolah (Sabtu Aktif Masuk)
+                    </span>
+                  ) : (
+                    <span className="text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200/80 font-bold text-[11px] w-fit">
+                      Sistem 5 Hari Sekolah (Sabtu & Minggu Libur)
+                    </span>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Sesi Masuk */}
@@ -819,7 +951,13 @@ export const AttendanceSettings: React.FC = () => {
                       <Clock4 size={15} className="text-indigo-600" />
                       Jam Eksekusi Harian
                     </label>
-                    <span className="text-[10px] font-semibold text-slate-400">Senin - Jumat</span>
+                    <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                      {workingDays.length === 5 && !workingDays.includes(6) && !workingDays.includes(0)
+                        ? 'Senin - Jumat'
+                        : workingDays.length === 6 && !workingDays.includes(0)
+                        ? 'Senin - Sabtu'
+                        : `${workingDays.length} Hari Aktif`}
+                    </span>
                   </div>
                   <input
                     type="time"
@@ -836,7 +974,9 @@ export const AttendanceSettings: React.FC = () => {
               {/* Row 2: Banner Aksi Cepat "Lewati Alpa Hari Ini" (Quick Skip Today) */}
               <div
                 className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                  isTodaySkipped
+                  !isTodaySchoolDay
+                    ? 'bg-slate-50/90 border-slate-200 text-slate-800'
+                    : isTodaySkipped
                     ? 'bg-amber-50/90 border-amber-200 text-amber-900 shadow-2xs'
                     : 'bg-indigo-50/50 border-indigo-100 text-indigo-950'
                 }`}
@@ -844,48 +984,62 @@ export const AttendanceSettings: React.FC = () => {
                 <div className="flex items-start gap-3.5">
                   <div
                     className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                      isTodaySkipped
+                      !isTodaySchoolDay
+                        ? 'bg-slate-100 text-slate-600 border border-slate-300'
+                        : isTodaySkipped
                         ? 'bg-amber-100 text-amber-700 border border-amber-300/60'
                         : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
                     }`}
                   >
-                    {isTodaySkipped ? <CalendarOff size={18} /> : <CalendarCheck size={18} />}
+                    {!isTodaySchoolDay ? (
+                      <CalendarOff size={18} />
+                    ) : isTodaySkipped ? (
+                      <CalendarOff size={18} />
+                    ) : (
+                      <CalendarCheck size={18} />
+                    )}
                   </div>
                   <div>
                     <h3 className="font-bold text-sm">
-                      {isTodaySkipped
+                      {!isTodaySchoolDay
+                        ? 'Hari Ini Libur Sekolah Rutin (Bukan Hari Aktif)'
+                        : isTodaySkipped
                         ? 'Penandaan Alpa Hari Ini Dikecualikan / Dilewati'
                         : 'Status Hari Ini: Berjalan Normal'}
                     </h3>
                     <p className="text-xs mt-0.5 opacity-80 leading-relaxed">
-                      {isTodaySkipped
+                      {!isTodaySchoolDay
+                        ? `Hari ini (${formatIndonesianDate(todayStr)}) tidak termasuk dalam hari aktif sekolah. Sistem tidak akan mengeksekusi penandaan Alpa otomatis.`
+                        : isTodaySkipped
                         ? `Tanggal hari ini (${todayStr}) ada di daftar pengecualian. Siswa dan pegawai yang tidak hadir tidak akan ditandai Alpa otomatis.`
                         : `Penandaan Alpa otomatis akan dieksekusi hari ini pada pukul ${autoAlphaTime} WIB untuk siswa dan pegawai tanpa presensi.`}
                     </p>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleToggleSkipToday}
-                  className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer shrink-0 ${
-                    isTodaySkipped
-                      ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-200'
-                      : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 shadow-slate-100'
-                  }`}
-                >
-                  {isTodaySkipped ? (
-                    <>
-                      <Check size={14} />
-                      <span>Aktifkan Kembali Hari Ini</span>
-                    </>
-                  ) : (
-                    <>
-                      <CalendarOff size={14} className="text-rose-600" />
-                      <span>Lewati Alpa Hari Ini</span>
-                    </>
-                  )}
-                </button>
+                {isTodaySchoolDay && (
+                  <button
+                    type="button"
+                    onClick={handleToggleSkipToday}
+                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer shrink-0 ${
+                      isTodaySkipped
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-200'
+                        : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 shadow-slate-100'
+                    }`}
+                  >
+                    {isTodaySkipped ? (
+                      <>
+                        <Check size={14} />
+                        <span>Aktifkan Kembali Hari Ini</span>
+                      </>
+                    ) : (
+                      <>
+                        <CalendarOff size={14} className="text-rose-600" />
+                        <span>Lewati Alpa Hari Ini</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
