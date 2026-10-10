@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   ShieldCheck,
   Loader2,
-  CheckCircle2,
   CreditCard,
   Smartphone,
   UserCheck,
@@ -458,43 +457,14 @@ export const AttendanceSettings: React.FC = () => {
                   <div className="p-6 md:p-8 space-y-6">
                     {/* Section Hari Operasional / Hari Aktif Sekolah */}
                     <div className="bg-slate-50/70 p-5 md:p-6 rounded-2xl border border-slate-200/80 space-y-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                            <CalendarCheck size={15} className="text-indigo-600" />
-                            Hari Operasional / Hari Sekolah Aktif
-                          </h3>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            Pilih hari di mana presensi dan penandaan Alpa otomatis diberlakukan. Hari yang tidak dipilih otomatis menjadi hari libur sekolah.
-                          </p>
-                        </div>
-
-                        {/* Preset Shortcuts */}
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[11px] font-semibold text-slate-400 mr-1">Preset Cepat:</span>
-                          <button
-                            type="button"
-                            onClick={() => setWorkingDays([1, 2, 3, 4, 5])}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                              JSON.stringify(workingDays.slice().sort()) === JSON.stringify([1, 2, 3, 4, 5])
-                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
-                                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs'
-                            }`}
-                          >
-                            5 Hari (Sen - Jum)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setWorkingDays([1, 2, 3, 4, 5, 6])}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                              JSON.stringify(workingDays.slice().sort()) === JSON.stringify([1, 2, 3, 4, 5, 6])
-                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
-                                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs'
-                            }`}
-                          >
-                            6 Hari (Sen - Sab)
-                          </button>
-                        </div>
+                      <div>
+                        <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                          <CalendarCheck size={15} className="text-indigo-600" />
+                          Hari Operasional / Hari Sekolah Aktif
+                        </h3>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Pilih hari di mana presensi dan penandaan Alpa otomatis diberlakukan. Hari yang tidak dipilih otomatis menjadi hari libur sekolah.
+                        </p>
                       </div>
 
                       {/* 7 Day Pills Multi-Checkbox */}
@@ -1302,30 +1272,7 @@ export const AttendanceSettings: React.FC = () => {
                 </div>
               )}
             </fieldset>
-
-          {/* Bottom Action Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 md:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <CheckCircle2 size={16} className="text-emerald-500" />
-              <span>Pastikan seluruh waktu berurutan logis sebelum menyimpan pengaturan.</span>
-            </div>
-
-            {canManageAttendanceSettings ? (
-              <button
-                type="submit"
-                disabled={saving}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-all hover:shadow-md w-full sm:w-auto justify-center cursor-pointer disabled:opacity-50"
-              >
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
-              </button>
-            ) : (
-              <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                Mode Hanya-Baca
-              </span>
-            )}
-          </div>
-        </form>
+          </form>
         </div>
       )}
 
