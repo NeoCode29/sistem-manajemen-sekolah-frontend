@@ -251,7 +251,9 @@ export const Users: React.FC = () => {
     return users.filter(user => {
       const matchSearch = searchQuery.trim() === '' || 
         user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.name.toLowerCase().includes(searchQuery.toLowerCase());
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (user.employee?.nip && user.employee.nip.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (user.student?.nis && user.student.nis.toLowerCase().includes(searchQuery.toLowerCase()));
 
       const matchStatus = statusFilter === '' || 
         (statusFilter === 'active' && user.isActive) ||
@@ -267,45 +269,37 @@ export const Users: React.FC = () => {
   const columns: Column<User>[] = useMemo(() => {
     const cols: Column<User>[] = [
       { 
-        key: 'username', 
-        header: 'Username', 
-        render: (user) => (
-          <span 
-            className="font-semibold text-gray-900 block max-w-[160px] md:max-w-[200px] truncate" 
-            title={user.username}
-          >
-            {user.username}
-          </span>
-        )
-      },
-      { 
         key: 'name', 
-        header: 'Nama Lengkap', 
-        render: (user) => (
-          <div className="min-w-0">
-            <span 
-              className="font-semibold text-gray-900 block max-w-[180px] md:max-w-[240px] truncate" 
-              title={user.name}
-            >
-              {user.name}
-            </span>
-            <div className="mt-1">
-              {user.employee ? (
-                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 font-medium">
-                  👨‍🏫 Pegawai ({user.employee.nip || '-'})
-                </span>
-              ) : user.student ? (
-                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-medium">
-                  🎓 Siswa ({user.student.nis || '-'})
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-gray-50 text-gray-600 border border-gray-200/60 font-medium">
-                  ⚙️ Pengguna Sistem
-                </span>
-              )}
+        header: 'Pengguna', 
+        sortValue: (user) => user.name,
+        render: (user) => {
+          const empNip = user.employee?.nip;
+          const stuNis = user.student?.nis;
+          
+          let subText = `@${user.username}`;
+          if (empNip && empNip !== user.username) {
+            subText += ` • NIP: ${empNip}`;
+          } else if (stuNis && stuNis !== user.username) {
+            subText += ` • NIS: ${stuNis}`;
+          }
+
+          return (
+            <div className="min-w-0 py-0.5">
+              <span 
+                className="font-semibold text-gray-900 block max-w-[200px] md:max-w-[260px] truncate" 
+                title={user.name}
+              >
+                {user.name}
+              </span>
+              <span 
+                className="text-xs text-gray-500 font-mono block max-w-[200px] md:max-w-[260px] truncate mt-0.5"
+                title={subText}
+              >
+                {subText}
+              </span>
             </div>
-          </div>
-        )
+          );
+        }
       },
       { 
         key: 'status', 
@@ -325,7 +319,7 @@ export const Users: React.FC = () => {
           <div className="flex flex-wrap gap-1">
             {user.roles && user.roles.length > 0 ? (
               user.roles.map(r => (
-                <span key={r.id} className="text-xs px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 font-medium">
+                <span key={r.id} className="text-xs px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 font-medium">
                   {r.name}
                 </span>
               ))
