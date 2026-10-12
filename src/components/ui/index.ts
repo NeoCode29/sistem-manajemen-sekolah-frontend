@@ -24,3 +24,6 @@ export type { SelectProps, SelectOption } from './Select';
 
 export { ContextAccessHeader } from './ContextAccessHeader';
 export type { ContextAccessHeaderProps, ContextAccessBadge } from './ContextAccessHeader';
+
+export { AsyncEntitySearchInput } from './AsyncEntitySearchInput';
+export type { AsyncEntitySearchInputProps } from './AsyncEntitySearchInput';

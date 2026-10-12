@@ -15,11 +15,25 @@ export interface Role {
   permissions?: Permission[];
 }
 
+export interface EntityLookupItem {
+  id: string;
+  name: string;
+  identifier: string;
+  subInfo: string;
+  hasAccount: boolean;
+  existingUsername?: string | null;
+}
+
 export interface User {
   id: string;
   username: string;
   name: string;
   isActive: boolean;
+  employeeId?: string | null;
+  studentId?: string | null;
+  guardianId?: string | null;
+  employee?: { id: string; fullName: string; nip?: string } | null;
+  student?: { id: string; fullName: string; nis?: string } | null;
   roles?: { id: string | number; name: string }[];
 }
 
@@ -95,6 +109,16 @@ export const assignRolesToUser = async (userId: string, roleIds: (string | numbe
 
 export const deleteUser = async (id: string | number): Promise<{ message: string }> => {
   const response = await api.delete(`/users/${id}`);
+  return response.data;
+};
+
+export const lookupEmployees = async (q: string, limit = 10): Promise<EntityLookupItem[]> => {
+  const response = await api.get('/users/lookup/employees', { params: { q, limit } });
+  return response.data;
+};
+
+export const lookupStudents = async (q: string, limit = 10): Promise<EntityLookupItem[]> => {
+  const response = await api.get('/users/lookup/students', { params: { q, limit } });
   return response.data;
 };
 

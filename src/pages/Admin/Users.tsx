@@ -7,10 +7,11 @@ import {
   assignRolesToUser, 
   getRoles, 
   type User, 
-  type Role 
+  type Role,
+  type EntityLookupItem,
 } from '../../api/rbacService';
 import { Plus, UserCheck, Edit, Shield, Loader2, Search, Filter, RotateCcw, Trash2, Eye, EyeOff } from 'lucide-react';
-import { PageHeader, Modal, FormField, Badge, ConfirmDialog } from '../../components/ui';
+import { PageHeader, Modal, FormField, Badge, ConfirmDialog, AsyncEntitySearchInput } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { useClientPagination } from '../../hooks/useClientPagination';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -52,8 +53,39 @@ export const Users: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isActive, setIsActive] = useState(true);
 
+  // Entity Binding State
+  const [accountType, setAccountType] = useState<'SYSTEM' | 'EMPLOYEE' | 'STUDENT'>('SYSTEM');
+  const [selectedEntity, setSelectedEntity] = useState<EntityLookupItem | null>(null);
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [studentId, setStudentId] = useState<string | null>(null);
+
   // Assign Roles State
   const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
+
+  const handleEntitySelect = (item: EntityLookupItem) => {
+    setSelectedEntity(item);
+    if (accountType === 'EMPLOYEE') {
+      setEmployeeId(item.id);
+      setStudentId(null);
+    } else if (accountType === 'STUDENT') {
+      setStudentId(item.id);
+      setEmployeeId(null);
+    }
+    // Auto-fill nama
+    setName(item.name);
+    // Suggest username jika username masih kosong atau sebelumnya mengikuti identitas
+    if (!username || username === selectedEntity?.identifier) {
+      if (item.identifier && item.identifier !== '-') {
+        setUsername(item.identifier);
+      }
+    }
+  };
+
+  const handleEntityClear = () => {
+    setSelectedEntity(null);
+    setEmployeeId(null);
+    setStudentId(null);
+  };
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -64,6 +96,10 @@ export const Users: React.FC = () => {
     setPassword('');
     setShowPassword(false);
     setIsActive(true);
+    setAccountType('SYSTEM');
+    setSelectedEntity(null);
+    setEmployeeId(null);
+    setStudentId(null);
   };
 
   const handleEdit = (user: User) => {
@@ -74,6 +110,36 @@ export const Users: React.FC = () => {
     setPassword(''); // leave empty to not change
     setShowPassword(false);
     setIsActive(user.isActive);
+
+    if (user.employeeId && user.employee) {
+      setAccountType('EMPLOYEE');
+      setEmployeeId(user.employeeId);
+      setStudentId(null);
+      setSelectedEntity({
+        id: user.employee.id,
+        name: user.employee.fullName,
+        identifier: user.employee.nip || '-',
+        subInfo: 'Pegawai Terkait',
+        hasAccount: false,
+      });
+    } else if (user.studentId && user.student) {
+      setAccountType('STUDENT');
+      setStudentId(user.studentId);
+      setEmployeeId(null);
+      setSelectedEntity({
+        id: user.student.id,
+        name: user.student.fullName,
+        identifier: user.student.nis || '-',
+        subInfo: 'Siswa Terkait',
+        hasAccount: false,
+      });
+    } else {
+      setAccountType('SYSTEM');
+      setEmployeeId(null);
+      setStudentId(null);
+      setSelectedEntity(null);
+    }
+
     setShowModal(true);
   };
 
@@ -102,7 +168,13 @@ export const Users: React.FC = () => {
     e.preventDefault();
     try {
       setSubmitting(true);
-      const payload: any = { username, name, isActive };
+      const payload: any = { 
+        username, 
+        name, 
+        isActive,
+        employeeId: accountType === 'EMPLOYEE' ? employeeId : null,
+        studentId: accountType === 'STUDENT' ? studentId : null,
+      };
       if (password) {
         payload.password = password;
       }
@@ -210,12 +282,29 @@ export const Users: React.FC = () => {
         key: 'name', 
         header: 'Nama Lengkap', 
         render: (user) => (
-          <span 
-            className="font-medium text-gray-700 block max-w-[180px] md:max-w-[240px] truncate" 
-            title={user.name}
-          >
-            {user.name}
-          </span>
+          <div className="min-w-0">
+            <span 
+              className="font-semibold text-gray-900 block max-w-[180px] md:max-w-[240px] truncate" 
+              title={user.name}
+            >
+              {user.name}
+            </span>
+            <div className="mt-1">
+              {user.employee ? (
+                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 font-medium">
+                  👨‍🏫 Pegawai ({user.employee.nip || '-'})
+                </span>
+              ) : user.student ? (
+                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-medium">
+                  🎓 Siswa ({user.student.nis || '-'})
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-gray-50 text-gray-600 border border-gray-200/60 font-medium">
+                  ⚙️ Pengguna Sistem
+                </span>
+              )}
+            </div>
+          </div>
         )
       },
       { 
@@ -422,6 +511,68 @@ export const Users: React.FC = () => {
         title={isEditing ? 'Edit Akun Pengguna' : 'Tambah Akun Pengguna'}
       >
         <form onSubmit={handleCreateUser} className="flex flex-col gap-5 p-6">
+          {/* TIPE AKUN / BINDING ENTITAS */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+              Tipe Akun & Kaitan Entitas
+            </label>
+            <div className="grid grid-cols-3 gap-2 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setAccountType('SYSTEM');
+                  handleEntityClear();
+                }}
+                className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  accountType === 'SYSTEM'
+                    ? 'bg-white text-indigo-700 shadow-xs border border-gray-200/80'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Pengguna Bebas
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAccountType('EMPLOYEE');
+                  handleEntityClear();
+                }}
+                className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  accountType === 'EMPLOYEE'
+                    ? 'bg-white text-indigo-700 shadow-xs border border-gray-200/80'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Pegawai / Guru
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAccountType('STUDENT');
+                  handleEntityClear();
+                }}
+                className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  accountType === 'STUDENT'
+                    ? 'bg-white text-indigo-700 shadow-xs border border-gray-200/80'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Siswa
+              </button>
+            </div>
+
+            {accountType !== 'SYSTEM' && (
+              <div className="mt-2">
+                <AsyncEntitySearchInput
+                  type={accountType}
+                  selectedEntity={selectedEntity}
+                  onSelect={handleEntitySelect}
+                  onClear={handleEntityClear}
+                />
+              </div>
+            )}
+          </div>
+
           <FormField label="Username" required>
             <input 
               type="text" 
