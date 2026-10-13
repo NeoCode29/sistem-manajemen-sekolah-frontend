@@ -33,7 +33,7 @@ export function useGraduations() {
   const fetchClasses = useCallback(async () => {
     try {
       const [classData, ayData] = await Promise.all([
-        getClassrooms(),
+        getClassrooms(undefined, true),
         getAcademicYears()
       ]);
       setClasses(classData);

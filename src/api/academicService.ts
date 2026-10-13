@@ -99,9 +99,10 @@ export interface Classroom {
   major?: Major;
   isActive?: boolean;
 }
-export const getClassrooms = async (gradeId?: string): Promise<Classroom[]> => {
+export const getClassrooms = async (gradeId?: string, isFinalGrade?: boolean): Promise<Classroom[]> => {
   const params = new URLSearchParams();
   if (gradeId) params.append('gradeId', gradeId);
+  if (isFinalGrade !== undefined) params.append('isFinalGrade', String(isFinalGrade));
   params.append('limit', '1000');
   const url = `/classrooms?${params.toString()}`;
   const response = await api.get(url);
