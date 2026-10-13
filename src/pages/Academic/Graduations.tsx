@@ -270,7 +270,7 @@ export const Graduations: React.FC = () => {
     { value: '', label: '-- Pilih Kelas Akhir --' },
     ...classes.map(c => ({
       value: c.id,
-      label: c.name
+      label: `${c.name} (${c.grade?.name || 'Tingkat Akhir'}${c.grade?.educationLevel ? ` - ${c.grade.educationLevel}` : ''})`
     }))
   ], [classes]);
 
@@ -488,6 +488,22 @@ export const Graduations: React.FC = () => {
               Siswa yang diluluskan akan diubah statusnya menjadi <strong>Alumni</strong> (tidak lagi aktif dalam rombel kelas). Pastikan Anda telah menyelesaikan administrasi nilai raport dan ijazah sebelum memproses.
             </div>
           </div>
+
+          {/* Safeguard Informative Banner */}
+          <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-3.5 flex items-center gap-3 text-indigo-900 text-xs md:text-sm">
+            <Award className="text-indigo-600 shrink-0" size={18} />
+            <div>
+              <strong>Pengaman Kelulusan Aktif:</strong> Hanya rombel tingkat akhir ({classes.length > 0 ? `${classes.length} rombel tingkat akhir tersedia` : 'belum ada rombel tingkat akhir terdaftar'}) yang dapat dipilih untuk kelulusan.
+            </div>
+          </div>
+
+          {/* Empty State jika tidak ada kelas akhir */}
+          {classes.length === 0 && (
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 flex items-center gap-2.5">
+              <AlertTriangle size={16} className="text-amber-600 shrink-0" />
+              <span>Tidak ditemukan rombel tingkat akhir aktif di sistem. Pastikan master data Tingkat (Grades) dan Rombel (Classrooms) telah diatur dengan benar.</span>
+            </div>
+          )}
 
           {/* Form Controls */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
