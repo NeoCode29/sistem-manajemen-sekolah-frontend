@@ -68,6 +68,20 @@ export const ClassroomDetail: React.FC = () => {
   const [currentHomeroomTeacher, setCurrentHomeroomTeacher] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
+  // Filter eligible teachers for homeroom (exclude Principal and Admin/non-teaching positions)
+  const eligibleEmployees = useMemo(() => {
+    return employees.filter(emp => {
+      const posCode = emp.position?.code?.toUpperCase() || '';
+      const posName = emp.position?.name?.toLowerCase() || '';
+      const isDisallowedPos = 
+        posCode === 'KEPSEK' || 
+        posName.includes('kepala sekolah') || 
+        posCode === 'ADMIN' || 
+        posName.includes('administrator');
+      return emp.isActive && !isDisallowedPos;
+    });
+  }, [employees]);
+
   // Student State & Filtering
   const [students, setStudents] = useState<Student[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
@@ -568,13 +582,18 @@ export const ClassroomDetail: React.FC = () => {
                       onChange={(e) => setSelectedEmployee(e.target.value)}
                       options={[
                         { value: '', label: '-- Pilih Guru / Wali Kelas --' },
-                        ...employees.map(emp => ({
+                        ...eligibleEmployees.map(emp => ({
                           value: String(emp.id),
-                          label: `${emp.fullName} (${emp.employeeNumber})`
+                          label: `${emp.fullName} (${emp.employeeNumber})${emp.position?.name ? ` - ${emp.position.name}` : ''}`
                         }))
                       ]}
                       required
                     />
+                    {eligibleEmployees.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-1 font-medium">
+                        Tidak ada guru aktif yang memenuhi syarat sebagai wali kelas.
+                      </p>
+                    )}
                   </FormField>
 
                   {/* Preview Guru Terpilih */}
