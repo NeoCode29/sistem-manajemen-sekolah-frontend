@@ -71,7 +71,10 @@ export const AppRoutes: React.FC = () => {
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/ui-demo" element={<ComponentShowcase />} />
-              <Route path="/homeroom/dashboard" element={<HomeroomDashboard />} />
+              {/* Portal Khusus Wali Kelas */}
+              <Route element={<AuthorizedRoute disallowedRoles={['Super Admin', 'Admin Sekolah', 'Kepala Sekolah', 'Siswa', 'Orang Tua / Wali']} />}>
+                <Route path="/homeroom/dashboard" element={<HomeroomDashboard />} />
+              </Route>
               
               {/* Akademik & Kurikulum */}
               <Route element={<AuthorizedRoute requiredPermissions={['academic_years.read']} disallowedRoles={['Siswa', 'Orang Tua / Wali']} />}>

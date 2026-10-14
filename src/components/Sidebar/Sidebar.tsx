@@ -12,8 +12,19 @@ export const Sidebar: React.FC = () => {
     logout();
   };
 
-  const isSuperAdminOrAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah');
-  const isTeacher = user?.roles?.some(r => r.name === 'Guru / Wali Kelas' || r.name === 'Wali Kelas' || r.name === 'Guru' || r.name?.toLowerCase().includes('guru') || r.name?.toLowerCase().includes('wali')) || Boolean(user?.employeeId && !isSuperAdminOrAdmin);
+  const isSuperAdminOrAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah') || user?.username === 'admin';
+  const isPrincipal = user?.roles?.some(r => r.name === 'Kepala Sekolah');
+
+  const hasTeacherRole = user?.roles?.some(r => 
+    r.name === 'Guru / Wali Kelas' || 
+    r.name === 'Wali Kelas' || 
+    r.name === 'Guru' || 
+    r.name?.toLowerCase().includes('guru') || 
+    r.name?.toLowerCase().includes('wali')
+  );
+
+  // Eksplisit: Admin dan Kepala Sekolah DILARANG dianggap isTeacher
+  const isTeacher = (hasTeacherRole || Boolean(user?.employeeId)) && !isSuperAdminOrAdmin && !isPrincipal;
 
   const { hasPermission, canReadResource } = usePermissions();
 
