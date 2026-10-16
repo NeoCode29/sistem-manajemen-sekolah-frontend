@@ -20,7 +20,7 @@ export interface ViolationType {
   name: string;
   category: string;
   points: number;
-  description?: string;
+  description?: string | null;
   isActive?: boolean;
 }
 
