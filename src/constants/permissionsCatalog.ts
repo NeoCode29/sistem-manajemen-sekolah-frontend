@@ -123,7 +123,10 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { name: 'achievements.delete',           label: 'Hapus Prestasi',             domain: 'Kesiswaan', resource: 'Prestasi',     description: 'Menghapus catatan prestasi' },
 
       { name: 'violations.read',               label: 'Lihat Pelanggaran',          domain: 'Kesiswaan', resource: 'Pelanggaran',  description: 'Melihat catatan pelanggaran siswa' },
-      { name: 'violations.create',             label: 'Catat Pelanggaran',          domain: 'Kesiswaan', resource: 'Pelanggaran',  description: 'Mencatat pelanggaran siswa' },
+      { name: 'violations.create',             label: 'Catat Pelanggaran',          domain: 'Kesiswaan', resource: 'Pelanggaran',  description: 'Mencatat pelanggaran siswa baru' },
+      { name: 'violations.create_all',         label: 'Catat Pelanggaran (Semua)',  domain: 'Kesiswaan', resource: 'Pelanggaran',  description: 'Mencatat pelanggaran seluruh siswa tanpa batas pengampu' },
+      { name: 'violations.create_assigned',    label: 'Catat Pelanggaran (Binaan)', domain: 'Kesiswaan', resource: 'Pelanggaran',  description: 'Mencatat pelanggaran siswa di kelas yang diampu/diwalikan' },
+      { name: 'violations.update',             label: 'Edit Pelanggaran',           domain: 'Kesiswaan', resource: 'Pelanggaran',  description: 'Mengubah catatan riwayat pelanggaran siswa' },
       { name: 'violations.delete',             label: 'Hapus Pelanggaran',          domain: 'Kesiswaan', resource: 'Pelanggaran',  description: 'Menghapus catatan pelanggaran' },
       { name: 'violation_types.manage',        label: 'Kelola Jenis Pelanggaran',   domain: 'Kesiswaan', resource: 'Pelanggaran',  description: 'Menambah/ubah jenis pelanggaran dan poinnya' },
       { name: 'violation_thresholds.manage',   label: 'Kelola Ambang Poin SP',      domain: 'Kesiswaan', resource: 'Pelanggaran',  description: 'Mengatur ambang poin surat peringatan (SP)' },

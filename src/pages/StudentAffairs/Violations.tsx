@@ -39,7 +39,7 @@ export const Violations: React.FC = () => {
   const canCreateAll = isSuperAdmin || hasPermission('violations.create_all') || hasPermission('violations.manage');
   const canCreateAssigned = hasPermission('violations.create_assigned') || hasPermission('violations.create') || hasPermission('student_affairs.write') || hasPermission('students.write');
   const canCreate = canCreateAll || canCreateAssigned;
-  const canEdit = isSuperAdmin || hasPermission('violations.update') || hasPermission('violations.manage') || canCreate;
+  const canEdit = isSuperAdmin || hasPermission('violations.update') || hasPermission('violations.manage');
   const canDelete = isSuperAdmin || hasPermission('violations.delete') || hasPermission('violations.manage') || hasPermission('student_affairs.write') || hasPermission('students.write');
   const hasActions = canEdit || canDelete;
 
