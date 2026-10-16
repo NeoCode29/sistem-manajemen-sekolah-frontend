@@ -124,7 +124,7 @@ export const Violations: React.FC = () => {
         notes: item.notes || '',
         violationDate: item.violationDate ? item.violationDate.split('T')[0] : ''
       });
-      setSelectedStudent(item.student || null);
+      setSelectedStudent((item.student as any) || null);
       setSearchStudent('');
       setModal({ open: true, editId: item.id });
     } else {

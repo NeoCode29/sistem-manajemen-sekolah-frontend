@@ -14,18 +14,42 @@ export interface Achievement {
   student?: any;
 }
 
+export interface ViolationType {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  points: number;
+  description?: string;
+  isActive?: boolean;
+}
+
 export interface Violation {
   id: string;
   studentId: string;
-  violationTypeId?: string;
+  violationTypeId?: string | null;
   title?: string;
   category?: string;
   actionTaken?: string;
   violationDate: string;
   points: number;
   notes?: string;
-  student?: any;
-  violationType?: any;
+  student?: {
+    id: string;
+    fullName: string;
+    nis: string;
+    classroomName?: string | null;
+  };
+  violationType?: ViolationType | null;
+  recordedBy?: {
+    id: string;
+    fullName: string;
+    employeeNumber?: string;
+  } | null;
+  academicYear?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 // ==========================
@@ -72,18 +96,26 @@ export const deleteViolation = async (id: string): Promise<void> => {
   await api.delete(`/student-violations/${id}`);
 };
 
-export interface ViolationType {
-  id: string;
-  code: string;
-  name: string;
-  category: string;
-  points: number;
-  description?: string;
-}
-
-export const getViolationTypes = async (): Promise<ViolationType[]> => {
-  const response = await api.get('/violation-types');
+// ==========================
+// VIOLATION TYPES (KAMUS TATA TERTIB)
+// ==========================
+export const getViolationTypes = async (params?: Record<string, any>): Promise<ViolationType[]> => {
+  const response = await api.get('/violation-types', { params });
   return response.data;
+};
+
+export const createViolationType = async (data: Partial<ViolationType>): Promise<ViolationType> => {
+  const response = await api.post('/violation-types', data);
+  return response.data;
+};
+
+export const updateViolationType = async (id: string, data: Partial<ViolationType>): Promise<ViolationType> => {
+  const response = await api.patch(`/violation-types/${id}`, data);
+  return response.data;
+};
+
+export const deleteViolationType = async (id: string): Promise<void> => {
+  await api.delete(`/violation-types/${id}`);
 };
 
 // ==========================
