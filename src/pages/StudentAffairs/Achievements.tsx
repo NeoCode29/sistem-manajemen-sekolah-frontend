@@ -1,19 +1,27 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { getAchievements, createAchievement, updateAchievement, deleteAchievement, type Achievement } from '../../api/studentAffairsService';
+import { 
+  getAchievements, 
+  createAchievement, 
+  updateAchievement, 
+  deleteAchievement, 
+  type Achievement 
+} from '../../api/studentAffairsService';
 import { getStudents, type Student } from '../../api/studentService';
-import { Plus, Search, User, Loader2, Filter, Trophy, RotateCcw } from 'lucide-react';
+import { getAcademicYears, getClassrooms, type AcademicYear, type Classroom } from '../../api/academicService';
+import { Plus, Search, User, Loader2, Filter, Trophy, RotateCcw, Calendar, GraduationCap } from 'lucide-react';
 import { PageHeader, Modal, FormField, Badge, type BadgeVariant } from '../../components/ui';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
-import { Pagination } from '../../components/Common/Pagination';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../context/AuthContext';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { notify } from '../../utils/feedback';
 import { trimPayload } from '../../utils/formSanitizer';
 
 interface AchievementForm {
   studentId: string;
+  academicYearId: string;
   title: string;
   description: string;
   date: string;
@@ -25,6 +33,7 @@ interface AchievementForm {
 
 const DEFAULT_FORM: AchievementForm = {
   studentId: '',
+  academicYearId: '',
   title: '',
   description: '',
   date: new Date().toISOString().split('T')[0],
@@ -41,17 +50,21 @@ export const Achievements: React.FC = () => {
   const canCreateAll = isSuperAdmin || hasPermission('achievements.create_all') || hasPermission('achievements.manage');
   const canCreateAssigned = hasPermission('achievements.create_assigned') || hasPermission('achievements.create') || hasPermission('student_affairs.write') || hasPermission('students.write');
   const canCreate = canCreateAll || canCreateAssigned;
-  const canEdit = isSuperAdmin || hasPermission('achievements.update') || hasPermission('achievements.manage') || canCreate;
-  const canDelete = isSuperAdmin || hasPermission('achievements.delete') || hasPermission('achievements.manage') || hasPermission('student_affairs.write') || hasPermission('students.write');
+  const canEdit = isSuperAdmin || hasPermission('achievements.update') || hasPermission('achievements.manage');
+  const canDelete = isSuperAdmin || hasPermission('achievements.delete') || hasPermission('achievements.manage');
   const hasActions = canEdit || canDelete;
 
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [searchStudent, setSearchStudent] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
+  const [selectedClassroom, setSelectedClassroom] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
   
@@ -75,15 +88,35 @@ export const Achievements: React.FC = () => {
     action: async () => {}
   });
 
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  // Fetch references
+  useEffect(() => {
+    const fetchReferences = async () => {
+      try {
+        const [years, crs] = await Promise.all([
+          getAcademicYears().catch(() => []),
+          getClassrooms().catch(() => []),
+        ]);
+        setAcademicYears(years);
+        setClassrooms(crs);
+
+        const activeYear = years.find((y: any) => y.isActive);
+        if (activeYear) {
+          setSelectedAcademicYear(activeYear.id);
+        }
+      } catch (err) {
+        console.error('Gagal memuat data referensi:', err);
+      }
+    };
+    fetchReferences();
+  }, []);
 
   const fetchAchievements = useCallback(async () => {
     try {
       setLoading(true);
       const params: any = {};
       if (search) params.search = search;
+      if (selectedAcademicYear) params.academicYearId = selectedAcademicYear;
+      if (selectedClassroom) params.classroomId = selectedClassroom;
       if (categoryFilter) params.category = categoryFilter;
       if (levelFilter) params.level = levelFilter;
       
@@ -94,11 +127,10 @@ export const Achievements: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [search, categoryFilter, levelFilter]);
+  }, [search, selectedAcademicYear, selectedClassroom, categoryFilter, levelFilter]);
 
   useEffect(() => {
     fetchAchievements();
-    setCurrentPage(1);
   }, [fetchAchievements]);
 
   // Debounced student search
@@ -118,10 +150,20 @@ export const Achievements: React.FC = () => {
     }
   }, [searchStudent]);
 
+  // Client-side pagination with automatic reset on dependency change
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(achievements, 10, [
+    search,
+    selectedAcademicYear,
+    selectedClassroom,
+    categoryFilter,
+    levelFilter,
+  ]);
+
   const handleOpenModal = (item?: Achievement) => {
     if (item) {
       setForm({
         studentId: item.studentId || '',
+        academicYearId: item.academicYearId || item.academicYear?.id || selectedAcademicYear,
         title: item.title || '',
         description: item.description || '',
         date: item.eventDate ? item.eventDate.split('T')[0] : (item.date ? item.date.split('T')[0] : ''),
@@ -130,11 +172,15 @@ export const Achievements: React.FC = () => {
         rank: item.rank || '',
         points: item.points || 10
       });
-      setSelectedStudent(item.student || null);
+      setSelectedStudent((item.student as any) || null);
       setSearchStudent('');
       setModal({ open: true, editId: item.id });
     } else {
-      setForm({ ...DEFAULT_FORM, date: new Date().toISOString().split('T')[0] });
+      setForm({
+        ...DEFAULT_FORM,
+        academicYearId: selectedAcademicYear,
+        date: new Date().toISOString().split('T')[0]
+      });
       setSelectedStudent(null);
       setSearchStudent('');
       setModal({ open: true, editId: null });
@@ -181,6 +227,7 @@ export const Achievements: React.FC = () => {
       setIsSubmitting(true);
       const payload = trimPayload({
         studentId: form.studentId,
+        academicYearId: form.academicYearId || undefined,
         title: form.title.trim(),
         description: form.description?.trim(),
         category: form.category,
@@ -247,9 +294,16 @@ export const Achievements: React.FC = () => {
           <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0 text-indigo-600 font-bold text-xs">
             {row.student?.fullName ? row.student.fullName.charAt(0).toUpperCase() : <User size={16} />}
           </div>
-          <div>
-            <div className="font-bold text-slate-900 text-sm">{row.student?.fullName || '-'}</div>
-            <div className="text-xs text-slate-500 font-mono">NIS: {row.student?.nis || '-'}</div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-slate-900 text-sm">{row.student?.fullName || '-'}</span>
+              {row.student?.classroomName && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100 shrink-0">
+                  Kelas {row.student.classroomName}
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-slate-500 font-mono mt-0.5">NIS: {row.student?.nis || '-'}</div>
           </div>
         </div>
       )
@@ -305,6 +359,15 @@ export const Achievements: React.FC = () => {
         </span>
       )
     },
+    {
+      key: 'recordedBy',
+      header: 'Dicatat Oleh',
+      render: (row) => (
+        <span className="text-xs font-medium text-slate-700">
+          {row.recordedBy?.fullName || '-'}
+        </span>
+      )
+    },
     ...(hasActions ? [{
       key: 'actions',
       header: 'Aksi',
@@ -319,22 +382,7 @@ export const Achievements: React.FC = () => {
     }] : [])
   ];
 
-  // Filter & Pagination Logic
-  const filteredAchievements = achievements.filter(item => {
-    const matchesSearch = !search || 
-      item.title?.toLowerCase().includes(search.toLowerCase()) ||
-      item.student?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-      item.student?.nis?.toLowerCase().includes(search.toLowerCase()) ||
-      item.description?.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = !categoryFilter || item.category === categoryFilter;
-    const matchesLevel = !levelFilter || item.level === levelFilter;
-    return matchesSearch && matchesCategory && matchesLevel;
-  });
-
-  const totalPages = Math.ceil(filteredAchievements.length / itemsPerPage);
-  const paginatedAchievements = filteredAchievements.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const hasActiveFilter = Boolean(search || categoryFilter || levelFilter);
+  const hasActiveFilter = Boolean(search || selectedAcademicYear || selectedClassroom || categoryFilter || levelFilter);
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 page-enter">
@@ -348,9 +396,9 @@ export const Achievements: React.FC = () => {
         ) : undefined}
       />
 
-      {/* Filter Bar (Glassmorphism Standard - No Header, Icon Group Focus) */}
+      {/* Filter Bar (Hardware Logs Standard Pattern) */}
       <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5">
-        <div className="flex flex-col md:flex-row items-stretch md:items-end gap-4">
+        <div className="flex flex-wrap items-end gap-4">
           <div className="flex-1 min-w-[240px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Pencarian Data</label>
             <div className="relative group">
@@ -358,27 +406,59 @@ export const Achievements: React.FC = () => {
               <input 
                 type="text" 
                 className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium" 
-                placeholder="Cari nama siswa, NIS, atau judul prestasi..." 
+                placeholder="Cari nama siswa, NIS, judul prestasi, atau peringkat..." 
                 value={search} 
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }} 
+                onChange={(e) => setSearch(e.target.value)} 
               />
             </div>
           </div>
 
-          <div className="w-full md:w-56">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Kategori Prestasi</label>
+          <div className="w-full sm:w-48">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Tahun Ajaran</label>
+            <div className="relative group">
+              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
+              <select
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
+                value={selectedAcademicYear}
+                onChange={(e) => setSelectedAcademicYear(e.target.value)}
+              >
+                <option value="">Semua Tahun Ajaran</option>
+                {academicYears.map(y => (
+                  <option key={y.id} value={y.id}>
+                    {y.name} {y.isActive ? '(Aktif)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="w-full sm:w-48">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Rombel / Kelas</label>
+            <div className="relative group">
+              <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
+              <select
+                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
+                value={selectedClassroom}
+                onChange={(e) => setSelectedClassroom(e.target.value)}
+              >
+                <option value="">Semua Kelas</option>
+                {classrooms.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="w-full sm:w-44">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Kategori</label>
             <div className="relative group">
               <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
               <select
                 className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
                 value={categoryFilter}
-                onChange={(e) => {
-                  setCategoryFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => setCategoryFilter(e.target.value)}
               >
                 <option value="">Semua Kategori</option>
                 <option value="Akademik">Akademik</option>
@@ -387,17 +467,14 @@ export const Achievements: React.FC = () => {
             </div>
           </div>
 
-          <div className="w-full md:w-56">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Tingkat Prestasi</label>
+          <div className="w-full sm:w-44">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Tingkat</label>
             <div className="relative group">
               <Trophy className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors" size={17} />
               <select
                 className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
                 value={levelFilter}
-                onChange={(e) => {
-                  setLevelFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => setLevelFilter(e.target.value)}
               >
                 <option value="">Semua Tingkat</option>
                 <option value="Sekolah">Sekolah</option>
@@ -415,11 +492,13 @@ export const Achievements: React.FC = () => {
               type="button"
               onClick={() => {
                 setSearch('');
+                const activeYear = academicYears.find((y: any) => y.isActive);
+                setSelectedAcademicYear(activeYear ? activeYear.id : '');
+                setSelectedClassroom('');
                 setCategoryFilter('');
                 setLevelFilter('');
-                setCurrentPage(1);
               }}
-              className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-rose-200 shadow-sm self-stretch md:self-end cursor-pointer shrink-0"
+              className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-rose-200 shadow-sm cursor-pointer shrink-0"
               title="Reset seluruh filter"
             >
               <RotateCcw size={14} />
@@ -429,40 +508,16 @@ export const Achievements: React.FC = () => {
         </div>
       </div>
 
-      {/* Table Section */}
-      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 md:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white/40">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 m-0">Daftar Prestasi Siswa</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Rekapitulasi penghargaan dan capaian prestasi seluruh siswa</p>
-          </div>
-          <div className="text-xs text-slate-500 font-medium">
-            Total <span className="font-bold text-slate-800">{filteredAchievements.length}</span> Prestasi Terdaftar
-          </div>
-        </div>
-
-        <DataTable 
-          columns={columns} 
-          data={paginatedAchievements} 
-          loading={loading} 
-          emptyMessage="Belum ada data prestasi. Tambahkan prestasi baru melalui tombol di atas."
-          hasPagination={filteredAchievements.length > 0}
-        />
-        
-        {filteredAchievements.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredAchievements.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={(val) => {
-              setItemsPerPage(val);
-              setCurrentPage(1);
-            }}
-          />
-        )}
-      </div>
+      {/* Table Section with Single-Card Unified Compound Pagination */}
+      <DataTable 
+        columns={columns} 
+        data={paginatedItems} 
+        loading={loading} 
+        emptyMessage="Belum ada data prestasi siswa yang tercatat. Tambahkan prestasi baru melalui tombol di atas."
+        pagination={pagination}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
+      />
 
       {/* Modal Form */}
       <Modal open={modal.open} onClose={handleCloseModal} title={modal.editId ? 'Edit Data Prestasi' : 'Tambah Prestasi Baru'} size="lg">
@@ -479,6 +534,22 @@ export const Achievements: React.FC = () => {
               </span>
             )}
           </div>
+
+          <FormField label="Tahun Ajaran" required>
+            <select
+              className="input-std cursor-pointer"
+              value={form.academicYearId}
+              onChange={setField('academicYearId')}
+              required
+            >
+              <option value="">Pilih Tahun Ajaran...</option>
+              {academicYears.map(y => (
+                <option key={y.id} value={y.id}>
+                  {y.name} {y.isActive ? '(Aktif)' : ''}
+                </option>
+              ))}
+            </select>
+          </FormField>
 
           <FormField label="Siswa" required>
             {!selectedStudent ? (
@@ -526,11 +597,15 @@ export const Achievements: React.FC = () => {
                   <div>
                     <div className="font-bold text-sm text-slate-900 flex items-center gap-2 flex-wrap">
                       <span>{selectedStudent.fullName}</span>
-                      {selectedStudent.enrollments?.[0]?.classroom?.name && (
+                      {selectedStudent.enrollments?.[0]?.classroom?.name ? (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-semibold border border-indigo-200">
                           Kelas {selectedStudent.enrollments[0].classroom.name}
                         </span>
-                      )}
+                      ) : (selectedStudent as any).classroomName ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-semibold border border-indigo-200">
+                          Kelas {(selectedStudent as any).classroomName}
+                        </span>
+                      ) : null}
                     </div>
                     <div className="text-xs text-slate-500 font-mono mt-0.5">{selectedStudent.nis}</div>
                   </div>
@@ -571,7 +646,7 @@ export const Achievements: React.FC = () => {
               <select className="input-std cursor-pointer" value={form.level} onChange={setField('level')}>
                 <option value="Sekolah">Sekolah</option>
                 <option value="Kecamatan">Kecamatan</option>
-                <option value="Kabupaten">Kabupaten / Kota</option>
+                <option value="Kabupaten/Kota">Kabupaten/Kota</option>
                 <option value="Provinsi">Provinsi</option>
                 <option value="Nasional">Nasional</option>
                 <option value="Internasional">Internasional</option>
