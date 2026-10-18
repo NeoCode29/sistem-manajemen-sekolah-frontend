@@ -382,11 +382,14 @@ export const HardwareLogs: React.FC = () => {
   const {
     paginatedItems: paginatedLogs,
     pagination: paginationProps,
+    sortConfig,
+    onSortChange
   } = useClientPagination<HardwareLog>(
     filteredLogs,
     10,
     [searchKeyword, deviceId, scanType, statusFilter],
-    columns
+    columns,
+    { key: 'time', direction: 'desc' }
   );
 
   return (
@@ -658,6 +661,8 @@ export const HardwareLogs: React.FC = () => {
           columns={columns}
           data={paginatedLogs}
           loading={loading && !isLiveMode}
+          sortConfig={sortConfig}
+          onSortChange={onSortChange}
           pagination={paginationProps}
           emptyMessage={
             isLiveMode 
