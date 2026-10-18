@@ -274,6 +274,7 @@ export const AssessmentComponents: React.FC = () => {
     { 
       key: 'type', 
       header: 'Jenis Penilaian',
+      sortValue: (row) => row.type?.name || '',
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
@@ -291,6 +292,7 @@ export const AssessmentComponents: React.FC = () => {
     {
       key: 'code',
       header: 'Kode Ref',
+      sortValue: (row) => row.type?.code || '',
       render: (row) => (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold tracking-wide uppercase bg-slate-100 text-slate-600 border border-slate-200">
           <div className="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
@@ -301,6 +303,7 @@ export const AssessmentComponents: React.FC = () => {
     {
       key: 'weight',
       header: 'Bobot (%)',
+      sortValue: (row) => row.weight || 0,
       render: (row) => (
         <div className="text-base font-extrabold text-slate-900 text-center">{row.weight}%</div>
       )
@@ -311,6 +314,7 @@ export const AssessmentComponents: React.FC = () => {
     columns.push({
       key: 'actions',
       header: 'Aksi',
+      sortable: false,
       render: (row) => <ActionButtons onEdit={() => handleOpenModal(row)} onDelete={() => handleDelete(row.id)} />
     });
   }
@@ -514,6 +518,7 @@ export const AssessmentComponents: React.FC = () => {
             columns={columns} 
             data={components} 
             loading={loading} 
+            containerClassName="w-full overflow-hidden"
             emptyMessage="Belum ada komponen penilaian yang diatur untuk kelas dan mapel ini. Silakan tambah komponen baru." 
           />
         )}
