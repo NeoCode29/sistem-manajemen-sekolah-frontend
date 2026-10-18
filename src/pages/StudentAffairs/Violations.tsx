@@ -5,11 +5,12 @@ import {
   updateViolation, 
   deleteViolation, 
   getViolationTypes,
+  getMyViolationClassrooms,
   type Violation, 
   type ViolationType 
 } from '../../api/studentAffairsService';
 import { getStudents, type Student } from '../../api/studentService';
-import { getAcademicYears, getClassrooms, type AcademicYear, type Classroom } from '../../api/academicService';
+import { getAcademicYears, type AcademicYear, type Classroom } from '../../api/academicService';
 import { 
   Plus, 
   Search, 
@@ -71,7 +72,7 @@ export const Violations: React.FC = () => {
     canCreateViolationType,
   } = usePermissions();
 
-  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin') ?? false;
+  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin' || r.name === 'Admin Sekolah' || r.name === 'Kepala Sekolah' || r.name === 'Staf Kesiswaan') ?? false;
 
   const canCreateAll = isSuperAdmin || hasPermission('violations.create_all') || hasPermission('violations.manage');
   const canCreateAssigned = hasPermission('violations.create_assigned') || hasPermission('violations.create') || hasPermission('student_affairs.write') || hasPermission('students.write');
@@ -87,6 +88,7 @@ export const Violations: React.FC = () => {
   // Master References
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const [modalClassrooms, setModalClassrooms] = useState<Classroom[]>([]);
   const [violationTypes, setViolationTypes] = useState<ViolationType[]>([]);
 
   // Main Data & Filters
@@ -101,6 +103,7 @@ export const Violations: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [searchStudent, setSearchStudent] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [modalClassroomId, setModalClassroomId] = useState('');
 
   // Modal & Form State
   const [modal, setModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
@@ -128,7 +131,7 @@ export const Violations: React.FC = () => {
       try {
         const [years, crs, vTypes] = await Promise.all([
           getAcademicYears().catch(() => []),
-          getClassrooms().catch(() => []),
+          getMyViolationClassrooms().catch(() => []),
           getViolationTypes({ isActive: true }).catch(() => []),
         ]);
         setAcademicYears(years);
@@ -139,12 +142,54 @@ export const Violations: React.FC = () => {
         if (activeYear) {
           setSelectedAcademicYear(activeYear.id);
         }
+
+        // If user is restricted to assigned rombel and only has 1 assigned classroom, auto-select it in filter
+        if (!canCreateAll && crs.length === 1) {
+          setSelectedClassroom(crs[0].id);
+        }
       } catch (err) {
         console.error('Gagal memuat referensi data', err);
       }
     };
     fetchReferences();
-  }, []);
+  }, [canCreateAll]);
+
+  // Synchronize main table classrooms filter when selectedAcademicYear changes
+  useEffect(() => {
+    if (selectedAcademicYear) {
+      const targetYear = selectedAcademicYear === 'all' ? undefined : selectedAcademicYear;
+      getMyViolationClassrooms(targetYear)
+        .then((crs) => {
+          setClassrooms(crs);
+          if (!canCreateAll) {
+            if (crs.length === 1) {
+              setSelectedClassroom(crs[0].id);
+            } else if (!crs.some((c: any) => c.id === selectedClassroom)) {
+              setSelectedClassroom('');
+            }
+          }
+        })
+        .catch(() => setClassrooms([]));
+    }
+  }, [selectedAcademicYear, canCreateAll]);
+
+  // Synchronize modal classrooms when modal is open and form.academicYearId changes
+  useEffect(() => {
+    if (modal.open && form.academicYearId) {
+      getMyViolationClassrooms(form.academicYearId)
+        .then((crs) => {
+          setModalClassrooms(crs);
+          if (!canCreateAll) {
+            if (crs.length === 1) {
+              setModalClassroomId(crs[0].id);
+            } else if (!crs.some((c: any) => c.id === modalClassroomId)) {
+              setModalClassroomId('');
+            }
+          }
+        })
+        .catch(() => setModalClassrooms([]));
+    }
+  }, [modal.open, form.academicYearId, canCreateAll]);
 
   const fetchActiveViolationTypes = useCallback(async () => {
     try {
@@ -181,12 +226,16 @@ export const Violations: React.FC = () => {
     }
   }, [fetchViolations, fetchActiveViolationTypes, activeTab]);
 
-  // Debounced student search in modal
+  // Debounced student search in modal with classroom scoping
   useEffect(() => {
     if (searchStudent.length >= 2) {
       const timer = setTimeout(async () => {
         try {
-          const data = await getStudents({ search: searchStudent, limit: 30 });
+          const params: any = { search: searchStudent, limit: 30 };
+          if (modalClassroomId) {
+            params.classroomId = modalClassroomId;
+          }
+          const data = await getStudents(params);
           setStudents(data);
         } catch (err) {
           console.error(err);
@@ -196,8 +245,7 @@ export const Violations: React.FC = () => {
     } else {
       setStudents([]);
     }
-  }, [searchStudent]);
-
+  }, [searchStudent, modalClassroomId]);
 
   const handleOpenModal = (item?: Violation) => {
     fetchActiveViolationTypes();
@@ -213,18 +261,30 @@ export const Violations: React.FC = () => {
         actionTaken: item.actionTaken || '',
         notes: item.notes || '',
         violationDate: item.violationDate ? item.violationDate.split('T')[0] : '',
-        academicYearId: item.academicYear?.id || selectedAcademicYear,
+        academicYearId: item.academicYear?.id || (item as any).academicYearId || selectedAcademicYear,
       });
       setSelectedStudent((item.student as any) || null);
+      setModalClassroomId('');
       setSearchStudent('');
       setModal({ open: true, editId: item.id });
     } else {
+      const defaultYear = selectedAcademicYear && selectedAcademicYear !== 'all' 
+        ? selectedAcademicYear 
+        : (academicYears.find(y => y.isActive)?.id || '');
       setForm({
         ...DEFAULT_FORM,
-        academicYearId: selectedAcademicYear,
+        academicYearId: defaultYear,
         violationDate: new Date().toISOString().split('T')[0],
       });
       setSelectedStudent(null);
+      // Auto-assign classroom in modal if teacher only has 1 assigned classroom or already filtered
+      if (!canCreateAll && classrooms.length === 1) {
+        setModalClassroomId(classrooms[0].id);
+      } else if (selectedClassroom) {
+        setModalClassroomId(selectedClassroom);
+      } else {
+        setModalClassroomId('');
+      }
       setSearchStudent('');
       setModal({ open: true, editId: null });
     }
@@ -614,7 +674,7 @@ export const Violations: React.FC = () => {
                   <option value="">Semua Rombel</option>
                   {classrooms.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {c.name} {(c as any).majorName ? `(${(c as any).majorName})` : c.major?.name ? `(${c.major.name})` : ''}
                     </option>
                   ))}
                 </select>
@@ -710,15 +770,86 @@ export const Violations: React.FC = () => {
             </span>
           </div>
 
+          <FormField label="Tahun Ajaran" required>
+            <select
+              className="input-std cursor-pointer"
+              value={form.academicYearId}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, academicYearId: e.target.value }));
+                if (selectedStudent && !modal.editId) {
+                  setSelectedStudent(null);
+                  setForm(prev => ({ ...prev, studentId: '' }));
+                }
+              }}
+              required
+            >
+              <option value="">Pilih Tahun Ajaran...</option>
+              {academicYears.map((y) => (
+                <option key={y.id} value={y.id}>
+                  {y.name} {y.isActive ? '(Aktif)' : ''}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField 
+            label={canCreateAll ? "Rombel / Kelas (Opsional untuk menyaring siswa)" : "Rombel / Kelas Binaan"} 
+            required={!canCreateAll && !modal.editId}
+          >
+            <select
+              className="input-std cursor-pointer"
+              value={modalClassroomId}
+              onChange={(e) => {
+                setModalClassroomId(e.target.value);
+                if (selectedStudent && !modal.editId) {
+                  setSelectedStudent(null);
+                  setForm((prev) => ({ ...prev, studentId: '' }));
+                }
+              }}
+              disabled={!!modal.editId}
+              required={!canCreateAll && !modal.editId}
+            >
+              <option value="">
+                {canCreateAll 
+                  ? "Semua Kelas (Pencarian Siswa Bebas)" 
+                  : modalClassrooms.length === 0 
+                    ? "Tidak ada rombel binaan pada tahun ajaran ini" 
+                    : "Pilih Rombel Binaan..."}
+              </option>
+              {modalClassrooms.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} {(c as any).majorName ? `(${(c as any).majorName})` : c.major?.name ? `(${c.major.name})` : ''}
+                </option>
+              ))}
+            </select>
+            {!canCreateAll && modalClassrooms.length > 0 && (
+              <span className="text-[11px] text-indigo-600 mt-1 block">
+                * Khusus mode rombel binaan: siswa yang dicari akan otomatis disaring sesuai kelas yang Anda pilih.
+              </span>
+            )}
+            {!canCreateAll && modalClassrooms.length === 0 && (
+              <span className="text-[11px] text-rose-600 font-medium mt-1 block">
+                * Perhatian: Akun Anda tidak memiliki penugasan Wali Kelas atau Guru Mapel aktif pada tahun ajaran yang dipilih.
+              </span>
+            )}
+          </FormField>
+
           <FormField label="Siswa Pelanggar" required>
             {!selectedStudent ? (
               <div className="relative">
                 <input
                   type="text"
                   className="input-std pl-10"
-                  placeholder="Ketik minimal 2 huruf nama atau NIS siswa..."
+                  placeholder={
+                    !canCreateAll && modalClassrooms.length === 0
+                      ? "Tidak ada rombel binaan pada tahun ajaran ini."
+                      : !canCreateAll && !modalClassroomId && modalClassrooms.length > 1 
+                        ? "Pilih Rombel Binaan di atas terlebih dahulu..." 
+                        : "Ketik minimal 2 huruf nama atau NIS siswa..."
+                  }
                   value={searchStudent}
                   onChange={(e) => setSearchStudent(e.target.value)}
+                  disabled={!canCreateAll && (modalClassrooms.length === 0 || (!modalClassroomId && modalClassrooms.length > 1))}
                 />
                 <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400" size={17} />
 

@@ -123,6 +123,13 @@ export const updateViolation = async (id: string, data: Partial<Violation>): Pro
   return response.data;
 };
 
+export const getMyViolationClassrooms = async (academicYearId?: string): Promise<any[]> => {
+  const response = await api.get('/student-violations/my-classrooms', {
+    params: academicYearId ? { academicYearId } : undefined,
+  });
+  return response.data;
+};
+
 export const deleteViolation = async (id: string): Promise<void> => {
   await api.delete(`/student-violations/${id}`);
 };
