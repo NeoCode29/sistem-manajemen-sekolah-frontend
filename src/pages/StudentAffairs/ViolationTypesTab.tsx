@@ -6,7 +6,7 @@ import {
   deleteViolationType, 
   type ViolationType 
 } from '../../api/studentAffairsService';
-import { Plus, Search, BookOpen, AlertTriangle, RotateCcw, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Search, BookOpen, AlertTriangle, RotateCcw, Loader2, CheckCircle2, XCircle, Filter, RefreshCw, Sparkles } from 'lucide-react';
 import { Modal, FormField, Badge, type BadgeVariant } from '../../components/ui';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { DataTable, type Column } from '../../components/Common/DataTable';
@@ -35,15 +35,24 @@ const DEFAULT_FORM: ViolationTypeForm = {
   isActive: true,
 };
 
-export const ViolationTypesTab: React.FC = () => {
+export interface ViolationTypesTabProps {
+  openCreateModalTrigger?: number;
+}
+
+export const ViolationTypesTab: React.FC<ViolationTypesTabProps> = ({ openCreateModalTrigger }) => {
   const { user } = useAuth();
-  const { hasPermission } = usePermissions();
+  const { 
+    canCreateViolationType, 
+    canUpdateViolationType, 
+    canDeleteViolationType,
+  } = usePermissions();
 
-  const isSuperAdmin = user?.roles?.some(r => 
-    r.name === 'Super Admin' || r.name === 'Admin Sekolah' || r.name === 'Kepala Sekolah' || r.name === 'Staf Kesiswaan'
-  ) ?? false;
+  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin') ?? false;
 
-  const canManage = isSuperAdmin || hasPermission('violation_types.manage') || hasPermission('violations.manage');
+  const canCreate = isSuperAdmin || canCreateViolationType;
+  const canEdit = isSuperAdmin || canUpdateViolationType;
+  const canDelete = isSuperAdmin || canDeleteViolationType;
+  const hasActions = canEdit || canDelete;
 
   const [types, setTypes] = useState<ViolationType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -90,29 +99,7 @@ export const ViolationTypesTab: React.FC = () => {
     fetchTypes();
   }, [fetchTypes]);
 
-  // Filtering
-  const filteredTypes = useMemo(() => {
-    return types.filter((item) => {
-      const q = search.toLowerCase();
-      const matchesSearch =
-        !search ||
-        item.code?.toLowerCase().includes(q) ||
-        item.name?.toLowerCase().includes(q) ||
-        item.description?.toLowerCase().includes(q);
-
-      const matchesCategory = !categoryFilter || item.category === categoryFilter;
-      const matchesStatus =
-        !statusFilter ||
-        (statusFilter === 'active' ? item.isActive !== false : item.isActive === false);
-
-      return matchesSearch && matchesCategory && matchesStatus;
-    });
-  }, [types, search, categoryFilter, statusFilter]);
-
-  // Compound Pagination
-  const { paginatedItems, pagination } = useClientPagination(filteredTypes, 10, [search, categoryFilter, statusFilter]);
-
-  const handleOpenModal = (item?: ViolationType) => {
+  const handleOpenModal = useCallback((item?: ViolationType) => {
     if (item) {
       setForm({
         code: item.code || '',
@@ -127,16 +114,27 @@ export const ViolationTypesTab: React.FC = () => {
       setForm(DEFAULT_FORM);
       setModal({ open: true, editItem: null });
     }
-  };
+  }, []);
 
   const handleCloseModal = () => {
     setModal({ open: false, editItem: null });
   };
 
+  // Trigger modal dari PageHeader parent
+  useEffect(() => {
+    if (openCreateModalTrigger && openCreateModalTrigger > 0) {
+      handleOpenModal();
+    }
+  }, [openCreateModalTrigger, handleOpenModal]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canManage) {
-      notify.error('Anda tidak memiliki izin untuk mengelola kamus jenis pelanggaran.');
+    if (modal.editItem && !canEdit) {
+      notify.error('Anda tidak memiliki izin untuk mengubah jenis pelanggaran.');
+      return;
+    }
+    if (!modal.editItem && !canCreate) {
+      notify.error('Anda tidak memiliki izin untuk menambah jenis pelanggaran.');
       return;
     }
 
@@ -150,15 +148,17 @@ export const ViolationTypesTab: React.FC = () => {
       return;
     }
 
+    const pointsNum = Math.max(0, Math.round(Number(form.points) || 0));
+
     try {
       setIsSubmitting(true);
       const payload = trimPayload({
         code: form.code.trim().toUpperCase(),
         name: form.name.trim(),
         category: form.category,
-        points: Number(form.points) || 0,
-        description: form.description?.trim() || null,
-        isActive: form.isActive,
+        points: pointsNum,
+        description: form.description?.trim() || undefined,
+        isActive: Boolean(form.isActive),
       });
 
       if (modal.editItem) {
@@ -179,7 +179,7 @@ export const ViolationTypesTab: React.FC = () => {
   };
 
   const handleDelete = (item: ViolationType) => {
-    if (!canManage) {
+    if (!canDelete) {
       notify.error('Anda tidak memiliki izin untuk menghapus jenis pelanggaran.');
       return;
     }
@@ -201,19 +201,23 @@ export const ViolationTypesTab: React.FC = () => {
     });
   };
 
+
   const getCategoryBadgeVariant = (cat?: string): BadgeVariant => {
-    if (!cat) return 'default';
-    if (cat.toLowerCase() === 'berat') return 'danger';
-    if (cat.toLowerCase() === 'sedang') return 'warning';
-    return 'default';
+    if (!cat) return 'info';
+    const lower = cat.toLowerCase();
+    if (lower === 'berat') return 'danger';
+    if (lower === 'sedang') return 'warning';
+    return 'info';
   };
 
   const columns: Column<ViolationType>[] = [
     {
       key: 'code',
       header: 'Kode',
+      sortable: true,
+      className: 'whitespace-nowrap',
       render: (row) => (
-        <span className="font-mono text-xs font-bold px-2.5 py-1 bg-slate-100 text-slate-800 rounded-md border border-slate-200">
+        <span className="font-mono text-xs font-bold px-2.5 py-1 bg-slate-100 text-slate-800 rounded-md border border-slate-200 whitespace-nowrap inline-block">
           {row.code}
         </span>
       ),
@@ -221,11 +225,12 @@ export const ViolationTypesTab: React.FC = () => {
     {
       key: 'name',
       header: 'Nama Pelanggaran & Deskripsi',
+      sortable: true,
       render: (row) => (
-        <div className="flex flex-col gap-0.5 max-w-[320px]">
-          <span className="font-bold text-slate-900 text-sm">{row.name}</span>
+        <div className="flex flex-col gap-0.5">
+          <span className="font-bold text-slate-900 text-sm whitespace-nowrap">{row.name}</span>
           {row.description ? (
-            <span className="text-xs text-slate-500 truncate" title={row.description}>
+            <span className="text-xs text-slate-500 truncate max-w-[420px] block" title={row.description}>
               {row.description}
             </span>
           ) : (
@@ -237,6 +242,9 @@ export const ViolationTypesTab: React.FC = () => {
     {
       key: 'category',
       header: 'Tingkat Kategori',
+      sortable: true,
+      headerClassName: 'text-center',
+      className: 'text-center whitespace-nowrap',
       render: (row) => (
         <Badge variant={getCategoryBadgeVariant(row.category)}>
           {row.category || 'Ringan'}
@@ -246,8 +254,11 @@ export const ViolationTypesTab: React.FC = () => {
     {
       key: 'points',
       header: 'Poin Penalti',
+      sortable: true,
+      headerClassName: 'text-center',
+      className: 'text-center whitespace-nowrap',
       render: (row) => (
-        <span className="inline-flex items-center px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold shadow-2xs">
+        <span className="inline-flex items-center px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold shadow-2xs whitespace-nowrap">
           -{row.points || 0} Poin
         </span>
       ),
@@ -255,111 +266,125 @@ export const ViolationTypesTab: React.FC = () => {
     {
       key: 'status',
       header: 'Status',
+      sortable: true,
+      headerClassName: 'text-center',
+      className: 'text-center whitespace-nowrap',
       render: (row) => (
         row.isActive !== false ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold whitespace-nowrap">
             <CheckCircle2 size={12} /> Aktif
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-full text-xs font-semibold">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-full text-xs font-semibold whitespace-nowrap">
             <XCircle size={12} /> Nonaktif
           </span>
         )
       ),
     },
-    ...(canManage ? [{
+    ...(hasActions ? [{
       key: 'actions',
       header: 'Aksi',
+      sortable: false,
+      headerClassName: 'text-right',
+      className: 'text-right whitespace-nowrap',
       render: (row: ViolationType) => (
         <div className="flex justify-end">
           <ActionButtons
-            onEdit={() => handleOpenModal(row)}
-            onDelete={() => handleDelete(row)}
+            onEdit={canEdit ? () => handleOpenModal(row) : undefined}
+            onDelete={canDelete ? () => handleDelete(row) : undefined}
           />
         </div>
       ),
     }] : []),
   ];
 
+  // Filtering
+  const filteredTypes = useMemo(() => {
+    return types.filter((item) => {
+      const q = search.toLowerCase();
+      const matchesSearch =
+        !search ||
+        item.code?.toLowerCase().includes(q) ||
+        item.name?.toLowerCase().includes(q) ||
+        item.description?.toLowerCase().includes(q);
+
+      const matchesCategory =
+        !categoryFilter || item.category?.toLowerCase() === categoryFilter.toLowerCase();
+      const matchesStatus =
+        !statusFilter ||
+        (statusFilter === 'active' ? item.isActive !== false : item.isActive === false);
+
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [types, search, categoryFilter, statusFilter]);
+
+  // Compound Client Pagination & Sorting terstandarisasi
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredTypes,
+    10,
+    [search, categoryFilter, statusFilter],
+    columns,
+    { key: 'code', direction: 'asc' }
+  );
+
   const hasActiveFilter = Boolean(search || categoryFilter || statusFilter);
 
   return (
     <div className="space-y-6">
-      {/* Header Info & Action */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/70 backdrop-blur-md border border-gray-100 p-5 rounded-2xl shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
-            <BookOpen size={20} />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-slate-900 m-0">Kamus Tata Tertib & Standar Poin</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Daftar acuan resmi jenis pelanggaran dan bobot poin penalti yang berlaku di sekolah
-            </p>
+      {/* Filter Bar Pola Standar (Students.tsx Pattern) */}
+      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-wrap gap-4 items-end">
+        <div className="flex-1 min-w-[240px]">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Pencarian Aturan
+          </label>
+          <div className="relative group">
+            <Search
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none"
+              size={16}
+            />
+            <input
+              type="text"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium placeholder:text-gray-400"
+              placeholder="Cari kode aturan, nama, atau deskripsi..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
         </div>
 
-        {canManage && (
-          <button
-            type="button"
-            className="btn-std-primary flex items-center gap-2 shrink-0 cursor-pointer"
-            onClick={() => handleOpenModal()}
-          >
-            <Plus size={16} /> Tambah Jenis Pelanggaran
-          </button>
-        )}
-      </div>
-
-      {/* Hardware Logs Filter Pattern */}
-      <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5">
-        <div className="flex flex-col md:flex-row items-stretch md:items-end gap-4">
-          <div className="flex-1 min-w-[240px]">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
-              Pencarian Aturan
-            </label>
-            <div className="relative group">
-              <Search
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors"
-                size={17}
-              />
-              <input
-                type="text"
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium"
-                placeholder="Cari kode aturan, nama pelanggaran, atau deskripsi..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="w-full md:w-56">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
-              Kategori
-            </label>
-            <div className="relative group">
-              <AlertTriangle
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors"
-                size={17}
-              />
-              <select
-                className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                <option value="">Semua Kategori</option>
-                <option value="Ringan">Pelanggaran Ringan</option>
-                <option value="Sedang">Pelanggaran Sedang</option>
-                <option value="Berat">Pelanggaran Berat</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="w-full md:w-48">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
-              Status Aturan
-            </label>
+        <div className="w-full sm:w-56 min-w-[190px]">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Tingkat Kategori
+          </label>
+          <div className="relative group">
+            <AlertTriangle
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none"
+              size={16}
+            />
             <select
-              className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
+              className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="">Semua Kategori</option>
+              <option value="Ringan">Pelanggaran Ringan</option>
+              <option value="Sedang">Pelanggaran Sedang</option>
+              <option value="Berat">Pelanggaran Berat</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="w-full sm:w-48 min-w-[170px]">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+            Status Aturan
+          </label>
+          <div className="relative group">
+            <Filter
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none"
+              size={16}
+            />
+            <select
+              className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -368,8 +393,10 @@ export const ViolationTypesTab: React.FC = () => {
               <option value="inactive">Hanya Nonaktif</option>
             </select>
           </div>
+        </div>
 
-          {hasActiveFilter && (
+        {hasActiveFilter && (
+          <div className="flex items-center">
             <button
               type="button"
               onClick={() => {
@@ -377,38 +404,76 @@ export const ViolationTypesTab: React.FC = () => {
                 setCategoryFilter('');
                 setStatusFilter('');
               }}
-              className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-rose-200 shadow-sm self-stretch md:self-end cursor-pointer shrink-0"
+              className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-rose-200 shadow-sm cursor-pointer"
               title="Reset seluruh filter"
             >
               <RotateCcw size={14} />
               <span>Reset</span>
             </button>
-          )}
+          </div>
+        )}
+
+        <div className="flex items-center ml-auto">
+          <button
+            type="button"
+            onClick={() => fetchTypes()}
+            className="p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-xl border border-gray-200 transition-colors cursor-pointer"
+            title="Muat Ulang Data Kamus"
+          >
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+          </button>
         </div>
       </div>
 
-      {/* DataTable dengan Compound Pagination */}
+      {/* DataTable dengan Compound Pagination & Sorting */}
       <DataTable
         columns={columns}
         data={paginatedItems}
         loading={loading}
-        emptyMessage="Belum ada jenis pelanggaran terdaftar di kamus tata tertib."
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
+        emptyMessage="Belum ada jenis pelanggaran terdaftar di kamus tata tertib yang sesuai filter."
         pagination={pagination}
       />
 
-      {/* Modal Form Tambah / Edit */}
+      {/* Modal Form Tambah / Edit Jenis Pelanggaran */}
       <Modal
         open={modal.open}
         onClose={handleCloseModal}
         title={modal.editItem ? 'Edit Jenis Pelanggaran' : 'Tambah Jenis Pelanggaran Baru'}
-        size="md"
+        size="lg"
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+          {/* Live Preview Card */}
+          <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-xs font-bold px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-800 shadow-2xs">
+                {form.code.trim().toUpperCase() || 'KODE'}
+              </span>
+              <div>
+                <span className="text-sm font-bold text-slate-900 block">
+                  {form.name.trim() || 'Nama Jenis Pelanggaran'}
+                </span>
+                <span className="text-xs text-slate-500">
+                  {form.description?.trim() || 'Belum ada deskripsi aturan'}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge variant={getCategoryBadgeVariant(form.category)}>
+                {form.category}
+              </Badge>
+              <span className="inline-flex items-center px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold">
+                -{form.points || 0} Poin
+              </span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Kode Aturan" required>
               <input
                 type="text"
-                className="input-std font-mono uppercase"
+                className="input-std font-mono uppercase font-bold"
                 placeholder="Misal: TTR-01"
                 value={form.code}
                 onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
@@ -422,9 +487,9 @@ export const ViolationTypesTab: React.FC = () => {
                 value={form.category}
                 onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
               >
-                <option value="Ringan">Ringan</option>
-                <option value="Sedang">Sedang</option>
-                <option value="Berat">Berat</option>
+                <option value="Ringan">Ringan (Pembinaan Dasar)</option>
+                <option value="Sedang">Sedang (Peringatan Tertulis)</option>
+                <option value="Berat">Berat (Penanganan Khusus / SP)</option>
               </select>
             </FormField>
           </div>
@@ -432,7 +497,7 @@ export const ViolationTypesTab: React.FC = () => {
           <FormField label="Nama Pelanggaran" required>
             <input
               type="text"
-              className="input-std"
+              className="input-std font-medium"
               placeholder="Misal: Terlambat Masuk Jam Pelajaran Pertama"
               value={form.name}
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
@@ -443,39 +508,50 @@ export const ViolationTypesTab: React.FC = () => {
           <FormField label="Poin Penalti Default" required>
             <input
               type="number"
-              className="input-std font-semibold"
+              className="input-std font-bold text-rose-700"
               min={0}
               placeholder="Misal: 5"
               value={form.points}
               onChange={(e) => setForm((p) => ({ ...p, points: e.target.value }))}
               required
             />
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              Poin ini akan otomatis menjadi nilai bawaan saat guru mencatat pelanggaran terkait.
+            </span>
           </FormField>
 
           <FormField label="Deskripsi / Aturan Sanksi (Opsional)">
             <textarea
               className="input-std min-h-[75px]"
               rows={3}
-              placeholder="Keterangan pasal, batas toleransi, atau sanksi pendamping..."
+              placeholder="Keterangan pasal tata tertib, batas toleransi, atau bentuk sanksi pendamping..."
               value={form.description}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
             />
           </FormField>
 
-          <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-            <input
-              type="checkbox"
-              id="isActiveToggle"
-              className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
-              checked={form.isActive}
-              onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
-            />
-            <label htmlFor="isActiveToggle" className="text-xs font-semibold text-slate-800 cursor-pointer select-none">
-              Status Aturan Aktif (Bisa dipilih pada saat pencatatan pelanggaran siswa)
-            </label>
+          {/* Modern Toggle Switch untuk Status Aturan */}
+          <div 
+            onClick={() => setForm((p) => ({ ...p, isActive: !p.isActive }))}
+            className="flex items-center justify-between p-3.5 bg-slate-50/80 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100/70 transition-all select-none"
+          >
+            <div>
+              <div className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                <Sparkles size={14} className={form.isActive ? 'text-emerald-500' : 'text-slate-400'} />
+                <span>Status Aturan Kamus ({form.isActive ? 'Aktif' : 'Nonaktif'})</span>
+              </div>
+              <div className="text-[11px] text-slate-500 mt-0.5">
+                {form.isActive 
+                  ? 'Aturan ini aktif dan dapat dipilih oleh guru pada saat pencatatan pelanggaran siswa.' 
+                  : 'Aturan ini dinonaktifkan sementara dan disembunyikan dari pilihan pencatatan.'}
+              </div>
+            </div>
+            <div className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors ${form.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${form.isActive ? 'translate-x-5' : 'translate-x-0'}`} />
+            </div>
           </div>
 
-          <div className="flex justify-end gap-3 mt-3 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-slate-100">
             <button
               type="button"
               className="btn-std-secondary px-5"

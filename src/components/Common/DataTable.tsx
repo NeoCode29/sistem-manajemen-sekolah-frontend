@@ -79,10 +79,14 @@ export function DataTable<T extends { id: string | number }>({
         const isCurrentSorted = sortConfig?.key === col.key;
         const direction = isCurrentSorted ? sortConfig.direction : null;
 
+        const isCenter = col.headerClassName?.includes('text-center') || col.className?.includes('text-center');
+        const isRight = col.headerClassName?.includes('text-right') || col.className?.includes('text-right');
+        const alignClass = isCenter ? 'justify-center' : isRight ? 'justify-end' : 'justify-start';
+
         return (
           <th 
             key={col.key} 
-            style={col.width ? { width: col.width, maxWidth: col.width } : undefined}
+            style={col.width ? { width: col.width, minWidth: col.width } : undefined}
             onClick={isSortable ? () => handleHeaderClick(col) : undefined}
             className={`px-6 py-4 font-semibold tracking-wide whitespace-nowrap transition-colors ${
               isSortable ? 'cursor-pointer select-none hover:bg-gray-100/70 group' : ''
@@ -97,10 +101,10 @@ export function DataTable<T extends { id: string | number }>({
                 : undefined
             }
           >
-            <div className="flex items-center justify-between gap-2">
-              <span>{col.header}</span>
+            <div className={`flex items-center ${alignClass} gap-2`}>
+              <span className="whitespace-nowrap">{col.header}</span>
               {isSortable && (
-                <span className="inline-flex items-center">
+                <span className="inline-flex items-center shrink-0">
                   {direction === 'asc' ? (
                     <ArrowUp className="w-3.5 h-3.5 text-blue-600 bg-blue-50 rounded p-0.5" />
                   ) : direction === 'desc' ? (
@@ -171,8 +175,8 @@ export function DataTable<T extends { id: string | number }>({
                     return (
                       <td 
                         key={col.key} 
-                        style={col.width ? { width: col.width, maxWidth: col.width } : undefined}
-                        className={`px-6 py-4 align-middle max-w-[320px] overflow-hidden ${col.className || ''}`}
+                        style={col.width ? { width: col.width, minWidth: col.width } : undefined}
+                        className={`px-6 py-4 align-middle ${col.className || ''}`}
                       >
                         {displayContent}
                       </td>

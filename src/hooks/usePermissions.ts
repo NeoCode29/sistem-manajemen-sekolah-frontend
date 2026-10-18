@@ -153,6 +153,12 @@ export const usePermissions = () => {
     canDeleteViolation: hasPermission('violations.delete') || hasPermission('violations.manage') || hasPermission('student_affairs.write'),
     canReadViolations: hasPermission('violations.read') || hasPermission('violations.manage') || hasPermission('student_affairs.read'),
 
+    canManageViolationTypes: hasPermission('violations.types_create') && hasPermission('violations.types_update') && hasPermission('violations.types_delete'),
+    canCreateViolationType: hasPermission('violations.types_create'),
+    canUpdateViolationType: hasPermission('violations.types_update'),
+    canDeleteViolationType: hasPermission('violations.types_delete'),
+    canReadViolationTypes: hasPermission('violations.types_read') || hasPermission('violations.read'),
+
     // Pengumuman
     canManageAnnouncements: hasPermission('announcements.manage') || hasPermission('announcements.create') || hasPermission('announcements.write'),
     canCreateAnnouncement: hasPermission('announcements.create') || hasPermission('announcements.write') || hasPermission('announcements.manage'),

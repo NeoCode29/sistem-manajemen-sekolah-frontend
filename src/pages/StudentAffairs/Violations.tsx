@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { 
   getViolations, 
   createViolation, 
@@ -22,7 +22,10 @@ import {
   BookOpen, 
   ShieldAlert, 
   Sparkles,
-  ArrowRightLeft
+  PenLine,
+  Filter,
+  Users,
+  RefreshCw
 } from 'lucide-react';
 import { PageHeader, Modal, FormField, Badge, type BadgeVariant } from '../../components/ui';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -63,11 +66,12 @@ const DEFAULT_FORM: ViolationForm = {
 
 export const Violations: React.FC = () => {
   const { user } = useAuth();
-  const { hasPermission } = usePermissions();
+  const { 
+    hasPermission,
+    canCreateViolationType,
+  } = usePermissions();
 
-  const isSuperAdmin = user?.roles?.some(r => 
-    r.name === 'Super Admin' || r.name === 'Admin Sekolah' || r.name === 'Kepala Sekolah' || r.name === 'Staf Kesiswaan'
-  ) ?? false;
+  const isSuperAdmin = user?.roles?.some(r => r.name === 'Super Admin') ?? false;
 
   const canCreateAll = isSuperAdmin || hasPermission('violations.create_all') || hasPermission('violations.manage');
   const canCreateAssigned = hasPermission('violations.create_assigned') || hasPermission('violations.create') || hasPermission('student_affairs.write') || hasPermission('students.write');
@@ -78,6 +82,7 @@ export const Violations: React.FC = () => {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<'records' | 'catalog'>('records');
+  const [openViolationTypeModalTrigger, setOpenViolationTypeModalTrigger] = useState(0);
 
   // Master References
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -141,6 +146,15 @@ export const Violations: React.FC = () => {
     fetchReferences();
   }, []);
 
+  const fetchActiveViolationTypes = useCallback(async () => {
+    try {
+      const vTypes = await getViolationTypes({ isActive: true });
+      setViolationTypes(vTypes);
+    } catch (err) {
+      console.error('Gagal memperbarui kamus tata tertib', err);
+    }
+  }, []);
+
   // Fetch Violations from Backend with Filters
   const fetchViolations = useCallback(async () => {
     try {
@@ -163,8 +177,9 @@ export const Violations: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'records') {
       fetchViolations();
+      fetchActiveViolationTypes();
     }
-  }, [fetchViolations, activeTab]);
+  }, [fetchViolations, fetchActiveViolationTypes, activeTab]);
 
   // Debounced student search in modal
   useEffect(() => {
@@ -183,14 +198,9 @@ export const Violations: React.FC = () => {
     }
   }, [searchStudent]);
 
-  // Compound Client Pagination
-  const { paginatedItems, pagination } = useClientPagination(
-    violations,
-    10,
-    [search, selectedAcademicYear, selectedClassroom, categoryFilter]
-  );
 
   const handleOpenModal = (item?: Violation) => {
+    fetchActiveViolationTypes();
     if (item) {
       const isCustomViolation = !item.violationTypeId;
       setForm({
@@ -275,17 +285,30 @@ export const Violations: React.FC = () => {
       return;
     }
 
+    if (!form.violationDate) {
+      notify.warning('Tanggal kejadian pelanggaran wajib diisi.');
+      return;
+    }
+
+    const dateObj = new Date(form.violationDate);
+    if (isNaN(dateObj.getTime())) {
+      notify.warning('Format tanggal kejadian tidak valid.');
+      return;
+    }
+
+    const pointsNum = Math.max(0, Math.round(Number(form.points) || 0));
+
     try {
       setIsSubmitting(true);
       const payload = trimPayload({
         studentId: form.studentId,
-        violationTypeId: form.isCustom ? null : form.violationTypeId || null,
+        violationTypeId: form.isCustom ? undefined : form.violationTypeId || undefined,
         title: form.title.trim(),
         category: form.category,
-        points: Number(form.points) || 0,
+        points: pointsNum,
         actionTaken: form.actionTaken,
         notes: form.notes,
-        violationDate: new Date(form.violationDate).toISOString(),
+        violationDate: dateObj.toISOString(),
         academicYearId: form.academicYearId || undefined,
       });
 
@@ -330,28 +353,32 @@ export const Violations: React.FC = () => {
   };
 
   const getCategoryBadgeVariant = (cat?: string): BadgeVariant => {
-    if (!cat) return 'default';
-    if (cat.toLowerCase() === 'berat') return 'danger';
-    if (cat.toLowerCase() === 'sedang') return 'warning';
-    return 'default';
+    if (!cat) return 'info';
+    const lower = cat.toLowerCase();
+    if (lower === 'berat') return 'danger';
+    if (lower === 'sedang') return 'warning';
+    return 'info';
   };
 
-  const columns: Column<Violation>[] = [
+  const columns = useMemo<Column<Violation>[]>(() => [
     {
       key: 'student',
       header: 'Siswa & Rombel',
-      render: (row) => (
+      sortable: true,
+      className: 'whitespace-nowrap',
+      sortValue: (r: Violation) => r.student?.fullName || '',
+      render: (row: Violation) => (
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center flex-shrink-0 text-rose-600 font-bold text-xs">
-            {row.student?.fullName ? row.student.fullName.charAt(0).toUpperCase() : <User size={16} />}
+          <div className="w-9 h-9 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0 text-indigo-700 font-bold text-xs uppercase shadow-2xs">
+            {row.student?.fullName ? row.student.fullName.charAt(0).toUpperCase() : <User size={15} />}
           </div>
           <div>
-            <div className="font-bold text-slate-900 text-sm">{row.student?.fullName || '-'}</div>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="font-bold text-slate-900 text-sm leading-tight whitespace-nowrap">{row.student?.fullName || '-'}</div>
+            <div className="flex items-center gap-2 mt-1 whitespace-nowrap">
               <span className="text-xs text-slate-500 font-mono">NIS: {row.student?.nis || '-'}</span>
               {row.student?.classroomName && (
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                  {row.student.classroomName}
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                  Kelas {row.student.classroomName}
                 </span>
               )}
             </div>
@@ -362,17 +389,22 @@ export const Violations: React.FC = () => {
     {
       key: 'title',
       header: 'Pelanggaran & Kategori',
-      render: (row) => (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 flex-wrap">
+      sortable: true,
+      className: 'whitespace-nowrap',
+      sortValue: (r: Violation) => r.title || r.violationType?.name || '',
+      render: (row: Violation) => (
+        <div className="flex flex-col gap-1.5 whitespace-nowrap">
+          <div className="flex items-center gap-1.5 whitespace-nowrap">
             {row.violationType?.code && (
-              <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 rounded">
+              <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 bg-slate-100 text-slate-800 border border-slate-200 rounded shrink-0">
                 {row.violationType.code}
               </span>
             )}
-            <span className="font-semibold text-slate-800 text-sm">{row.title || row.violationType?.name}</span>
+            <span className="font-semibold text-slate-800 text-sm leading-snug">
+              {row.title || row.violationType?.name}
+            </span>
           </div>
-          <div>
+          <div className="flex items-center">
             <Badge variant={getCategoryBadgeVariant(row.category || row.violationType?.category)}>
               {row.category || row.violationType?.category || 'Ringan'}
             </Badge>
@@ -383,8 +415,11 @@ export const Violations: React.FC = () => {
     {
       key: 'date',
       header: 'Tanggal',
-      render: (row) => (
-        <span className="text-xs font-medium text-slate-700">
+      sortable: true,
+      className: 'whitespace-nowrap',
+      sortValue: (r: Violation) => r.violationDate || '',
+      render: (row: Violation) => (
+        <span className="text-xs font-medium text-slate-700 whitespace-nowrap">
           {new Date(row.violationDate || new Date()).toLocaleDateString('id-ID', {
             day: 'numeric',
             month: 'short',
@@ -396,8 +431,12 @@ export const Violations: React.FC = () => {
     {
       key: 'points',
       header: 'Poin Penalti',
-      render: (row) => (
-        <span className="inline-flex items-center px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold shadow-2xs">
+      sortable: true,
+      headerClassName: 'text-center',
+      className: 'text-center whitespace-nowrap',
+      sortValue: (r: Violation) => r.points || 0,
+      render: (row: Violation) => (
+        <span className="inline-flex items-center px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold shadow-2xs whitespace-nowrap">
           -{row.points || 0}
         </span>
       ),
@@ -405,28 +444,15 @@ export const Violations: React.FC = () => {
     {
       key: 'actionTaken',
       header: 'Tindakan & Sanksi',
-      render: (row) => (
-        <div className="flex flex-col gap-0.5 max-w-[220px]">
-          <span className="text-xs font-semibold text-slate-800 truncate">{row.actionTaken || '-'}</span>
-          {row.notes && (
-            <span className="text-xs text-slate-400 truncate" title={row.notes}>
-              {row.notes}
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'recordedBy',
-      header: 'Dicatat Oleh',
-      render: (row) => (
-        <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-semibold text-slate-800">
-            {row.recordedBy?.fullName || '-'}
+      sortable: false,
+      render: (row: Violation) => (
+        <div className="flex flex-col gap-0.5 max-w-[280px]">
+          <span className="text-xs font-semibold text-slate-800 truncate block" title={row.actionTaken || undefined}>
+            {row.actionTaken || '-'}
           </span>
-          {row.recordedBy?.employeeNumber && (
-            <span className="text-[10px] text-slate-400 font-mono">
-              NIP: {row.recordedBy.employeeNumber}
+          {row.notes && (
+            <span className="text-xs text-slate-400 truncate block" title={row.notes}>
+              {row.notes}
             </span>
           )}
         </div>
@@ -435,6 +461,9 @@ export const Violations: React.FC = () => {
     ...(hasActions ? [{
       key: 'actions',
       header: 'Aksi',
+      sortable: false,
+      headerClassName: 'text-right',
+      className: 'text-right whitespace-nowrap',
       render: (row: Violation) => (
         <div className="flex justify-end">
           <ActionButtons
@@ -444,9 +473,18 @@ export const Violations: React.FC = () => {
         </div>
       ),
     }] : []),
-  ];
+  ], [canEdit, canDelete, hasActions]);
 
-  const hasActiveFilter = Boolean(search || categoryFilter || selectedClassroom);
+  // Compound Client Pagination & Sorting
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    violations,
+    10,
+    [search, selectedAcademicYear, selectedClassroom, categoryFilter],
+    columns,
+    { key: 'date', direction: 'desc' }
+  );
+
+  const hasActiveFilter = Boolean(search || categoryFilter || selectedClassroom || (selectedAcademicYear && selectedAcademicYear !== 'all'));
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 page-enter">
@@ -454,157 +492,195 @@ export const Violations: React.FC = () => {
         title="Pelanggaran Siswa & Tata Tertib"
         subtitle="Kelola pencatatan riwayat pelanggaran kedisiplinan dan kamus aturan tata tertib sekolah."
         action={
-          activeTab === 'records' && canCreate ? (
-            <button className="btn-std-primary flex items-center gap-2 cursor-pointer" onClick={() => handleOpenModal()}>
-              <Plus size={18} /> Tambah Pelanggaran
-            </button>
-          ) : undefined
+          activeTab === 'records' ? (
+            canCreate && (
+              <button 
+                type="button"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs md:text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors cursor-pointer" 
+                onClick={() => handleOpenModal()}
+              >
+                <Plus size={16} />
+                <span>Catat Pelanggaran</span>
+              </button>
+            )
+          ) : (
+            (canCreateViolationType || isSuperAdmin) && (
+              <button 
+                type="button"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs md:text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors cursor-pointer" 
+                onClick={() => setOpenViolationTypeModalTrigger((c) => c + 1)}
+              >
+                <Plus size={16} />
+                <span>Tambah Aturan Baru</span>
+              </button>
+            )
+          )
         }
       />
 
-      {/* Dual Tab Switcher */}
-      <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit border border-slate-200/60 shadow-2xs">
+      {/* Tabs Navigation Standar (Pola Students.tsx) */}
+      <div className="flex gap-6 border-b border-gray-200">
         <button
           type="button"
-          onClick={() => setActiveTab('records')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 cursor-pointer ${
             activeTab === 'records'
-              ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/40'
+              ? 'text-indigo-600'
+              : 'text-gray-500 hover:text-gray-700'
           }`}
+          onClick={() => setActiveTab('records')}
         >
-          <ShieldAlert size={15} className={activeTab === 'records' ? 'text-rose-600' : 'text-slate-400'} />
-          <span>Riwayat Pelanggaran Siswa</span>
+          <ShieldAlert size={16} />
+          <span>Riwayat Pelanggaran</span>
+          {activeTab === 'records' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveTab('catalog')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`pb-3 px-1 text-sm font-semibold transition-colors relative flex items-center gap-2 cursor-pointer ${
             activeTab === 'catalog'
-              ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/40'
+              ? 'text-indigo-600'
+              : 'text-gray-500 hover:text-gray-700'
           }`}
+          onClick={() => setActiveTab('catalog')}
         >
-          <BookOpen size={15} className={activeTab === 'catalog' ? 'text-indigo-600' : 'text-slate-400'} />
-          <span>Kamus Tata Tertib / Standar Poin</span>
+          <BookOpen size={16} />
+          <span>Kamus Tata Tertib</span>
+          {activeTab === 'catalog' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
         </button>
       </div>
 
       {/* TAB 1: RIWAYAT PELANGGARAN SISWA */}
       {activeTab === 'records' && (
         <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Filter Bar (Hardware Logs Pattern) */}
-          <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
-                  Pencarian Siswa / Catatan
-                </label>
-                <div className="relative group">
-                  <Search
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors"
-                    size={17}
-                  />
-                  <input
-                    type="text"
-                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium"
-                    placeholder="Cari nama, NIS, judul, sanksi..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
+          {/* Filter Bar Standar (Students.tsx Pattern) */}
+          <div className="bg-white/70 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[240px]">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+                Pencarian Siswa / Catatan
+              </label>
+              <div className="relative group">
+                <Search
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none"
+                  size={16}
+                />
+                <input
+                  type="text"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium placeholder:text-gray-400"
+                  placeholder="Cari nama, NIS, judul pelanggaran, atau sanksi..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
               </div>
+            </div>
 
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
-                  Tahun Ajaran
-                </label>
-                <div className="relative group">
-                  <Calendar
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors"
-                    size={17}
-                  />
-                  <select
-                    className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
-                    value={selectedAcademicYear}
-                    onChange={(e) => setSelectedAcademicYear(e.target.value)}
-                  >
-                    <option value="all">Semua Tahun Ajaran</option>
-                    {academicYears.map((ay) => (
-                      <option key={ay.id} value={ay.id}>
-                        {ay.name} {ay.isActive ? '(Aktif)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="w-full sm:w-56 min-w-[190px]">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+                Tahun Ajaran
+              </label>
+              <div className="relative group">
+                <Calendar
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none"
+                  size={16}
+                />
+                <select
+                  className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
+                  value={selectedAcademicYear}
+                  onChange={(e) => setSelectedAcademicYear(e.target.value)}
+                >
+                  <option value="all">Semua Tahun Ajaran</option>
+                  {academicYears.map((ay) => (
+                    <option key={ay.id} value={ay.id}>
+                      {ay.name} {ay.isActive ? '(Aktif)' : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
+            </div>
 
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
-                  Rombel / Kelas
-                </label>
-                <div className="relative group">
-                  <GraduationCap
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 pointer-events-none transition-colors"
-                    size={17}
-                  />
-                  <select
-                    className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
-                    value={selectedClassroom}
-                    onChange={(e) => setSelectedClassroom(e.target.value)}
-                  >
-                    <option value="">Semua Rombel</option>
-                    {classrooms.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="w-full sm:w-52 min-w-[180px]">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+                Rombel / Kelas
+              </label>
+              <div className="relative group">
+                <Users
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none"
+                  size={16}
+                />
+                <select
+                  className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
+                  value={selectedClassroom}
+                  onChange={(e) => setSelectedClassroom(e.target.value)}
+                >
+                  <option value="">Semua Rombel</option>
+                  {classrooms.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
+            </div>
 
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
-                    Kategori
-                  </label>
-                  <select
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                  >
-                    <option value="">Semua Kategori</option>
-                    <option value="Ringan">Ringan</option>
-                    <option value="Sedang">Sedang</option>
-                    <option value="Berat">Berat</option>
-                  </select>
-                </div>
-
-                {hasActiveFilter && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearch('');
-                      setSelectedClassroom('');
-                      setCategoryFilter('');
-                    }}
-                    className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1 border border-rose-200 shadow-sm shrink-0 cursor-pointer self-end"
-                    title="Reset filter"
-                  >
-                    <RotateCcw size={14} />
-                    <span>Reset</span>
-                  </button>
-                )}
+            <div className="w-full sm:w-48 min-w-[170px]">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+                Kategori
+              </label>
+              <div className="relative group">
+                <AlertTriangle
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none"
+                  size={16}
+                />
+                <select
+                  className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                >
+                  <option value="">Semua Kategori</option>
+                  <option value="Ringan">Pelanggaran Ringan</option>
+                  <option value="Sedang">Pelanggaran Sedang</option>
+                  <option value="Berat">Pelanggaran Berat</option>
+                </select>
               </div>
+            </div>
+
+            {hasActiveFilter && (
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setSelectedClassroom('');
+                    setCategoryFilter('');
+                    setSelectedAcademicYear('all');
+                  }}
+                  className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-rose-200 shadow-sm cursor-pointer"
+                  title="Reset seluruh filter"
+                >
+                  <RotateCcw size={14} />
+                  <span>Reset</span>
+                </button>
+              </div>
+            )}
+
+            <div className="flex items-center ml-auto">
+              <button
+                type="button"
+                onClick={() => fetchViolations()}
+                className="p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-xl border border-gray-200 transition-colors cursor-pointer"
+                title="Muat Ulang Data Pelanggaran"
+              >
+                <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+              </button>
             </div>
           </div>
 
-          {/* DataTable dengan Compound Pagination */}
+          {/* DataTable dengan Compound Pagination & Sorting */}
           <DataTable
             columns={columns}
             data={paginatedItems}
             loading={loading}
+            sortConfig={sortConfig}
+            onSortChange={onSortChange}
             emptyMessage="Belum ada catatan pelanggaran siswa yang sesuai dengan filter."
             pagination={pagination}
           />
@@ -614,7 +690,7 @@ export const Violations: React.FC = () => {
       {/* TAB 2: KAMUS TATA TERTIB / JENIS PELANGGARAN */}
       {activeTab === 'catalog' && (
         <div className="animate-in fade-in duration-200">
-          <ViolationTypesTab />
+          <ViolationTypesTab openCreateModalTrigger={openViolationTypeModalTrigger} />
         </div>
       )}
 
@@ -622,21 +698,16 @@ export const Violations: React.FC = () => {
       <Modal
         open={modal.open}
         onClose={handleCloseModal}
-        title={modal.editId ? 'Edit Data Pelanggaran Siswa' : 'Catat Pelanggaran Siswa Baru'}
+        title={modal.editId ? 'Edit Catatan Pelanggaran Siswa' : 'Catat Pelanggaran Siswa Baru'}
         size="lg"
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
           {/* Access Mode Indicator */}
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-            {canCreateAll ? (
-              <span className="flex items-center gap-1.5 font-semibold text-emerald-700">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Mode Akses: Seluruh Siswa (Akses Global / BK / Kesiswaan)
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 font-semibold text-indigo-700">
-                <span className="w-2 h-2 rounded-full bg-indigo-500"></span> Mode Akses: Siswa Kelas yang Diampu / Diwalikan Saja
-              </span>
-            )}
+          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
+            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${canCreateAll ? 'bg-emerald-500' : 'bg-indigo-500'}`} />
+            <span>
+              <strong>Mode Akses:</strong> {canCreateAll ? 'Seluruh Siswa (Akses Global / BK / Kesiswaan)' : 'Siswa Kelas yang Diampu / Diwalikan Saja'}
+            </span>
           </div>
 
           <FormField label="Siswa Pelanggar" required>
@@ -658,7 +729,7 @@ export const Violations: React.FC = () => {
                       return (
                         <div
                           key={s.id}
-                          className="p-3 hover:bg-rose-50/70 cursor-pointer border-b border-slate-100 last:border-b-0 transition-colors flex items-center justify-between"
+                          className="p-3 hover:bg-indigo-50/60 cursor-pointer border-b border-slate-100 last:border-b-0 transition-colors flex items-center justify-between"
                           onClick={() => handleSelectStudent(s)}
                         >
                           <div>
@@ -666,7 +737,7 @@ export const Violations: React.FC = () => {
                             <div className="text-xs text-slate-500 font-mono mt-0.5">NIS: {s.nis}</div>
                           </div>
                           {classroomName && (
-                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 font-semibold border border-rose-100 shrink-0">
+                            <span className="text-xs px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100 shrink-0">
                               Kelas {classroomName}
                             </span>
                           )}
@@ -677,26 +748,26 @@ export const Violations: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="flex justify-between items-center bg-rose-50/50 p-3.5 rounded-xl border border-rose-100">
+              <div className="flex justify-between items-center bg-indigo-50/40 p-3.5 rounded-xl border border-indigo-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-rose-600 shadow-2xs font-bold text-xs">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-indigo-700 shadow-2xs font-bold text-sm border border-indigo-100">
                     {selectedStudent.fullName.charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <div className="font-bold text-sm text-slate-900 flex items-center gap-2 flex-wrap">
                       <span>{selectedStudent.fullName}</span>
                       {selectedStudent.enrollments?.[0]?.classroom?.name && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-semibold border border-rose-200">
+                        <span className="text-[11px] px-2 py-0.5 rounded-md bg-indigo-100/70 text-indigo-800 font-semibold border border-indigo-200/60">
                           Kelas {selectedStudent.enrollments[0].classroom.name}
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-500 font-mono mt-0.5">{selectedStudent.nis}</div>
+                    <div className="text-xs text-slate-500 font-mono mt-0.5">NIS: {selectedStudent.nis}</div>
                   </div>
                 </div>
                 <button
                   type="button"
-                  className="text-xs text-rose-600 font-semibold hover:bg-white px-3 py-1.5 rounded-lg border border-rose-200 transition-all cursor-pointer"
+                  className="text-xs text-indigo-600 font-semibold hover:bg-white px-3 py-1.5 rounded-lg border border-indigo-200 transition-all cursor-pointer shadow-2xs"
                   onClick={() => {
                     setSelectedStudent(null);
                     setForm((prev) => ({ ...prev, studentId: '' }));
@@ -708,26 +779,43 @@ export const Violations: React.FC = () => {
             )}
           </FormField>
 
-          {/* Pemilihan Jenis Pelanggaran (Standar vs Kustom) */}
+          {/* Segmented Switcher untuk Pemilihan Mode Pelanggaran */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-gray-700 block">
-                Jenis Pelanggaran <span className="text-rose-500">*</span>
-              </label>
+            <label className="text-xs font-semibold text-gray-700 block">
+              Sumber Jenis Pelanggaran <span className="text-rose-500">*</span>
+            </label>
+            <div className="flex p-1 bg-slate-100 rounded-xl border border-slate-200/80 w-full select-none">
               <button
                 type="button"
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
                 onClick={() => {
-                  setForm((p) => ({
-                    ...p,
-                    isCustom: !p.isCustom,
-                    violationTypeId: p.isCustom ? p.violationTypeId : '',
-                    title: p.isCustom ? '' : p.title,
-                  }));
+                  if (form.isCustom) {
+                    setForm((p) => ({ ...p, isCustom: false, title: '' }));
+                  }
                 }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  !form.isCustom
+                    ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                <ArrowRightLeft size={13} />
-                <span>{form.isCustom ? 'Pilih dari Kamus Tata Tertib' : '+ Pelanggaran Kustom'}</span>
+                <BookOpen size={14} />
+                <span>Pilih dari Kamus Tata Tertib</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!form.isCustom) {
+                    setForm((p) => ({ ...p, isCustom: true, violationTypeId: '' }));
+                  }
+                }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  form.isCustom
+                    ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <PenLine size={14} />
+                <span>Catatan Kejadian Kustom</span>
               </button>
             </div>
 
@@ -755,7 +843,7 @@ export const Violations: React.FC = () => {
                 <input
                   type="text"
                   className="input-std"
-                  placeholder="Ketik nama kejadian pelanggaran kustom..."
+                  placeholder="Ketik nama kejadian pelanggaran khusus..."
                   value={form.title}
                   onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
                   required
@@ -774,9 +862,9 @@ export const Violations: React.FC = () => {
                 value={form.category}
                 onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
               >
-                <option value="Ringan">Ringan</option>
-                <option value="Sedang">Sedang</option>
-                <option value="Berat">Berat</option>
+                <option value="Ringan">Ringan (Pembinaan Dasar)</option>
+                <option value="Sedang">Sedang (Peringatan Tertulis)</option>
+                <option value="Berat">Berat (Penanganan Khusus / SP)</option>
               </select>
             </FormField>
 
@@ -791,18 +879,25 @@ export const Violations: React.FC = () => {
             </FormField>
           </div>
 
-          <FormField label="Poin Penalti">
-            <input
-              type="number"
-              className="input-std font-bold text-rose-700"
-              value={form.points}
-              onChange={(e) => setForm((p) => ({ ...p, points: e.target.value }))}
-              min={0}
-              placeholder="Jumlah poin pengurangan kedisiplinan..."
-            />
-            <span className="text-[11px] text-slate-400 mt-0.5 block">
-              Poin dapat disesuaikan jika terdapat pertimbangan kronologi khusus.
-            </span>
+          <FormField label="Poin Pengurangan Kedisiplinan">
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                className="input-std font-bold text-rose-700 w-36"
+                value={form.points}
+                onChange={(e) => setForm((p) => ({ ...p, points: e.target.value }))}
+                min={0}
+                placeholder="0"
+              />
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold shadow-2xs">
+                  -{form.points || 0} Poin
+                </span>
+                <span className="text-xs text-slate-500">
+                  {form.isCustom ? 'Nilai poin penalti' : 'Nilai bawaan aturan resmi'}
+                </span>
+              </div>
+            </div>
           </FormField>
 
           <FormField label="Tindakan / Sanksi yang Diberikan">
