@@ -31,7 +31,7 @@ import { useAuth } from '../../context/AuthContext';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
-import { Pagination } from '../../components/Common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { Modal } from '../../components/ui/Modal';
 import { FormField } from '../../components/ui/FormField';
 import { Badge, type BadgeVariant } from '../../components/ui/Badge';
@@ -110,10 +110,6 @@ export const LetterTemplates: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
-
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Confirm Dialog
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -355,13 +351,6 @@ export const LetterTemplates: React.FC = () => {
     });
   }, [templates, searchTerm, filterCategory, filterStatus]);
 
-  const totalPages = Math.ceil(filteredTemplates.length / itemsPerPage) || 1;
-  const paginatedTemplates = useMemo(() => {
-    return filteredTemplates.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    );
-  }, [filteredTemplates, currentPage, itemsPerPage]);
 
   const columns: Column<LetterTemplate>[] = [
     {
@@ -445,6 +434,13 @@ export const LetterTemplates: React.FC = () => {
       ]
       : []),
   ];
+
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredTemplates,
+    10,
+    [searchTerm, filterCategory, filterStatus],
+    columns
+  );
 
   const hasActiveFilters = searchTerm !== '' || filterCategory !== 'ALL' || filterStatus !== 'ALL';
 
@@ -609,10 +605,7 @@ export const LetterTemplates: React.FC = () => {
                     type="text"
                     placeholder="Cari berdasarkan nama atau kode template..."
                     value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setCurrentPage(1);
-                    }}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium"
                   />
                 </div>
@@ -626,10 +619,7 @@ export const LetterTemplates: React.FC = () => {
                   <Layers className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" size={17} />
                   <select
                     value={filterCategory}
-                    onChange={(e) => {
-                      setFilterCategory(e.target.value);
-                      setCurrentPage(1);
-                    }}
+                    onChange={(e) => setFilterCategory(e.target.value)}
                     className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
                   >
                     <option value="ALL">Semua Kategori</option>
@@ -649,10 +639,7 @@ export const LetterTemplates: React.FC = () => {
                   <CheckCircle2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" size={17} />
                   <select
                     value={filterStatus}
-                    onChange={(e) => {
-                      setFilterStatus(e.target.value);
-                      setCurrentPage(1);
-                    }}
+                    onChange={(e) => setFilterStatus(e.target.value)}
                     className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
                   >
                     <option value="ALL">Semua Status</option>
@@ -669,7 +656,6 @@ export const LetterTemplates: React.FC = () => {
                     setSearchTerm('');
                     setFilterCategory('ALL');
                     setFilterStatus('ALL');
-                    setCurrentPage(1);
                   }}
                   className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-rose-200 shadow-sm self-stretch md:self-end cursor-pointer shrink-0"
                   title="Reset seluruh filter"
@@ -681,34 +667,20 @@ export const LetterTemplates: React.FC = () => {
             </div>
           </div>
 
-          {/* DataTable Card */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
-            <DataTable
-              columns={columns}
-              data={paginatedTemplates}
-              loading={loading}
-              emptyMessage={
-                hasActiveFilters
-                  ? "Tidak ada template surat yang cocok dengan filter yang dipilih."
-                  : "Belum ada template surat yang terdaftar."
-              }
-            />
-
-            {/* Pagination Component */}
-            {!loading && filteredTemplates.length > 0 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={filteredTemplates.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={(val) => {
-                  setItemsPerPage(val);
-                  setCurrentPage(1);
-                }}
-              />
-            )}
-          </div>
+          {/* DataTable — Standar tanpa pembungkus ganda */}
+          <DataTable
+            columns={columns}
+            data={paginatedItems}
+            loading={loading}
+            sortConfig={sortConfig}
+            onSortChange={onSortChange}
+            pagination={pagination}
+            emptyMessage={
+              hasActiveFilters
+                ? "Tidak ada template surat yang cocok dengan filter yang dipilih."
+                : "Belum ada template surat yang terdaftar."
+            }
+          />
         </div>
       )}
 
