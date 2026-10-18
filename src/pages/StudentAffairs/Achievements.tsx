@@ -198,15 +198,6 @@ export const Achievements: React.FC = () => {
     }
   }, [searchStudent, modalClassroomId]);
 
-  // Client-side pagination with automatic reset on dependency change
-  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(achievements, 10, [
-    search,
-    selectedAcademicYear,
-    selectedClassroom,
-    categoryFilter,
-    levelFilter,
-  ]);
-
   const handleOpenModal = (item?: Achievement) => {
     if (item) {
       setForm({
@@ -346,6 +337,7 @@ export const Achievements: React.FC = () => {
     {
       key: 'student',
       header: 'Siswa',
+      sortValue: (row) => row.student?.fullName || '',
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0 text-indigo-600 font-bold text-xs">
@@ -368,6 +360,7 @@ export const Achievements: React.FC = () => {
     {
       key: 'title',
       header: 'Judul & Kategori',
+      sortValue: (row) => row.title || '',
       render: (row) => (
         <div className="flex flex-col gap-1">
           <div className="font-semibold text-slate-800 text-sm">{row.title}</div>
@@ -387,6 +380,7 @@ export const Achievements: React.FC = () => {
     {
       key: 'level',
       header: 'Tingkat & Peringkat',
+      sortValue: (row) => row.level || '',
       render: (row) => (
         <div className="flex flex-col gap-1">
           <div>
@@ -401,6 +395,7 @@ export const Achievements: React.FC = () => {
     {
       key: 'date',
       header: 'Tanggal',
+      sortValue: (row) => row.eventDate || row.date || '',
       render: (row) => (
         <span className="text-xs font-medium text-slate-700">
           {new Date(row.eventDate || row.date || new Date()).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -410,6 +405,7 @@ export const Achievements: React.FC = () => {
     {
       key: 'points',
       header: 'Poin',
+      sortValue: (row) => row.points ?? 0,
       render: (row) => (
         <span className="inline-flex items-center px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold shadow-xs">
           +{row.points ?? 0}
@@ -419,6 +415,7 @@ export const Achievements: React.FC = () => {
     {
       key: 'recordedBy',
       header: 'Dicatat Oleh',
+      sortValue: (row) => row.recordedBy?.fullName || '',
       render: (row) => (
         <span className="text-xs font-medium text-slate-700">
           {row.recordedBy?.fullName || '-'}
@@ -428,6 +425,7 @@ export const Achievements: React.FC = () => {
     ...(hasActions ? [{
       key: 'actions',
       header: 'Aksi',
+      sortable: false,
       render: (row: Achievement) => (
         <div className="flex justify-end">
           <ActionButtons 
@@ -438,6 +436,15 @@ export const Achievements: React.FC = () => {
       )
     }] : [])
   ];
+
+  // Client-side pagination with automatic reset on dependency change & column-aware sorting
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    achievements,
+    10,
+    [search, selectedAcademicYear, selectedClassroom, categoryFilter, levelFilter],
+    columns,
+    { key: 'date', direction: 'desc' }
+  );
 
   const hasActiveFilter = Boolean(search || selectedAcademicYear || selectedClassroom || categoryFilter || levelFilter);
 

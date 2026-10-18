@@ -248,6 +248,7 @@ export const IncomingLetters: React.FC = () => {
     { 
       key: 'dates', 
       header: 'Tanggal', 
+      sortValue: (item) => item.receivedDate || item.letterDate || '',
       render: (item) => (
         <div className="flex flex-col text-xs font-medium gap-1 text-slate-600">
           <span className="flex items-center gap-1.5 text-slate-700">
@@ -262,6 +263,7 @@ export const IncomingLetters: React.FC = () => {
     { 
       key: 'attachment', 
       header: 'Lampiran', 
+      sortable: false,
       render: (item) => (
         item.attachmentUrl ? (
           <a 
@@ -282,6 +284,7 @@ export const IncomingLetters: React.FC = () => {
     ...(hasActions ? [{
       key: 'actions',
       header: 'Aksi',
+      sortable: false,
       render: (item: IncomingLetter) => (
         <div className="flex justify-end">
           <ActionButtons 
@@ -297,7 +300,8 @@ export const IncomingLetters: React.FC = () => {
     filteredLetters,
     10,
     [search],
-    columns
+    columns,
+    { key: 'dates', direction: 'desc' }
   );
 
   return (

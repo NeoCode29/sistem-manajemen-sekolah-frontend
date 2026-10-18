@@ -383,6 +383,7 @@ export const Announcements: React.FC = () => {
     { 
       key: 'announcement', 
       header: 'Pengumuman', 
+      sortValue: (item) => item.title || '',
       render: (item) => (
         <div className="flex items-start gap-3">
           {item.posterUrl ? (
@@ -428,6 +429,7 @@ export const Announcements: React.FC = () => {
     { 
       key: 'target', 
       header: 'Target Audiens', 
+      sortValue: (item) => item.targetAudience || '',
       render: (item) => (
         <Badge variant={getTargetBadgeVariant(item.targetAudience)}>
           {item.targetAudience || 'SEMUA'}
@@ -437,6 +439,7 @@ export const Announcements: React.FC = () => {
     { 
       key: 'status', 
       header: 'Status', 
+      sortValue: (item) => (item.isActive ? 1 : 0),
       render: (item) => (
         <Badge variant={item.isActive ? 'success' : 'default'}>
           {item.isActive ? 'Aktif' : 'Nonaktif'}
@@ -446,6 +449,7 @@ export const Announcements: React.FC = () => {
     { 
       key: 'date', 
       header: 'Periode Tayang', 
+      sortValue: (item) => item.publishDate || '',
       render: (item) => (
         <div className="flex flex-col text-xs font-medium text-slate-600 gap-1">
           <span className="flex items-center gap-1.5 text-slate-700">
@@ -462,6 +466,7 @@ export const Announcements: React.FC = () => {
     {
       key: 'actions', 
       header: 'Aksi', 
+      sortable: false,
       render: (item: Announcement) => (
         <div className="flex justify-end">
           <ActionButtons 
@@ -481,7 +486,8 @@ export const Announcements: React.FC = () => {
     filteredAnnouncements,
     10,
     [search],
-    columns
+    columns,
+    { key: 'date', direction: 'desc' }
   );
 
   return (

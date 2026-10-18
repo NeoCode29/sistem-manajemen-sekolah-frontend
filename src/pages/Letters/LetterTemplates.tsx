@@ -392,6 +392,7 @@ export const LetterTemplates: React.FC = () => {
     {
       key: 'status',
       header: 'Status',
+      sortValue: (item) => (item.isActive ? 1 : 0),
       render: (item) => (
         <Badge variant={item.isActive ? 'success' : 'default'}>
           {item.isActive ? 'Aktif' : 'Nonaktif'}
@@ -401,6 +402,7 @@ export const LetterTemplates: React.FC = () => {
     {
       key: 'file',
       header: 'File Master',
+      sortable: false,
       render: (item) =>
         item.attachmentUrl ? (
           <a
@@ -422,6 +424,7 @@ export const LetterTemplates: React.FC = () => {
         {
           key: 'actions',
           header: 'Aksi',
+          sortable: false,
           render: (item: LetterTemplate) => (
             <div className="flex justify-end">
               <ActionButtons

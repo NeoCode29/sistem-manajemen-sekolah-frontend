@@ -244,6 +244,7 @@ export const OutgoingLetters: React.FC = () => {
     { 
       key: 'date', 
       header: 'Tanggal Surat', 
+      sortValue: (item) => item.letterDate || '',
       render: (item) => (
         <span className="text-xs font-medium text-slate-700">
           {new Date(item.letterDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -253,6 +254,7 @@ export const OutgoingLetters: React.FC = () => {
     { 
       key: 'attachment', 
       header: 'Dokumen', 
+      sortable: false,
       render: (item) => (
         item.attachmentUrl ? (
           <a 
@@ -273,6 +275,7 @@ export const OutgoingLetters: React.FC = () => {
     ...(hasActions ? [{
       key: 'actions',
       header: 'Aksi',
+      sortable: false,
       render: (item: OutgoingLetter) => (
         <div className="flex justify-end">
           <ActionButtons 
@@ -288,7 +291,8 @@ export const OutgoingLetters: React.FC = () => {
     filteredLetters,
     10,
     [search],
-    columns
+    columns,
+    { key: 'date', direction: 'desc' }
   );
 
   return (
