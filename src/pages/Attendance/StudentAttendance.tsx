@@ -18,10 +18,11 @@ import { useAuth } from '../../context/AuthContext';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Badge, type BadgeVariant } from '../../components/ui/Badge';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { TableSkeleton } from '../../components/Common/TableSkeleton';
+import { DataTable, type Column } from '../../components/Common/DataTable';
 import { notify, parseApiError } from '../../utils/feedback';
 
 interface AttendanceRow {
+  id: string;
   studentId: string;
   studentName: string;
   nis: string;
@@ -209,6 +210,7 @@ export const StudentAttendancePage: React.FC = () => {
       const newRows: AttendanceRow[] = studentsData.map(student => {
         const att = attendanceMap.get(student.id);
         return {
+          id: student.id,
           studentId: student.id,
           studentName: student.fullName,
           nis: student.nis,
@@ -341,6 +343,140 @@ export const StudentAttendancePage: React.FC = () => {
 
   const selectedClassroomObj = classrooms.find(c => c.id === selectedClassroomId);
   const formattedDate = date ? new Date(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+
+  const inputColumns: Column<AttendanceRow>[] = [
+    {
+      key: 'no',
+      header: 'No',
+      width: '48px',
+      className: 'text-center font-mono text-xs text-gray-400',
+      headerClassName: 'w-12 text-center',
+      sortable: false,
+      render: (_row, index) => (index !== undefined ? index + 1 : '-')
+    },
+    {
+      key: 'nis',
+      header: 'NIS',
+      width: '130px',
+      className: 'font-mono text-xs text-gray-500',
+      sortable: false,
+      render: (row) => row.nis
+    },
+    {
+      key: 'studentName',
+      header: 'Nama Siswa',
+      sortable: false,
+      render: (row) => (
+        <span className="font-bold text-gray-800 truncate block max-w-[220px]" title={row.studentName}>
+          {row.studentName}
+        </span>
+      )
+    },
+    {
+      key: 'status',
+      header: 'Status Kehadiran',
+      width: '200px',
+      sortable: false,
+      render: (row) => {
+        const originalIndex = rows.findIndex(r => r.studentId === row.studentId);
+        return (
+          <select 
+            disabled={!canRecordAttendance || !isManualEnabled}
+            className={`w-full py-2 px-3 rounded-xl text-xs font-semibold outline-none transition-all shadow-sm focus:ring-2 focus:ring-offset-1 focus:border-transparent ${
+              canRecordAttendance && isManualEnabled ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'
+            } ${
+              row.status === 'Belum Absen' ? 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-400/50' :
+              row.status === 'Hadir' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 focus:ring-emerald-400/50' :
+              row.status === 'Terlambat' ? 'bg-amber-50 text-amber-700 border-amber-300 focus:ring-amber-400/50' :
+              row.status === 'Izin' ? 'bg-sky-50 text-sky-700 border-sky-300 focus:ring-sky-400/50' :
+              row.status === 'Sakit' ? 'bg-indigo-50 text-indigo-700 border-indigo-300 focus:ring-indigo-400/50' :
+              'bg-rose-50 text-rose-700 border-rose-300 focus:ring-rose-400/50'
+            }`}
+            value={row.status}
+            onChange={(e) => handleRowChange(originalIndex, 'status', e.target.value)}
+          >
+            <option value="Belum Absen">Belum Absen</option>
+            <option value="Hadir">Hadir</option>
+            <option value="Terlambat">Terlambat</option>
+            <option value="Izin">Izin</option>
+            <option value="Sakit">Sakit</option>
+            <option value="Alpa">Alpa</option>
+          </select>
+        );
+      }
+    },
+    {
+      key: 'notes',
+      header: 'Keterangan / Catatan',
+      sortable: false,
+      render: (row) => {
+        const originalIndex = rows.findIndex(r => r.studentId === row.studentId);
+        return (
+          <input 
+            type="text" 
+            disabled={!canRecordAttendance || !isManualEnabled}
+            className={`input-std py-1.5 px-3 text-xs shadow-sm w-full transition-colors ${
+              canRecordAttendance && isManualEnabled ? 'bg-white/70 focus:bg-white' : 'bg-gray-100 cursor-not-allowed opacity-80'
+            }`}
+            value={row.notes}
+            onChange={(e) => handleRowChange(originalIndex, 'notes', e.target.value)}
+            placeholder={canRecordAttendance && isManualEnabled ? "Tambahkan keterangan opsional..." : "-"}
+          />
+        );
+      }
+    }
+  ];
+
+  const recapColumns: Column<AttendanceRow>[] = [
+    {
+      key: 'no',
+      header: 'No',
+      width: '48px',
+      className: 'text-center font-mono text-xs text-gray-400',
+      headerClassName: 'w-12 text-center',
+      sortable: false,
+      render: (_row, index) => (index !== undefined ? index + 1 : '-')
+    },
+    {
+      key: 'nis',
+      header: 'NIS',
+      width: '130px',
+      className: 'font-mono text-xs text-gray-500',
+      sortValue: (row) => row.nis,
+      render: (row) => row.nis
+    },
+    {
+      key: 'studentName',
+      header: 'Nama Siswa',
+      sortValue: (row) => row.studentName,
+      render: (row) => (
+        <span className="font-bold text-gray-800 truncate block max-w-[240px]" title={row.studentName}>
+          {row.studentName}
+        </span>
+      )
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '140px',
+      sortValue: (row) => row.status,
+      render: (row) => (
+        <Badge variant={getStatusBadgeVariant(row.status)}>
+          {row.status}
+        </Badge>
+      )
+    },
+    {
+      key: 'notes',
+      header: 'Keterangan',
+      sortValue: (row) => row.notes || '',
+      render: (row) => (
+        <span className="truncate block max-w-[300px] text-xs text-gray-600" title={row.notes || '-'}>
+          {row.notes || '-'}
+        </span>
+      )
+    }
+  ];
 
   return (
     <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
@@ -684,149 +820,27 @@ export const StudentAttendancePage: React.FC = () => {
         )}
       </div>
 
-      {/* 5. Tabel Interaktif */}
-      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-        
-        {loading ? (
-          <div className="p-6">
-            <table className="w-full">
-              <tbody>
-                <TableSkeleton rows={8} columns={5} />
-              </tbody>
-            </table>
+      {/* 5. Tabel Presensi Siswa Terstandarisasi */}
+      {homeroomNotice ? (
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-12 text-center text-gray-500">
+          <div className="max-w-md mx-auto space-y-2 text-center">
+            <AlertTriangle className="mx-auto text-amber-500" size={32} />
+            <p className="font-semibold text-slate-800 text-sm">Akses Presensi Rombel Terbatas</p>
+            <p className="text-xs text-slate-500 leading-relaxed">{homeroomNotice}</p>
           </div>
-        ) : rows.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            {homeroomNotice ? (
-              <div className="max-w-md mx-auto space-y-2 text-center">
-                <AlertTriangle className="mx-auto text-amber-500" size={32} />
-                <p className="font-semibold text-slate-800 text-sm">Akses Presensi Rombel Terbatas</p>
-                <p className="text-xs text-slate-500 leading-relaxed">{homeroomNotice}</p>
-              </div>
-            ) : selectedClassroomId ? (
-              'Tidak ada data siswa aktif di rombel kelas ini.' 
-            ) : (
-              'Silakan pilih Tahun Ajaran, Tingkat, dan Rombel Kelas untuk memuat presensi.'
-            )}
-          </div>
-        ) : activeTab === 'input' ? (
-          /* TAB 1: INPUT PRESENSI ROMBEL */
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-gray-50/70 text-gray-600 font-semibold border-b border-gray-100">
-                <tr>
-                  <th className="w-12 text-center py-3.5 px-3">No</th>
-                  <th className="w-32 py-3.5 px-3">NIS</th>
-                  <th className="py-3.5 px-3">Nama Siswa</th>
-                  <th className="w-52 py-3.5 px-3">Status Kehadiran</th>
-                  <th className="py-3.5 px-4">Keterangan / Catatan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 animate-in fade-in duration-300">
-                {rows.map((row, index) => (
-                  <tr key={row.studentId} className="hover:bg-indigo-50/20 transition-colors">
-                    <td className="text-center text-gray-400 py-3 px-3 font-mono text-xs">{index + 1}</td>
-                    <td className="font-mono text-xs text-gray-500 py-3 px-3">{row.nis}</td>
-                    <td className="py-3 px-3">
-                      <span 
-                        className="font-bold text-gray-800 truncate block max-w-[220px]" 
-                        title={row.studentName}
-                      >
-                        {row.studentName}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3">
-                      <select 
-                        disabled={!canRecordAttendance || !isManualEnabled}
-                        className={`w-full py-2 px-3 rounded-xl text-xs font-semibold outline-none transition-all shadow-sm focus:ring-2 focus:ring-offset-1 focus:border-transparent ${
-                          canRecordAttendance && isManualEnabled ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'
-                        } ${
-                          row.status === 'Belum Absen' ? 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-400/50' :
-                          row.status === 'Hadir' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 focus:ring-emerald-400/50' :
-                          row.status === 'Terlambat' ? 'bg-amber-50 text-amber-700 border-amber-300 focus:ring-amber-400/50' :
-                          row.status === 'Izin' ? 'bg-sky-50 text-sky-700 border-sky-300 focus:ring-sky-400/50' :
-                          row.status === 'Sakit' ? 'bg-indigo-50 text-indigo-700 border-indigo-300 focus:ring-indigo-400/50' :
-                          'bg-rose-50 text-rose-700 border-rose-300 focus:ring-rose-400/50'
-                        }`}
-                        value={row.status}
-                        onChange={(e) => handleRowChange(index, 'status', e.target.value)}
-                      >
-                        <option value="Belum Absen">Belum Absen</option>
-                        <option value="Hadir">Hadir</option>
-                        <option value="Terlambat">Terlambat</option>
-                        <option value="Izin">Izin</option>
-                        <option value="Sakit">Sakit</option>
-                        <option value="Alpa">Alpa</option>
-                      </select>
-                    </td>
-                    <td className="py-3 px-4">
-                      <input 
-                        type="text" 
-                        disabled={!canRecordAttendance || !isManualEnabled}
-                        className={`input-std py-1.5 px-3 text-xs shadow-sm w-full transition-colors ${
-                          canRecordAttendance && isManualEnabled ? 'bg-white/70 focus:bg-white' : 'bg-gray-100 cursor-not-allowed opacity-80'
-                        }`}
-                        value={row.notes}
-                        onChange={(e) => handleRowChange(index, 'notes', e.target.value)}
-                        placeholder={canRecordAttendance && isManualEnabled ? "Tambahkan keterangan opsional..." : "-"}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          /* TAB 2: REKAP & RIWAYAT HARI INI */
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-gray-50/70 text-gray-600 font-semibold border-b border-gray-100">
-                <tr>
-                  <th className="w-12 text-center py-3.5 px-3">No</th>
-                  <th className="w-32 py-3.5 px-3">NIS</th>
-                  <th className="py-3.5 px-3">Nama Siswa</th>
-                  <th className="w-40 py-3.5 px-3">Status</th>
-                  <th className="py-3.5 px-4">Keterangan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 animate-in fade-in duration-300">
-                {recapRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-gray-400 text-xs">
-                      Tidak ada data siswa yang cocok dengan filter ini.
-                    </td>
-                  </tr>
-                ) : (
-                  recapRows.map((row, index) => (
-                    <tr key={row.studentId} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="text-center text-gray-400 py-3 px-3 font-mono text-xs">{index + 1}</td>
-                      <td className="font-mono text-xs text-gray-500 py-3 px-3">{row.nis}</td>
-                      <td className="py-3 px-3">
-                        <span 
-                          className="font-bold text-gray-800 truncate block max-w-[240px]"
-                          title={row.studentName}
-                        >
-                          {row.studentName}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3">
-                        <Badge variant={getStatusBadgeVariant(row.status)}>
-                          {row.status}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-xs text-gray-600">
-                        <span className="truncate block max-w-[300px]" title={row.notes || '-'}>
-                          {row.notes || '-'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <DataTable 
+          columns={activeTab === 'input' ? inputColumns : recapColumns}
+          data={activeTab === 'input' ? rows : recapRows}
+          loading={loading}
+          emptyMessage={
+            selectedClassroomId 
+              ? (activeTab === 'input' ? 'Tidak ada data siswa aktif di rombel kelas ini.' : 'Tidak ada data siswa yang cocok dengan filter ini.')
+              : 'Silakan pilih Tahun Ajaran, Tingkat, dan Rombel Kelas untuk memuat presensi.'
+          }
+        />
+      )}
 
       {/* 5. Dialog Konfirmasi Simpan Presensi */}
       <ConfirmDialog
