@@ -94,6 +94,11 @@ export const updateAchievement = async (id: string, data: Partial<Achievement>):
   return response.data;
 };
 
+export const getMyAchievementClassrooms = async (): Promise<any[]> => {
+  const response = await api.get('/achievements/my-classrooms');
+  return response.data;
+};
+
 export const deleteAchievement = async (id: string): Promise<void> => {
   await api.delete(`/achievements/${id}`);
 };

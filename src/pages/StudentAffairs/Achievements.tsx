@@ -3,11 +3,12 @@ import {
   getAchievements, 
   createAchievement, 
   updateAchievement, 
-  deleteAchievement, 
+  deleteAchievement,
+  getMyAchievementClassrooms,
   type Achievement 
 } from '../../api/studentAffairsService';
 import { getStudents, type Student } from '../../api/studentService';
-import { getAcademicYears, getClassrooms, type AcademicYear, type Classroom } from '../../api/academicService';
+import { getAcademicYears, type AcademicYear, type Classroom } from '../../api/academicService';
 import { Plus, Search, User, Loader2, Filter, Trophy, RotateCcw, Calendar, GraduationCap } from 'lucide-react';
 import { PageHeader, Modal, FormField, Badge, type BadgeVariant } from '../../components/ui';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -60,6 +61,7 @@ export const Achievements: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [searchStudent, setSearchStudent] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [modalClassroomId, setModalClassroomId] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -94,7 +96,7 @@ export const Achievements: React.FC = () => {
       try {
         const [years, crs] = await Promise.all([
           getAcademicYears().catch(() => []),
-          getClassrooms().catch(() => []),
+          getMyAchievementClassrooms().catch(() => []),
         ]);
         setAcademicYears(years);
         setClassrooms(crs);
@@ -103,12 +105,17 @@ export const Achievements: React.FC = () => {
         if (activeYear) {
           setSelectedAcademicYear(activeYear.id);
         }
+
+        // If user is restricted to assigned rombel and only has 1 assigned classroom, auto-select it in filter
+        if (!canCreateAll && crs.length === 1) {
+          setSelectedClassroom(crs[0].id);
+        }
       } catch (err) {
         console.error('Gagal memuat data referensi:', err);
       }
     };
     fetchReferences();
-  }, []);
+  }, [canCreateAll]);
 
   const fetchAchievements = useCallback(async () => {
     try {
@@ -133,12 +140,16 @@ export const Achievements: React.FC = () => {
     fetchAchievements();
   }, [fetchAchievements]);
 
-  // Debounced student search
+  // Debounced student search with classroom scoping
   useEffect(() => {
     if (searchStudent.length >= 2) {
       const timer = setTimeout(async () => {
         try {
-          const data = await getStudents({ search: searchStudent, limit: 30 });
+          const params: any = { search: searchStudent, limit: 30 };
+          if (modalClassroomId) {
+            params.classroomId = modalClassroomId;
+          }
+          const data = await getStudents(params);
           setStudents(data);
         } catch (err) {
           console.error(err);
@@ -148,7 +159,7 @@ export const Achievements: React.FC = () => {
     } else {
       setStudents([]);
     }
-  }, [searchStudent]);
+  }, [searchStudent, modalClassroomId]);
 
   // Client-side pagination with automatic reset on dependency change
   const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(achievements, 10, [
@@ -173,6 +184,7 @@ export const Achievements: React.FC = () => {
         points: item.points || 10
       });
       setSelectedStudent((item.student as any) || null);
+      setModalClassroomId('');
       setSearchStudent('');
       setModal({ open: true, editId: item.id });
     } else {
@@ -182,6 +194,14 @@ export const Achievements: React.FC = () => {
         date: new Date().toISOString().split('T')[0]
       });
       setSelectedStudent(null);
+      // Auto-assign classroom in modal if teacher only has 1 assigned classroom or already filtered
+      if (!canCreateAll && classrooms.length === 1) {
+        setModalClassroomId(classrooms[0].id);
+      } else if (selectedClassroom) {
+        setModalClassroomId(selectedClassroom);
+      } else {
+        setModalClassroomId('');
+      }
       setSearchStudent('');
       setModal({ open: true, editId: null });
     }
@@ -551,15 +571,55 @@ export const Achievements: React.FC = () => {
             </select>
           </FormField>
 
+          <FormField 
+            label={canCreateAll ? "Rombel / Kelas (Opsional untuk menyaring siswa)" : "Rombel / Kelas Binaan"} 
+            required={!canCreateAll && !modal.editId}
+          >
+            <select
+              className="input-std cursor-pointer"
+              value={modalClassroomId}
+              onChange={(e) => {
+                setModalClassroomId(e.target.value);
+                if (selectedStudent && !modal.editId) {
+                  setSelectedStudent(null);
+                  setForm(prev => ({ ...prev, studentId: '' }));
+                }
+              }}
+              disabled={!!modal.editId}
+              required={!canCreateAll && !modal.editId}
+            >
+              <option value="">
+                {canCreateAll 
+                  ? "Semua Kelas (Pencarian Siswa Bebas)" 
+                  : classrooms.length === 0 
+                    ? "Tidak ada rombel binaan ditemukan" 
+                    : "Pilih Rombel Binaan..."}
+              </option>
+              {classrooms.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name} {(c as any).majorName ? `(${(c as any).majorName})` : c.major?.name ? `(${c.major.name})` : ''}
+                </option>
+              ))}
+            </select>
+            {!canCreateAll && (
+              <span className="text-[11px] text-indigo-600 mt-1 block">
+                * Khusus mode rombel binaan: siswa yang dicari akan otomatis disaring sesuai kelas yang Anda pilih.
+              </span>
+            )}
+          </FormField>
+
           <FormField label="Siswa" required>
             {!selectedStudent ? (
               <div className="relative">
                 <input 
                   type="text" 
                   className="input-std pl-10" 
-                  placeholder="Ketik minimal 2 huruf nama atau NIS siswa..."
+                  placeholder={!canCreateAll && !modalClassroomId && classrooms.length > 1 
+                    ? "Pilih Rombel Binaan di atas terlebih dahulu..." 
+                    : "Ketik minimal 2 huruf nama atau NIS siswa..."}
                   value={searchStudent}
                   onChange={(e) => setSearchStudent(e.target.value)}
+                  disabled={!canCreateAll && !modalClassroomId && classrooms.length > 1}
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={17} />
                 
