@@ -13,8 +13,8 @@ import { PageHeader, Modal, FormField } from '../../components/ui';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
-import { Pagination } from '../../components/Common/Pagination';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { notify } from '../../utils/feedback';
 
 export const OutgoingLetters: React.FC = () => {
@@ -58,10 +58,6 @@ export const OutgoingLetters: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [search, setSearch] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // ConfirmDialog State
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -220,11 +216,6 @@ export const OutgoingLetters: React.FC = () => {
     );
   }, [letters, search]);
 
-  const totalPages = Math.ceil(filteredLetters.length / itemsPerPage);
-  const paginatedLetters = useMemo(() => {
-    return filteredLetters.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  }, [filteredLetters, currentPage, itemsPerPage]);
-
   const columns: Column<OutgoingLetter>[] = [
     { 
       key: 'subject', 
@@ -293,6 +284,13 @@ export const OutgoingLetters: React.FC = () => {
     }] : [])
   ];
 
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredLetters,
+    10,
+    [search],
+    columns
+  );
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 page-enter">
       <PageHeader 
@@ -320,20 +318,14 @@ export const OutgoingLetters: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium" 
                 placeholder="Cari nomor surat, perihal, atau tujuan..." 
                 value={search} 
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }} 
+                onChange={(e) => setSearch(e.target.value)} 
               />
             </div>
           </div>
           {search && (
             <button
               type="button"
-              onClick={() => {
-                setSearch('');
-                setCurrentPage(1);
-              }}
+              onClick={() => setSearch('')}
               className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-rose-200 shadow-sm self-stretch sm:self-end cursor-pointer shrink-0"
               title="Reset pencarian"
             >
@@ -344,30 +336,16 @@ export const OutgoingLetters: React.FC = () => {
         </div>
       </div>
 
-      {/* Table Section */}
-      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-        <DataTable 
-          columns={columns}
-          data={paginatedLetters}
-          loading={loading}
-          emptyMessage="Belum ada surat keluar. Klik 'Buat Surat Keluar' untuk menambahkan."
-          hasPagination={filteredLetters.length > 0}
-        />
-
-        {filteredLetters.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredLetters.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={(val) => {
-              setItemsPerPage(val);
-              setCurrentPage(1);
-            }}
-          />
-        )}
-      </div>
+      {/* Table Section — Standar DataTable tanpa pembungkus ganda */}
+      <DataTable 
+        columns={columns}
+        data={paginatedItems}
+        loading={loading}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
+        pagination={pagination}
+        emptyMessage="Belum ada surat keluar. Klik 'Buat Surat Keluar' untuk menambahkan."
+      />
 
       {/* Modal Form */}
       <Modal
