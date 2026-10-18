@@ -141,10 +141,13 @@ export const usePermissions = () => {
     canUpdateAttendanceSettings: hasPermission('attendance_settings.manage') || hasPermission('attendance.write'),
     canReadAttendanceSettings: hasPermission('attendance_settings.read') || hasPermission('attendance_settings.manage') || hasPermission('attendance.read'),
 
-    canManageAchievements: hasPermission('achievements.create_all') || hasPermission('achievements.create') || hasPermission('achievements.manage') || hasPermission('student_affairs.write'),
+    // Modul Prestasi
+    canManageAchievements: hasPermission('achievements.manage') || hasPermission('achievements.create_all'),
     canCreateAchievement: hasPermission('achievements.create_all') || hasPermission('achievements.create_assigned') || hasPermission('achievements.create') || hasPermission('achievements.manage') || hasPermission('student_affairs.write'),
-    canUpdateAchievement: hasPermission('achievements.update') || hasPermission('achievements.create_all') || hasPermission('achievements.manage') || hasPermission('student_affairs.write'),
-    canDeleteAchievement: hasPermission('achievements.delete') || hasPermission('achievements.manage') || hasPermission('student_affairs.write'),
+    canCreateAllAchievements: hasPermission('achievements.create_all') || hasPermission('achievements.manage'),
+    canCreateAssignedAchievements: hasPermission('achievements.create_assigned'),
+    canUpdateAchievement: hasPermission('achievements.update') || hasPermission('achievements.manage'),
+    canDeleteAchievement: hasPermission('achievements.delete') || hasPermission('achievements.manage'),
     canReadAchievements: hasPermission('achievements.read') || hasPermission('achievements.manage') || hasPermission('student_affairs.read'),
 
     canManageViolations: hasPermission('violations.create_all') || hasPermission('violations.create') || hasPermission('violations.manage') || hasPermission('student_affairs.write'),
@@ -158,15 +161,6 @@ export const usePermissions = () => {
     canUpdateViolationType: hasPermission('violations.types_update'),
     canDeleteViolationType: hasPermission('violations.types_delete'),
     canReadViolationTypes: hasPermission('violations.types_read') || hasPermission('violations.read'),
-
-    // Modul Prestasi
-    canManageAchievements: hasPermission('achievements.manage') || hasPermission('achievements.create_all'),
-    canCreateAchievement: hasPermission('achievements.create_all') || hasPermission('achievements.create_assigned') || hasPermission('achievements.create') || hasPermission('achievements.manage') || hasPermission('student_affairs.write'),
-    canCreateAllAchievements: hasPermission('achievements.create_all') || hasPermission('achievements.manage'),
-    canCreateAssignedAchievements: hasPermission('achievements.create_assigned'),
-    canUpdateAchievement: hasPermission('achievements.update') || hasPermission('achievements.manage'),
-    canDeleteAchievement: hasPermission('achievements.delete') || hasPermission('achievements.manage'),
-    canReadAchievements: hasPermission('achievements.read') || hasPermission('achievements.manage') || hasPermission('student_affairs.read'),
 
     // Pengumuman
     canManageAnnouncements: hasPermission('announcements.manage') || hasPermission('announcements.create') || hasPermission('announcements.write'),

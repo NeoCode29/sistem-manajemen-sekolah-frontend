@@ -3,15 +3,31 @@ import api from './axios';
 export interface Achievement {
   id: string;
   studentId: string;
+  academicYearId?: string;
   title: string;
   description?: string;
   date?: string;
   eventDate?: string;
   category?: string;
-  level?: string; // e.g. "Sekolah", "Kabupaten", "Provinsi", "Nasional", "Internasional"
-  rank?: string; // e.g. "Juara 1", "Medali Emas"
+  level?: string;
+  rank?: string;
   points?: number;
-  student?: any;
+  recordedById?: string;
+  student?: {
+    id: string;
+    fullName: string;
+    nis: string;
+    classroomName?: string | null;
+  };
+  academicYear?: {
+    id: string;
+    name: string;
+  } | null;
+  recordedBy?: {
+    id: string;
+    fullName: string;
+    employeeNumber?: string;
+  } | null;
 }
 
 export interface ViolationType {
@@ -55,7 +71,15 @@ export interface Violation {
 // ==========================
 // ACHIEVEMENTS
 // ==========================
-export const getAchievements = async (params?: Record<string, any>): Promise<Achievement[]> => {
+export const getAchievements = async (params?: {
+  search?: string;
+  studentId?: string;
+  classroomId?: string;
+  academicYearId?: string;
+  category?: string;
+  level?: string;
+  [key: string]: any;
+}): Promise<Achievement[]> => {
   const response = await api.get('/achievements', { params });
   return response.data;
 };
