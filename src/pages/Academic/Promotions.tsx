@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Undo2, History, AlertCircle, Search, RotateCcw, Filter } from 'lucide-react';
-import { Pagination } from '../../components/Common/Pagination';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { usePromotions } from '../../hooks/usePromotions';
 import { PageHeader, Badge, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
@@ -134,6 +133,7 @@ export const Promotions: React.FC = () => {
     { 
       key: 'student', 
       header: 'Siswa', 
+      sortValue: (row) => row.student?.fullName || row.student?.name || '',
       render: (row) => (
         <div className="flex flex-col">
           <span 
@@ -151,6 +151,7 @@ export const Promotions: React.FC = () => {
     { 
       key: 'toAcademicYear', 
       header: 'Tahun Ajaran Baru', 
+      sortValue: (row) => row.toAcademicYear?.name || '',
       render: (row) => (
         <span className="font-medium text-gray-800 text-xs bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200">
           {row.toAcademicYear?.name || '-'}
@@ -160,6 +161,7 @@ export const Promotions: React.FC = () => {
     { 
       key: 'fromClassroom', 
       header: 'Kelas Asal', 
+      sortValue: (row) => row.fromClassroom?.name || '',
       render: (row) => (
         <span 
           className="text-gray-700 font-medium block max-w-[120px] md:max-w-[150px] truncate"
@@ -172,6 +174,7 @@ export const Promotions: React.FC = () => {
     { 
       key: 'toClassroom', 
       header: 'Kelas Tujuan', 
+      sortValue: (row) => row.toClassroom?.name || '',
       render: (row) => (
         <span 
           className="text-indigo-700 font-semibold block max-w-[120px] md:max-w-[150px] truncate"
@@ -184,6 +187,7 @@ export const Promotions: React.FC = () => {
     { 
       key: 'status', 
       header: 'Status', 
+      sortValue: (row) => row.status || '',
       render: (row) => {
         const isLatest = !row.studentId || latestPromoIdByStudent.get(row.studentId.toString()) === row.id?.toString();
         return (
@@ -201,6 +205,7 @@ export const Promotions: React.FC = () => {
     { 
       key: 'date', 
       header: 'Tanggal Proses', 
+      sortValue: (row) => row.promotionDate || row.createdAt || '',
       render: (row) => (
         <span className="text-xs text-gray-500">
           {new Date(row.promotionDate || row.createdAt).toLocaleDateString('id-ID', {
@@ -217,6 +222,7 @@ export const Promotions: React.FC = () => {
     columns.push({ 
       key: 'actions', 
       header: 'Aksi', 
+      sortable: false,
       render: (row) => {
         const isLatest = !row.studentId || latestPromoIdByStudent.get(row.studentId.toString()) === row.id?.toString();
         return (
@@ -330,33 +336,28 @@ export const Promotions: React.FC = () => {
       </div>
 
       {/* 3. Data Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <DataTable 
-          columns={columns} 
-          data={filteredPromotions} 
-          loading={loading}
-          emptyMessage={
-            searchTerm || filterStatus
-              ? 'Tidak ada riwayat kenaikan kelas yang sesuai dengan filter.'
-              : 'Belum ada riwayat kenaikan kelas. Klik "Proses Kenaikan Kelas" untuk memulai.'
-          }
-        />
-        
-        {!loading && totalPages > 1 && (
-          <div className="p-4 border-t border-gray-100">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={(limit) => {
-                setItemsPerPage(limit);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
-        )}
-      </div>
+      <DataTable 
+        columns={columns} 
+        data={filteredPromotions} 
+        loading={loading}
+        emptyMessage={
+          searchTerm || filterStatus
+            ? 'Tidak ada riwayat kenaikan kelas yang sesuai dengan filter.'
+            : 'Belum ada riwayat kenaikan kelas. Klik "Proses Kenaikan Kelas" untuk memulai.'
+        }
+        pagination={totalPages > 1 ? {
+          currentPage,
+          totalPages,
+          totalItems: totalPages * itemsPerPage,
+          itemsPerPage,
+          onPageChange: setCurrentPage,
+          onItemsPerPageChange: (limit) => {
+            setItemsPerPage(limit);
+            setCurrentPage(1);
+          },
+          hasNextPage: currentPage < totalPages
+        } : undefined}
+      />
 
       {/* 4. ConfirmDialog */}
       <ConfirmDialog
