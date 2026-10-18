@@ -14,6 +14,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { DataTable, type Column } from '../../components/Common/DataTable';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { PageHeader, Modal, FormField, Select, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useGraduations } from '../../hooks/useGraduations';
@@ -300,6 +301,7 @@ export const Graduations: React.FC = () => {
     { 
       key: 'student', 
       header: 'Siswa (Alumni)', 
+      sortValue: (row) => row.student?.fullName || row.student?.name || '',
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
@@ -322,6 +324,7 @@ export const Graduations: React.FC = () => {
     { 
       key: 'class', 
       header: 'Kelas Terakhir', 
+      sortValue: (row) => row.classroom?.name || '',
       render: (row) => (
         <span 
           className="text-gray-800 font-medium text-xs bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200 block max-w-[130px] truncate"
@@ -334,6 +337,7 @@ export const Graduations: React.FC = () => {
     { 
       key: 'date', 
       header: 'Tanggal Lulus', 
+      sortValue: (row) => row.graduationDate || '',
       render: (row) => (
         <span className="text-xs text-gray-600 font-medium">
           {new Date(row.graduationDate).toLocaleDateString('id-ID', {
@@ -347,6 +351,7 @@ export const Graduations: React.FC = () => {
     { 
       key: 'document', 
       header: 'No. SK / Ijazah', 
+      sortValue: (row) => row.certificateNumber || '',
       render: (row) => (
         row.certificateNumber ? (
           <span 
@@ -366,6 +371,7 @@ export const Graduations: React.FC = () => {
     columns.push({ 
       key: 'actions', 
       header: 'Aksi', 
+      sortable: false,
       render: (row) => (
         <div className="flex items-center justify-end">
           <button
@@ -380,6 +386,14 @@ export const Graduations: React.FC = () => {
       )
     });
   }
+
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredHistory,
+    10,
+    [searchTerm, filterYear],
+    columns,
+    { key: 'date', direction: 'desc' }
+  );
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -460,18 +474,19 @@ export const Graduations: React.FC = () => {
       </div>
 
       {/* 3. Data Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <DataTable 
-          columns={columns} 
-          data={filteredHistory} 
-          loading={loading}
-          emptyMessage={
-            searchTerm || filterYear
-              ? 'Tidak ada data alumni yang cocok dengan pencarian.'
-              : 'Belum ada data kelulusan / alumni. Klik "Proses Kelulusan Baru" untuk memulai.'
-          }
-        />
-      </div>
+      <DataTable 
+        columns={columns} 
+        data={paginatedItems} 
+        loading={loading}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
+        pagination={pagination}
+        emptyMessage={
+          searchTerm || filterYear
+            ? 'Tidak ada data alumni yang cocok dengan pencarian.'
+            : 'Belum ada data kelulusan / alumni. Klik "Proses Kelulusan Baru" untuk memulai.'
+        }
+      />
 
       {/* 4. Batch Processing Modal */}
       <Modal
