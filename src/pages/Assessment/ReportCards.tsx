@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { DataTable, type Column } from '../../components/Common/DataTable';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify } from '../../utils/feedback';
 
@@ -233,6 +234,7 @@ export const ReportCards: React.FC = () => {
     {
       key: 'student',
       header: 'Identitas Siswa',
+      sortValue: (row) => row.student?.fullName || '',
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0 text-indigo-600">
@@ -250,6 +252,7 @@ export const ReportCards: React.FC = () => {
     {
       key: 'attendance',
       header: 'Kehadiran (S/I/A)',
+      sortValue: (row) => (row.sickDays || 0) + (row.excusedDays || 0) + (row.unexcusedDays || 0),
       render: (row) => (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold tracking-wide uppercase bg-slate-100 text-slate-600 border border-slate-200">
           <div className="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
@@ -260,6 +263,7 @@ export const ReportCards: React.FC = () => {
     {
       key: 'status',
       header: 'Status 3-Tier',
+      sortValue: (row) => (row.validatedAt ? 2 : 0) + (isClassroomApproved ? 1 : 0),
       render: (row) => (
         <div className="flex flex-col gap-1.5">
           {row.validatedAt ? (
@@ -279,6 +283,7 @@ export const ReportCards: React.FC = () => {
     {
       key: 'actions',
       header: 'Aksi',
+      sortable: false,
       render: (row) => (
         <div className="flex justify-end items-center gap-2">
           {!row.validatedAt && (
@@ -327,6 +332,14 @@ export const ReportCards: React.FC = () => {
       )
     }
   ];
+
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    reportCards,
+    10,
+    [selectedYear, selectedSemester, selectedClassroom],
+    columns,
+    { key: 'student', direction: 'asc' }
+  );
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 page-enter">
@@ -439,8 +452,12 @@ export const ReportCards: React.FC = () => {
         ) : (
           <DataTable 
             columns={columns} 
-            data={reportCards} 
+            data={paginatedItems} 
             loading={loading} 
+            sortConfig={sortConfig}
+            onSortChange={onSortChange}
+            pagination={pagination}
+            containerClassName="w-full overflow-hidden"
             emptyMessage="Belum ada data rapor." 
           />
         )}
