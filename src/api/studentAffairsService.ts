@@ -94,8 +94,10 @@ export const updateAchievement = async (id: string, data: Partial<Achievement>):
   return response.data;
 };
 
-export const getMyAchievementClassrooms = async (): Promise<any[]> => {
-  const response = await api.get('/achievements/my-classrooms');
+export const getMyAchievementClassrooms = async (academicYearId?: string): Promise<any[]> => {
+  const response = await api.get('/achievements/my-classrooms', {
+    params: academicYearId ? { academicYearId } : undefined,
+  });
   return response.data;
 };
 
