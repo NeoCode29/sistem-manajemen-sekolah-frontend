@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Undo2, History, AlertCircle, Search, RotateCcw, Filter } from 'lucide-react';
 import { DataTable, type Column } from '../../components/Common/DataTable';
+import { sortData, type SortConfig } from '../../utils/tableSort';
 import { usePromotions } from '../../hooks/usePromotions';
 import { PageHeader, Badge, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -23,6 +24,7 @@ export const Promotions: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: 'date', direction: 'desc' });
 
   // ConfirmDialog State
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -256,6 +258,18 @@ export const Promotions: React.FC = () => {
     });
   }
 
+  const sortExtractors = useMemo(() => {
+    const map: Record<string, (item: any) => any> = {};
+    columns.forEach(c => {
+      if (c.sortValue) map[c.key] = c.sortValue;
+    });
+    return map;
+  }, [columns]);
+
+  const sortedPromotions = useMemo(() => {
+    return sortData(filteredPromotions, sortConfig, sortExtractors);
+  }, [filteredPromotions, sortConfig, sortExtractors]);
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* 1. Page Header */}
@@ -338,8 +352,10 @@ export const Promotions: React.FC = () => {
       {/* 3. Data Table */}
       <DataTable 
         columns={columns} 
-        data={filteredPromotions} 
+        data={sortedPromotions} 
         loading={loading}
+        sortConfig={sortConfig}
+        onSortChange={setSortConfig}
         emptyMessage={
           searchTerm || filterStatus
             ? 'Tidak ada riwayat kenaikan kelas yang sesuai dengan filter.'
