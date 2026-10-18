@@ -118,7 +118,9 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { name: 'students.export_import',        label: 'Import / Export Siswa',      domain: 'Kesiswaan', resource: 'Siswa',        description: 'Import dan export data siswa' },
 
       { name: 'achievements.read',             label: 'Lihat Prestasi',             domain: 'Kesiswaan', resource: 'Prestasi',     description: 'Melihat catatan prestasi siswa' },
-      { name: 'achievements.create',           label: 'Tambah Prestasi',            domain: 'Kesiswaan', resource: 'Prestasi',     description: 'Mencatat prestasi siswa baru' },
+      { name: 'achievements.create',           label: 'Catat Prestasi',             domain: 'Kesiswaan', resource: 'Prestasi',     description: 'Mencatat prestasi siswa baru (kompatibilitas)' },
+      { name: 'achievements.create_all',       label: 'Catat Prestasi (Semua)',     domain: 'Kesiswaan', resource: 'Prestasi',     description: 'Mencatat prestasi seluruh siswa tanpa batas pengampu' },
+      { name: 'achievements.create_assigned',  label: 'Catat Prestasi (Binaan)',    domain: 'Kesiswaan', resource: 'Prestasi',     description: 'Mencatat prestasi siswa di kelas yang diampu/diwalikan' },
       { name: 'achievements.update',           label: 'Edit Prestasi',              domain: 'Kesiswaan', resource: 'Prestasi',     description: 'Mengubah catatan prestasi' },
       { name: 'achievements.delete',           label: 'Hapus Prestasi',             domain: 'Kesiswaan', resource: 'Prestasi',     description: 'Menghapus catatan prestasi' },
 

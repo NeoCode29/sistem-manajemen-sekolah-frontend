@@ -141,9 +141,11 @@ export const usePermissions = () => {
     canUpdateAttendanceSettings: hasPermission('attendance_settings.manage') || hasPermission('attendance.write'),
     canReadAttendanceSettings: hasPermission('attendance_settings.read') || hasPermission('attendance_settings.manage') || hasPermission('attendance.read'),
 
-    canManageAchievements: hasPermission('achievements.create_all') || hasPermission('achievements.create') || hasPermission('achievements.manage') || hasPermission('student_affairs.write'),
+    canManageAchievements: hasPermission('achievements.manage') || hasPermission('student_affairs.write'),
     canCreateAchievement: hasPermission('achievements.create_all') || hasPermission('achievements.create_assigned') || hasPermission('achievements.create') || hasPermission('achievements.manage') || hasPermission('student_affairs.write'),
-    canUpdateAchievement: hasPermission('achievements.update') || hasPermission('achievements.create_all') || hasPermission('achievements.manage') || hasPermission('student_affairs.write'),
+    canCreateAllAchievements: hasPermission('achievements.create_all') || hasPermission('achievements.manage'),
+    canCreateAssignedAchievements: hasPermission('achievements.create_assigned'),
+    canUpdateAchievement: hasPermission('achievements.update') || hasPermission('achievements.manage') || hasPermission('student_affairs.write'),
     canDeleteAchievement: hasPermission('achievements.delete') || hasPermission('achievements.manage') || hasPermission('student_affairs.write'),
     canReadAchievements: hasPermission('achievements.read') || hasPermission('achievements.manage') || hasPermission('student_affairs.read'),
 
