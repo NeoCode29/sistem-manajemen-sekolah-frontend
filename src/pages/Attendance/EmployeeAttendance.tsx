@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { getEmployees } from '../../api/employeeService';
 import { getEmployeeAttendances, upsertEmployeeAttendanceBatch, getAttendanceSetting, type EmployeeAttendance, type EmployeeAttendanceBatchItem } from '../../api/attendanceService';
 import { Save, Calendar, Search, CheckCircle2, Clock, UserCheck, AlertTriangle, Users, RotateCcw, Tv, ExternalLink } from 'lucide-react';
-import { TableSkeleton } from '../../components/Common/TableSkeleton';
+import { DataTable, type Column } from '../../components/Common/DataTable';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Badge, type BadgeVariant } from '../../components/ui/Badge';
@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { notify, parseApiError } from '../../utils/feedback';
 
 interface AttendanceRow {
+  id: string;
   employeeId: string;
   employeeName: string;
   nip: string;
@@ -65,6 +66,7 @@ export const EmployeeAttendancePage: React.FC = () => {
       const newRows: AttendanceRow[] = activeEmployees.map(emp => {
         const att = attendanceMap.get(emp.id);
         return {
+          id: emp.id,
           employeeId: emp.id,
           employeeName: emp.fullName,
           nip: emp.employeeNumber || '-',
@@ -220,6 +222,202 @@ export const EmployeeAttendancePage: React.FC = () => {
   }, [rows, originalRows]);
 
   const formattedDate = date ? new Date(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+
+  const inputColumns: Column<AttendanceRow>[] = [
+    {
+      key: 'no',
+      header: 'No',
+      width: '48px',
+      className: 'text-center font-mono text-xs text-gray-400',
+      headerClassName: 'w-12 text-center',
+      sortable: false,
+      render: (_row, index) => (index !== undefined ? index + 1 : '-')
+    },
+    {
+      key: 'nip',
+      header: 'NIP',
+      width: '130px',
+      className: 'font-mono text-xs text-gray-500',
+      sortable: false,
+      render: (row) => row.nip
+    },
+    {
+      key: 'employeeName',
+      header: 'Nama Pegawai',
+      sortable: false,
+      render: (row) => (
+        <span className="font-bold text-gray-800 truncate block max-w-[220px]" title={row.employeeName}>
+          {row.employeeName}
+        </span>
+      )
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '190px',
+      sortable: false,
+      render: (row) => {
+        const originalIndex = rows.findIndex(r => r.employeeId === row.employeeId);
+        return (
+          <select 
+            disabled={!canRecordEmployeeAttendance || !isManualEnabled}
+            className={`w-full py-2 px-3 rounded-xl text-xs font-semibold outline-none transition-all shadow-sm focus:ring-2 focus:ring-offset-1 focus:border-transparent ${
+              canRecordEmployeeAttendance && isManualEnabled ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'
+            } ${
+              row.status === 'Belum Absen' ? 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-400/50' :
+              row.status === 'Hadir' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 focus:ring-emerald-400/50' :
+              row.status === 'Terlambat' ? 'bg-amber-50 text-amber-700 border-amber-300 focus:ring-amber-400/50' :
+              row.status === 'Izin' ? 'bg-sky-50 text-sky-700 border-sky-300 focus:ring-sky-400/50' :
+              row.status === 'Sakit' ? 'bg-indigo-50 text-indigo-700 border-indigo-300 focus:ring-indigo-400/50' :
+              row.status === 'Cuti' ? 'bg-purple-50 text-purple-700 border-purple-300 focus:ring-purple-400/50' :
+              'bg-rose-50 text-rose-700 border-rose-300 focus:ring-rose-400/50'
+            }`}
+            value={row.status}
+            onChange={(e) => handleRowChange(originalIndex, 'status', e.target.value)}
+          >
+            <option value="Belum Absen">Belum Absen</option>
+            <option value="Hadir">Hadir</option>
+            <option value="Terlambat">Terlambat</option>
+            <option value="Izin">Izin</option>
+            <option value="Sakit">Sakit</option>
+            <option value="Cuti">Cuti</option>
+            <option value="Alpa">Alpa</option>
+          </select>
+        );
+      }
+    },
+    {
+      key: 'checkinTime',
+      header: 'Jam Masuk',
+      width: '120px',
+      sortable: false,
+      render: (row) => {
+        const originalIndex = rows.findIndex(r => r.employeeId === row.employeeId);
+        const isPresent = row.status === 'Hadir' || row.status === 'Terlambat';
+        return (
+          <input 
+            type="time" 
+            disabled={!canRecordEmployeeAttendance || !isManualEnabled || !isPresent}
+            className={`input-std py-1 px-2.5 text-xs w-full ${!isPresent || !canRecordEmployeeAttendance || !isManualEnabled ? 'bg-gray-100 opacity-60 cursor-not-allowed' : ''}`}
+            value={row.checkinTime}
+            onChange={(e) => handleRowChange(originalIndex, 'checkinTime', e.target.value)}
+          />
+        );
+      }
+    },
+    {
+      key: 'checkoutTime',
+      header: 'Jam Pulang',
+      width: '120px',
+      sortable: false,
+      render: (row) => {
+        const originalIndex = rows.findIndex(r => r.employeeId === row.employeeId);
+        const isPresent = row.status === 'Hadir' || row.status === 'Terlambat';
+        return (
+          <input 
+            type="time" 
+            disabled={!canRecordEmployeeAttendance || !isManualEnabled || !isPresent}
+            className={`input-std py-1 px-2.5 text-xs w-full ${!isPresent || !canRecordEmployeeAttendance || !isManualEnabled ? 'bg-gray-100 opacity-60 cursor-not-allowed' : ''}`}
+            value={row.checkoutTime}
+            onChange={(e) => handleRowChange(originalIndex, 'checkoutTime', e.target.value)}
+          />
+        );
+      }
+    },
+    {
+      key: 'notes',
+      header: 'Keterangan',
+      sortable: false,
+      render: (row) => {
+        const originalIndex = rows.findIndex(r => r.employeeId === row.employeeId);
+        return (
+          <input 
+            type="text" 
+            disabled={!canRecordEmployeeAttendance || !isManualEnabled}
+            className={`input-std py-1.5 px-3 text-xs shadow-sm w-full transition-colors ${
+              canRecordEmployeeAttendance && isManualEnabled ? 'bg-white/70 focus:bg-white' : 'bg-gray-100 cursor-not-allowed opacity-80'
+            }`}
+            value={row.notes}
+            onChange={(e) => handleRowChange(originalIndex, 'notes', e.target.value)}
+            placeholder={canRecordEmployeeAttendance && isManualEnabled ? "Keterangan opsional..." : "-"}
+          />
+        );
+      }
+    }
+  ];
+
+  const recapColumns: Column<AttendanceRow>[] = [
+    {
+      key: 'no',
+      header: 'No',
+      width: '48px',
+      className: 'text-center font-mono text-xs text-gray-400',
+      headerClassName: 'w-12 text-center',
+      sortable: false,
+      render: (_row, index) => (index !== undefined ? index + 1 : '-')
+    },
+    {
+      key: 'nip',
+      header: 'NIP',
+      width: '130px',
+      className: 'font-mono text-xs text-gray-500',
+      sortValue: (row) => row.nip,
+      render: (row) => row.nip
+    },
+    {
+      key: 'employeeName',
+      header: 'Nama Pegawai',
+      sortValue: (row) => row.employeeName,
+      render: (row) => (
+        <span className="font-bold text-gray-800 truncate block max-w-[240px]" title={row.employeeName}>
+          {row.employeeName}
+        </span>
+      )
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '140px',
+      sortValue: (row) => row.status,
+      render: (row) => (
+        <Badge variant={getStatusBadgeVariant(row.status)}>
+          {row.status}
+        </Badge>
+      )
+    },
+    {
+      key: 'checkinTime',
+      header: 'Jam Masuk',
+      width: '110px',
+      sortValue: (row) => row.checkinTime || '',
+      render: (row) => (
+        <span className="font-mono text-xs text-gray-600">
+          {row.checkinTime || '-'}
+        </span>
+      )
+    },
+    {
+      key: 'checkoutTime',
+      header: 'Jam Pulang',
+      width: '110px',
+      sortValue: (row) => row.checkoutTime || '',
+      render: (row) => (
+        <span className="font-mono text-xs text-gray-600">
+          {row.checkoutTime || '-'}
+        </span>
+      )
+    },
+    {
+      key: 'notes',
+      header: 'Keterangan',
+      sortValue: (row) => row.notes || '',
+      render: (row) => (
+        <span className="truncate block max-w-[280px] text-xs text-gray-600" title={row.notes || '-'}>
+          {row.notes || '-'}
+        </span>
+      )
+    }
+  ];
 
   return (
     <div className="space-y-6 page-enter max-w-7xl mx-auto p-4 md:p-6">
@@ -445,165 +643,15 @@ export const EmployeeAttendancePage: React.FC = () => {
         )}
       </div>
 
-      {/* 5. Tabel Presensi Pegawai */}
-      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden transition-all duration-300">
-
-        {loading ? (
-          <div className="p-6">
-            <table className="w-full">
-              <tbody>
-                <TableSkeleton rows={6} columns={6} />
-              </tbody>
-            </table>
-          </div>
-        ) : filteredRows.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 text-sm">
-            {searchTerm ? `Tidak ditemukan pegawai dengan pencarian "${searchTerm}".` : 'Tidak ada data pegawai aktif.'}
-          </div>
-        ) : activeTab === 'input' ? (
-          /* TAB 1: INPUT PRESENSI PEGAWAI */
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-gray-50/70 text-gray-600 font-semibold border-b border-gray-100">
-                <tr>
-                  <th className="w-12 text-center py-3.5 px-3">No</th>
-                  <th className="w-32 py-3.5 px-3">NIP</th>
-                  <th className="py-3.5 px-3">Nama Pegawai</th>
-                  <th className="w-48 py-3.5 px-3">Status</th>
-                  <th className="w-32 py-3.5 px-3">Jam Masuk</th>
-                  <th className="w-32 py-3.5 px-3">Jam Pulang</th>
-                  <th className="py-3.5 px-4">Keterangan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 animate-in fade-in duration-300">
-                {filteredRows.map((row, index) => {
-                  const originalIndex = rows.findIndex(r => r.employeeId === row.employeeId);
-                  const isPresent = row.status === 'Hadir' || row.status === 'Terlambat';
-                  return (
-                    <tr key={row.employeeId} className="hover:bg-indigo-50/20 transition-colors">
-                      <td className="text-center text-gray-400 py-3 px-3 font-mono text-xs">{index + 1}</td>
-                      <td className="font-mono text-xs text-gray-500 py-3 px-3">{row.nip}</td>
-                      <td className="py-3 px-3">
-                        <span 
-                          className="font-bold text-gray-800 truncate block max-w-[220px]" 
-                          title={row.employeeName}
-                        >
-                          {row.employeeName}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3">
-                        <select 
-                          disabled={!canRecordEmployeeAttendance || !isManualEnabled}
-                          className={`w-full py-2 px-3 rounded-xl text-xs font-semibold outline-none transition-all shadow-sm focus:ring-2 focus:ring-offset-1 focus:border-transparent ${
-                            canRecordEmployeeAttendance && isManualEnabled ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'
-                          } ${
-                            row.status === 'Belum Absen' ? 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-400/50' :
-                            row.status === 'Hadir' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 focus:ring-emerald-400/50' :
-                            row.status === 'Terlambat' ? 'bg-amber-50 text-amber-700 border-amber-300 focus:ring-amber-400/50' :
-                            row.status === 'Izin' ? 'bg-sky-50 text-sky-700 border-sky-300 focus:ring-sky-400/50' :
-                            row.status === 'Sakit' ? 'bg-indigo-50 text-indigo-700 border-indigo-300 focus:ring-indigo-400/50' :
-                            row.status === 'Cuti' ? 'bg-purple-50 text-purple-700 border-purple-300 focus:ring-purple-400/50' :
-                            'bg-rose-50 text-rose-700 border-rose-300 focus:ring-rose-400/50'
-                          }`}
-                          value={row.status}
-                          onChange={(e) => handleRowChange(originalIndex, 'status', e.target.value)}
-                        >
-                          <option value="Belum Absen">Belum Absen</option>
-                          <option value="Hadir">Hadir</option>
-                          <option value="Terlambat">Terlambat</option>
-                          <option value="Izin">Izin</option>
-                          <option value="Sakit">Sakit</option>
-                          <option value="Cuti">Cuti</option>
-                          <option value="Alpa">Alpa</option>
-                        </select>
-                      </td>
-                      <td className="py-3 px-3">
-                        <input 
-                          type="time" 
-                          disabled={!canRecordEmployeeAttendance || !isManualEnabled || !isPresent}
-                          className={`input-std py-1 px-2.5 text-xs w-full ${!isPresent || !canRecordEmployeeAttendance || !isManualEnabled ? 'bg-gray-100 opacity-60 cursor-not-allowed' : ''}`}
-                          value={row.checkinTime}
-                          onChange={(e) => handleRowChange(originalIndex, 'checkinTime', e.target.value)}
-                        />
-                      </td>
-                      <td className="py-3 px-3">
-                        <input 
-                          type="time" 
-                          disabled={!canRecordEmployeeAttendance || !isManualEnabled || !isPresent}
-                          className={`input-std py-1 px-2.5 text-xs w-full ${!isPresent || !canRecordEmployeeAttendance || !isManualEnabled ? 'bg-gray-100 opacity-60 cursor-not-allowed' : ''}`}
-                          value={row.checkoutTime}
-                          onChange={(e) => handleRowChange(originalIndex, 'checkoutTime', e.target.value)}
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <input 
-                          type="text" 
-                          disabled={!canRecordEmployeeAttendance || !isManualEnabled}
-                          className={`input-std py-1.5 px-3 text-xs shadow-sm w-full transition-colors ${
-                            canRecordEmployeeAttendance && isManualEnabled ? 'bg-white/70 focus:bg-white' : 'bg-gray-100 cursor-not-allowed opacity-80'
-                          }`}
-                          value={row.notes}
-                          onChange={(e) => handleRowChange(originalIndex, 'notes', e.target.value)}
-                          placeholder={canRecordEmployeeAttendance && isManualEnabled ? "Keterangan opsional..." : "-"}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          /* TAB 2: REKAP PEGAWAI */
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-gray-50/70 text-gray-600 font-semibold border-b border-gray-100">
-                <tr>
-                  <th className="w-12 text-center py-3.5 px-3">No</th>
-                  <th className="w-32 py-3.5 px-3">NIP</th>
-                  <th className="py-3.5 px-3">Nama Pegawai</th>
-                  <th className="w-36 py-3.5 px-3">Status</th>
-                  <th className="w-28 py-3.5 px-3">Jam Masuk</th>
-                  <th className="w-28 py-3.5 px-3">Jam Pulang</th>
-                  <th className="py-3.5 px-4">Keterangan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 animate-in fade-in duration-300">
-                {filteredRows.map((row, index) => (
-                  <tr key={row.employeeId} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="text-center text-gray-400 py-3 px-3 font-mono text-xs">{index + 1}</td>
-                    <td className="font-mono text-xs text-gray-500 py-3 px-3">{row.nip}</td>
-                    <td className="py-3 px-3">
-                      <span 
-                        className="font-bold text-gray-800 truncate block max-w-[240px]"
-                        title={row.employeeName}
-                      >
-                        {row.employeeName}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3">
-                      <Badge variant={getStatusBadgeVariant(row.status)}>
-                        {row.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-3 font-mono text-xs text-gray-600">
-                      {row.checkinTime || '-'}
-                    </td>
-                    <td className="py-3 px-3 font-mono text-xs text-gray-600">
-                      {row.checkoutTime || '-'}
-                    </td>
-                    <td className="py-3 px-4 text-xs text-gray-600">
-                      <span className="truncate block max-w-[280px]" title={row.notes || '-'}>
-                        {row.notes || '-'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* 5. Tabel Presensi Pegawai Terstandarisasi */}
+      <DataTable 
+        columns={activeTab === 'input' ? inputColumns : recapColumns}
+        data={filteredRows}
+        loading={loading}
+        emptyMessage={
+          searchTerm ? `Tidak ditemukan pegawai dengan pencarian "${searchTerm}".` : 'Tidak ada data pegawai aktif.'
+        }
+      />
 
       {/* 5. Dialog Konfirmasi Simpan Presensi Pegawai */}
       <ConfirmDialog
