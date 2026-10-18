@@ -33,7 +33,7 @@ import { PageHeader, Modal, FormField, Badge } from '../../components/ui';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
-import { Pagination } from '../../components/Common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify } from '../../utils/feedback';
 
@@ -121,10 +121,6 @@ export const Exams: React.FC = () => {
     action: async () => {}
   });
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-
   const isFiltersComplete = Boolean(
     filterAcademicYearId && filterSemesterId && filterClassroomId && filterSubjectId
   );
@@ -180,7 +176,6 @@ export const Exams: React.FC = () => {
   }, [form.gradeId]);
 
   useEffect(() => {
-    setCurrentPage(1);
     if (isFiltersComplete) {
       fetchExams();
       fetchLockStatus();
@@ -411,6 +406,7 @@ export const Exams: React.FC = () => {
     { 
       key: 'title', 
       header: 'Judul Penilaian',
+      sortValue: (row) => row.title || '',
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0 text-indigo-600">
@@ -430,6 +426,7 @@ export const Exams: React.FC = () => {
     { 
       key: 'type', 
       header: 'Jenis & Bobot',
+      sortValue: (row) => row.examType || '',
       render: (row) => (
         <div className="flex items-center gap-2">
           <Badge variant="default">{row.examType || 'Ujian'}</Badge>
@@ -442,6 +439,7 @@ export const Exams: React.FC = () => {
     { 
       key: 'class_subject', 
       header: 'Kelas & Mapel',
+      sortValue: (row) => row.classroom?.name || classrooms.find(c => c.id === row.classroomId)?.name || '',
       render: (row) => (
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1.5 text-xs font-medium text-gray-700">
@@ -462,6 +460,7 @@ export const Exams: React.FC = () => {
     { 
       key: 'schedule', 
       header: 'Jadwal Penilaian',
+      sortValue: (row) => row.examDate || '',
       render: (row) => (
         <div className="flex items-center gap-1.5 text-xs text-gray-700">
           <Calendar size={13} className="text-indigo-500" />
@@ -475,6 +474,7 @@ export const Exams: React.FC = () => {
     columns.push({
       key: 'actions',
       header: 'Aksi',
+      sortable: false,
       render: (row) => {
         const isRowOwner = isSuperAdmin || Boolean(
           (row.employeeId && user?.employeeId && String(row.employeeId) === String(user.employeeId)) ||
@@ -520,9 +520,14 @@ export const Exams: React.FC = () => {
     (c.isActive !== false || c.id === form.componentId)
   );
 
-  // Pagination Logic
-  const totalPages = Math.ceil(exams.length / itemsPerPage);
-  const paginatedExams = exams.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  // Pagination & Sorting with useClientPagination
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    exams,
+    10,
+    [search, filterAcademicYearId, filterSemesterId, filterGradeId, filterClassroomId, filterSubjectId],
+    columns,
+    { key: 'schedule', direction: 'desc' }
+  );
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 page-enter">
@@ -725,29 +730,16 @@ export const Exams: React.FC = () => {
             </div>
           </div>
         ) : (
-          <>
-            <DataTable 
-              columns={columns} 
-              data={paginatedExams} 
-              loading={loading} 
-              emptyMessage="Belum ada agenda penilaian yang dibuat untuk kelas dan mata pelajaran ini." 
-              hasPagination={exams.length > 0} 
-            />
-            
-            {exams.length > 0 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={exams.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={(val) => {
-                  setItemsPerPage(val);
-                  setCurrentPage(1);
-                }}
-              />
-            )}
-          </>
+          <DataTable 
+            columns={columns} 
+            data={paginatedItems} 
+            loading={loading} 
+            sortConfig={sortConfig}
+            onSortChange={onSortChange}
+            pagination={pagination}
+            emptyMessage="Belum ada agenda penilaian yang dibuat untuk kelas dan mata pelajaran ini." 
+            containerClassName="w-full overflow-hidden"
+          />
         )}
       </div>
 
