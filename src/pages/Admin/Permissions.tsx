@@ -9,7 +9,7 @@ import {
 import { Plus, Shield, Loader2, Search, Filter, RotateCcw, Edit2, Trash2 } from 'lucide-react';
 import { PageHeader, Modal, FormField, Badge, ConfirmDialog, type ConfirmVariant } from '../../components/ui';
 import { DataTable, type Column } from '../../components/Common/DataTable';
-import { Pagination } from '../../components/Common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { PERMISSION_GROUPS } from '../../constants/permissionsCatalog';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify } from '../../utils/feedback';
@@ -19,11 +19,9 @@ export const Permissions: React.FC = () => {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Search, Filter & Pagination State
+  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(15);
   
   // Create Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -178,18 +176,11 @@ export const Permissions: React.FC = () => {
     });
   }, [permissions, searchQuery, moduleFilter, permCatalogMap]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredPermissions.length / itemsPerPage));
-  const currentPermissions = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredPermissions.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredPermissions, currentPage, itemsPerPage]);
-
-  const hasActiveFilter = Boolean(searchQuery || moduleFilter);
-
   const columns: Column<Permission>[] = [
     { 
       key: 'id', 
       header: 'ID', 
+      sortValue: (perm) => Number(perm.id) || 0,
       render: (perm) => (
         <span className="font-mono text-xs font-semibold text-gray-500">#{perm.id}</span>
       )
@@ -197,6 +188,7 @@ export const Permissions: React.FC = () => {
     { 
       key: 'name', 
       header: 'Nama Hak Akses (Permission)', 
+      sortValue: (perm) => perm.name || '',
       render: (perm) => {
         const meta = permCatalogMap.get(perm.name);
         return (
@@ -221,6 +213,7 @@ export const Permissions: React.FC = () => {
     {
       key: 'module',
       header: 'Modul / Kategori',
+      sortValue: (perm) => permCatalogMap.get(perm.name)?.groupName || 'Sistem Umum',
       render: (perm) => {
         const meta = permCatalogMap.get(perm.name);
         return (
@@ -233,6 +226,7 @@ export const Permissions: React.FC = () => {
     { 
       key: 'guardName', 
       header: 'Guard Name', 
+      sortValue: (perm) => perm.guardName || '',
       render: (perm) => (
         <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono font-medium">
           {perm.guardName}
@@ -243,6 +237,7 @@ export const Permissions: React.FC = () => {
       key: 'actions',
       header: 'Aksi',
       className: 'text-right',
+      sortable: false,
       render: (perm: Permission) => (
         <div className="flex items-center justify-end gap-1">
           <button
@@ -265,6 +260,16 @@ export const Permissions: React.FC = () => {
       )
     } as Column<Permission>] : [])
   ];
+
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredPermissions,
+    15,
+    [searchQuery, moduleFilter],
+    columns,
+    { key: 'name', direction: 'asc' }
+  );
+
+  const hasActiveFilter = Boolean(searchQuery || moduleFilter);
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 page-enter">
@@ -297,10 +302,7 @@ export const Permissions: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 font-medium" 
                 placeholder="Cari nama izin, label, atau guard (mis: students.read, academic)..." 
                 value={searchQuery} 
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }} 
+                onChange={(e) => setSearchQuery(e.target.value)} 
               />
             </div>
           </div>
@@ -312,10 +314,7 @@ export const Permissions: React.FC = () => {
               <select
                 className="w-full pl-10 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 font-medium"
                 value={moduleFilter}
-                onChange={(e) => {
-                  setModuleFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => setModuleFilter(e.target.value)}
               >
                 {moduleOptions.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -330,7 +329,6 @@ export const Permissions: React.FC = () => {
               onClick={() => {
                 setSearchQuery('');
                 setModuleFilter('');
-                setCurrentPage(1);
               }}
               className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-rose-200 shadow-sm self-stretch md:self-end cursor-pointer shrink-0"
               title="Reset seluruh filter"
@@ -356,33 +354,18 @@ export const Permissions: React.FC = () => {
 
         <DataTable 
           columns={columns}
-          data={currentPermissions}
+          data={paginatedItems}
           loading={loading}
+          sortConfig={sortConfig}
+          onSortChange={onSortChange}
+          pagination={pagination}
           emptyMessage={
             hasActiveFilter
               ? 'Tidak ada hak akses yang cocok dengan kriteria pencarian.'
               : 'Belum ada data hak akses.'
           }
-          hasPagination={filteredPermissions.length > 0}
+          containerClassName="w-full overflow-hidden"
         />
-
-        {/* 4. Pagination */}
-        {!loading && filteredPermissions.length > 0 && (
-          <div className="p-4 border-t border-gray-100">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={filteredPermissions.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-              hasNextPage={currentPage < totalPages}
-              onItemsPerPageChange={(newSize) => {
-                setItemsPerPage(newSize);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
-        )}
       </div>
 
       {/* CREATE MODAL */}
