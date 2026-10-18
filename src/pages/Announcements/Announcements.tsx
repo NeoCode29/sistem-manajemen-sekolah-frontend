@@ -30,8 +30,8 @@ import { PageHeader, Modal, FormField, Badge, type BadgeVariant } from '../../co
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { ActionButtons } from '../../components/Common/ActionButtons';
-import { Pagination } from '../../components/Common/Pagination';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import { notify } from '../../utils/feedback';
 import { AnnouncementDetailModal } from './AnnouncementDetailModal';
 
@@ -84,10 +84,6 @@ export const Announcements: React.FC = () => {
 
   const posterInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
-
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // ConfirmDialog State
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -374,11 +370,6 @@ export const Announcements: React.FC = () => {
     );
   }, [announcements, search]);
 
-  const totalPages = Math.ceil(filteredAnnouncements.length / itemsPerPage);
-  const paginatedAnnouncements = useMemo(() => {
-    return filteredAnnouncements.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  }, [filteredAnnouncements, currentPage, itemsPerPage]);
-
   const getTargetBadgeVariant = (target?: string): BadgeVariant => {
     switch (target) {
       case 'SISWA': return 'success';
@@ -486,6 +477,13 @@ export const Announcements: React.FC = () => {
     }
   ];
 
+  const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
+    filteredAnnouncements,
+    10,
+    [search],
+    columns
+  );
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 page-enter">
       {/* PageHeader Standar */}
@@ -517,10 +515,7 @@ export const Announcements: React.FC = () => {
               type="text"
               placeholder="Cari judul, konten, atau target..."
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
             />
           </div>
@@ -537,30 +532,16 @@ export const Announcements: React.FC = () => {
         )}
       </div>
 
-      {/* Table Section */}
-      <div className="bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-        <DataTable 
-          columns={columns}
-          data={paginatedAnnouncements}
-          loading={loading}
-          emptyMessage="Belum ada pengumuman. Klik 'Buat Pengumuman' untuk menambahkan."
-          hasPagination={filteredAnnouncements.length > 0}
-        />
-
-        {filteredAnnouncements.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredAnnouncements.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={(val) => {
-              setItemsPerPage(val);
-              setCurrentPage(1);
-            }}
-          />
-        )}
-      </div>
+      {/* Table Section — Standar DataTable tanpa pembungkus ganda */}
+      <DataTable 
+        columns={columns}
+        data={paginatedItems}
+        loading={loading}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
+        pagination={pagination}
+        emptyMessage="Belum ada pengumuman. Klik 'Buat Pengumuman' untuk menambahkan."
+      />
 
       {/* Modal Form Pembuatan & Edit — Layout 2-Panel Modern (size="xl") */}
       <Modal
