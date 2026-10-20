@@ -24,6 +24,7 @@ export const Users: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const { user: currentUser } = useAuth();
+  const isCurrentUserSuperAdmin = currentUser?.roles?.some(r => r.name === 'Super Admin');
   const { hasPermission, canManageUsers } = usePermissions();
   const canCreateUser = hasPermission('users.create') || canManageUsers;
   const canUpdateUser = hasPermission('users.update') || canManageUsers;
@@ -103,6 +104,10 @@ export const Users: React.FC = () => {
   };
 
   const handleEdit = (user: User) => {
+    if (user.roles?.some(r => r.name === 'Super Admin') && !isCurrentUserSuperAdmin) {
+      notify.error('Hanya Super Admin yang berhak mengedit data atau password akun Super Admin.');
+      return;
+    }
     setIsEditing(true);
     setEditId(user.id);
     setUsername(user.username);
@@ -197,12 +202,21 @@ export const Users: React.FC = () => {
   };
 
   const openAssignModal = (user: User) => {
+    if (user.roles?.some(r => r.name === 'Super Admin') && !isCurrentUserSuperAdmin) {
+      notify.error('Hanya Super Admin yang berhak mengubah peran akun Super Admin.');
+      return;
+    }
     setSelectedUser(user);
     setSelectedRoleIds(user.roles?.map(r => String(r.id)) || []);
     setShowRoleModal(true);
   };
 
   const toggleRole = (roleId: any) => {
+    const roleObj = allRoles.find(r => String(r.id) === String(roleId));
+    if (roleObj?.name === 'Super Admin' && !isCurrentUserSuperAdmin) {
+      notify.error('Hanya Super Admin yang dapat menetapkan peran Super Admin.');
+      return;
+    }
     const strId = String(roleId);
     setSelectedRoleIds(prev => 
       prev.includes(strId) ? prev.filter(id => id !== strId) : [...prev, strId]
@@ -338,13 +352,22 @@ export const Users: React.FC = () => {
         sortable: false,
         render: (user) => {
           const isSelf = String(user.id) === String(currentUser?.id);
+          const isTargetSuperAdmin = user.roles?.some(r => r.name === 'Super Admin');
+          const isSuperAdminLocked = isTargetSuperAdmin && !isCurrentUserSuperAdmin;
+
           return (
             <div className="flex items-center gap-2 justify-end">
               {canAssignRoles && (
                 <button
                   type="button"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
-                  onClick={() => openAssignModal(user)}
+                  disabled={isSuperAdminLocked}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl transition-colors ${
+                    isSuperAdminLocked
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                      : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                  }`}
+                  onClick={() => !isSuperAdminLocked && openAssignModal(user)}
+                  title={isSuperAdminLocked ? 'Hanya Super Admin yang dapat mengubah peran akun Super Admin' : 'Atur Peran'}
                 >
                   <Shield size={14} /> Atur Peran
                 </button>
@@ -352,9 +375,14 @@ export const Users: React.FC = () => {
               {canUpdateUser && (
                 <button 
                   type="button"
-                  className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
-                  onClick={() => handleEdit(user)}
-                  title="Edit Akun"
+                  disabled={isSuperAdminLocked}
+                  className={`p-1.5 rounded-xl transition-colors ${
+                    isSuperAdminLocked
+                      ? 'text-gray-300 cursor-not-allowed opacity-50'
+                      : 'text-gray-500 hover:text-indigo-600 hover:bg-indigo-50'
+                  }`}
+                  onClick={() => !isSuperAdminLocked && handleEdit(user)}
+                  title={isSuperAdminLocked ? 'Hanya Super Admin yang dapat mengedit akun Super Admin' : 'Edit Akun'}
                 >
                   <Edit size={16} />
                 </button>
@@ -362,16 +390,18 @@ export const Users: React.FC = () => {
               {canDeleteUser && (
                 <button
                   type="button"
-                  disabled={isSelf}
+                  disabled={isSelf || isSuperAdminLocked}
                   className={`p-1.5 rounded-xl transition-colors ${
-                    isSelf
+                    isSelf || isSuperAdminLocked
                       ? 'text-gray-300 cursor-not-allowed opacity-50'
                       : 'text-gray-400 hover:text-rose-600 hover:bg-rose-50'
                   }`}
-                  onClick={() => handleDeleteClick(user)}
+                  onClick={() => !isSelf && !isSuperAdminLocked && handleDeleteClick(user)}
                   title={
                     isSelf
                       ? 'Anda tidak dapat menghapus akun Anda sendiri'
+                      : isSuperAdminLocked
+                      ? 'Hanya Super Admin yang dapat menghapus akun Super Admin'
                       : 'Hapus Akun Pengguna'
                   }
                 >
@@ -385,7 +415,7 @@ export const Users: React.FC = () => {
     }
 
     return cols;
-  }, [canAssignRoles, canUpdateUser, canDeleteUser, currentUser?.id]);
+  }, [canAssignRoles, canUpdateUser, canDeleteUser, currentUser?.id, isCurrentUserSuperAdmin]);
 
   const { paginatedItems, pagination, sortConfig, onSortChange } = useClientPagination(
     filteredUsers, 
@@ -665,24 +695,38 @@ export const Users: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[360px] overflow-y-auto p-1">
             {allRoles.map(role => {
               const isChecked = selectedRoleIds.includes(String(role.id));
+              const isSuperAdminRole = role.name === 'Super Admin';
+              const isDisabled = isSuperAdminRole && !isCurrentUserSuperAdmin;
+
               return (
                 <label 
                   key={role.id} 
-                  className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
-                    isChecked ? 'bg-indigo-50/70 border-indigo-200 shadow-sm' : 'bg-white border-gray-200 hover:bg-gray-50'
+                  className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all ${
+                    isDisabled
+                      ? 'bg-gray-100 border-gray-200 opacity-60 cursor-not-allowed'
+                      : isChecked 
+                      ? 'bg-indigo-50/70 border-indigo-200 shadow-sm cursor-pointer' 
+                      : 'bg-white border-gray-200 hover:bg-gray-50 cursor-pointer'
                   }`}
+                  title={isDisabled ? 'Hanya Super Admin yang dapat menetapkan peran ini' : undefined}
                 >
                   <input 
                     type="checkbox" 
-                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                    disabled={isDisabled}
+                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 disabled:opacity-50"
                     checked={isChecked}
-                    onChange={() => toggleRole(role.id)}
+                    onChange={() => !isDisabled && toggleRole(role.id)}
                   />
                   <div className="flex items-center gap-2 min-w-0">
                     <UserCheck size={16} className={isChecked ? 'text-indigo-600' : 'text-gray-400'} />
                     <span className={`text-sm font-medium truncate ${isChecked ? 'text-indigo-900' : 'text-gray-700'}`}>
                       {role.name}
                     </span>
+                    {isDisabled && (
+                      <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 shrink-0">
+                        Khusus Super Admin
+                      </span>
+                    )}
                   </div>
                 </label>
               );

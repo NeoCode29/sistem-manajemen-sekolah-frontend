@@ -20,6 +20,7 @@ import { Badge, type BadgeVariant } from '../../components/ui/Badge';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { DataTable, type Column } from '../../components/Common/DataTable';
 import { notify, parseApiError } from '../../utils/feedback';
+import { getLocalDateString } from '../../utils/constants';
 
 interface AttendanceRow {
   id: string;
@@ -50,7 +51,7 @@ export const StudentAttendancePage: React.FC = () => {
   const [selectedGradeId, setSelectedGradeId] = useState('');
   const [selectedClassroomId, setSelectedClassroomId] = useState('');
   
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getLocalDateString());
   
   // UI Tabs & State
   const [activeTab, setActiveTab] = useState<'input' | 'recap'>('input');

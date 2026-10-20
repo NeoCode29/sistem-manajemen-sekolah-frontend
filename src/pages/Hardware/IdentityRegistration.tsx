@@ -120,6 +120,7 @@ export const IdentityRegistration: React.FC = () => {
 
   const startListening = () => {
     setIsListening(true);
+    const listenStartedAt = Date.now();
     notify.info('Silakan tap kartu atau scan sidik jari pada mesin absensi...');
     setTimeout(() => {
       rfidInputRef.current?.focus();
@@ -128,7 +129,13 @@ export const IdentityRegistration: React.FC = () => {
       try {
         const scansRes = await getRecentScans();
         const scans = Array.isArray(scansRes) ? scansRes : (scansRes.data || []);
-        const latestUnregistered = scans.find((s: any) => s.status === 'UNREGISTERED' || s.status === 'REGISTER_MODE');
+        const latestUnregistered = scans.find((s: any) => {
+          const isEligibleStatus = s.status === 'UNREGISTERED' || s.status === 'REGISTER_MODE';
+          if (!isEligibleStatus) return false;
+          // Freshness window: scan harus terjadi minimal dalam 30 detik sebelum atau setelah tombol listening aktif
+          const scanTime = s.createdAt ? new Date(s.createdAt).getTime() : (s.timestamp ? new Date(s.timestamp).getTime() : 0);
+          return scanTime >= (listenStartedAt - 30000);
+        });
         if (latestUnregistered) {
           if (latestUnregistered.scanType === 'CARD' || latestUnregistered.scanType === 'RFID') {
             setRfidTag(latestUnregistered.scanValue || latestUnregistered.identityValue);

@@ -31,6 +31,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { MapLocationPicker } from '../../components/widgets/MapLocationPicker';
 import { usePermissions } from '../../hooks/usePermissions';
 import { notify, parseApiError } from '../../utils/feedback';
+import { getLocalDateString } from '../../utils/constants';
 
 const DAY_OPTIONS = [
   { value: 1, label: 'Senin', short: 'Sen' },
@@ -197,7 +198,7 @@ export const AttendanceSettings: React.FC = () => {
     return true;
   };
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
   const isTodaySkipped = autoAlphaSkippedDates.some((d) => d.date === todayStr);
   const todayDayOfWeek = new Date().getDay();
   const isTodaySchoolDay = workingDays.includes(todayDayOfWeek);

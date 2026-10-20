@@ -27,3 +27,10 @@ export const searchMenus = [
   { title: 'Peran (Roles)', path: '/admin/roles' },
   { title: 'Pengaturan', path: '/settings' }
 ];
+
+export const getLocalDateString = (d: Date = new Date()): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};

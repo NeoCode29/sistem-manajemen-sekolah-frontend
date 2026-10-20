@@ -8,6 +8,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Badge, type BadgeVariant } from '../../components/ui/Badge';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { notify, parseApiError } from '../../utils/feedback';
+import { getLocalDateString } from '../../utils/constants';
 
 interface AttendanceRow {
   id: string;
@@ -23,7 +24,7 @@ interface AttendanceRow {
 export const EmployeeAttendancePage: React.FC = () => {
   const { canRecordEmployeeAttendance, canReadEmployeeAttendance } = usePermissions();
 
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getLocalDateString());
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'input' | 'recap'>('input');
   
